@@ -112,9 +112,10 @@
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
             android:theme="@style/FreeMyTV.Panel" />
 
+        <!-- The screensaver runs in the app's main process: on Android 12 the system starts its DreamActivity there,
+             and a DreamService in another process makes it crash (BinderProxy → DreamActivityCallbacks). -->
         <service
             android:name=".Screensaver"
-            android:process=":home"
             android:exported="true"
             android:label="At Yazılım"
             android:permission="android.permission.BIND_DREAM_SERVICE">
