@@ -133,6 +133,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
             data.refreshIfStale();
             recs.refreshIfStale();
             recs.prefetchAll();
+            Photos.get(getContext()).refresh();
             dirty = true;
             chromeDirty = true;
             prepareNext();
@@ -172,6 +173,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
         data.refreshIfStale();
         recs.refreshIfStale();
         recs.prefetchAll();
+        Photos.get(getContext()).refresh();     // the hour's nature photo behind the clock (Android 12 look)
         prepareNext();
         handler.postDelayed(tick, 60_000);
         Choreographer.getInstance().postFrameCallback(this);
