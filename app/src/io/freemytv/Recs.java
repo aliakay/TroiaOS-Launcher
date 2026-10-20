@@ -451,7 +451,7 @@ final class Recs {
         if (best != null) p.backdrop = best;
         List<String> parts = new ArrayList<>();
         JSONArray genres = o.optJSONArray("genres");
-        if (p.kind.equals("tv")) parts.add(Ui.tr("Série", "Series"));
+        if (p.kind.equals("tv")) parts.add(Ui.tr("Dizi", "Series"));
         if (genres != null && genres.length() > 0) {
             String name = genres.getJSONObject(0).optString("name");
             parts.add(Ui.en ? name : genre(name));

@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -50,7 +51,8 @@ import java.util.concurrent.Executors;
  * Measurements are in a 1920×1080 space (k = width / 1920). The screen is split into layers so the TV's weak GPU only
  * redraws what changed.
  */
-final class HomeView extends ViewGroup implements Choreographer.FrameCallback, HomeData.Listener, Recs.Listener {
+final class HomeView extends ViewGroup implements Choreographer.FrameCallback, HomeData.Listener, Recs.Listener,
+        Stocks.Listener, Photos.Listener {
     // tvOS grid (Human Interface Guidelines): content inside the safe area, 80 px from the sides and 60 from top and
     // bottom; 40 px between items; 7 columns of 217 px (the apps). The shelf glass extends 36 px past the tiles (the
     // same padding on all four sides) and the tile corners are concentric with it (glass radius = radius + padding).
@@ -61,14 +63,37 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     // Shelf like the tvOS 27 Dock: 5:3 icons (210 × 126) in each brand's color, 48 apart, and the glass bar hugging
     // them with 40 of padding (the focused icon grows 20% without touching its edge).
     private static final float SHELF_PAD = 40, TILE_GAP = 48;
+    /** The glass bar behind the apps (off: the icons sit on the wallpaper, like Apple TV's home screen). */
+    private static final boolean SHOW_DOCK = true;
+    /**
+     * The apps like CleanFrame (github.com/nthnclrk/CleanFrame): on the glass bar, each one as its white mark and its
+     * name; the focused one on a lit pane of glass. Off: the colored tiles.
+     */
+    private static final boolean CLEAN_DOCK = true;
+    private static final float CLEAN_TOP = 816, CLEAN_H = 168, CLEAN_PAD = 16;
+    /** Each shelf app's white mark (assets/symbols; see LICENSE-app-icons.txt). */
+    private static final Map<String, String> GLYPHS = new HashMap<>();
+    static {
+        GLYPHS.put("netflix", "app_netflix");
+        GLYPHS.put("youtube", "app_youtube");
+        GLYPHS.put("disney", "app_disneyplus");
+        GLYPHS.put("max", "app_hbomax");
+        GLYPHS.put("prime", "app_primevideo");
+        GLYPHS.put("appletv", "app_appletv");
+        GLYPHS.put("tivimate", "live_tv");
+        GLYPHS.put("browsehere", "app_browsehere");
+        GLYPHS.put("bitdefender", "app_bitdefender");
+    }
     private static final float TILE_RADIUS = 22, TILE_MAX_W = 270;
     // Tile focus (Apple TV style): it grows from the center and its shadow drops (it "rises" toward the viewer).
     private static final float FOCUS_GROW = 0.2f;
     // Corner capsule.
     // Corner capsule: the height and top offset of the tvOS tab bar (68 and 46).
     private static final float CAPSULE_TOP = 46, CAPSULE_H = 68, BUTTON = 56;
-    // Bottom drawer (measured with it open; everything moves up by SHIFT).
-    private static final float SHIFT = 560, ROW_TITLE = 518, ROW_TOP = 540, ROW_H = 126, CARDS_TOP = 708, CARDS_H = 300;
+    // Bottom drawer (measured with it open; everything moves up by SHIFT): one row of inputs and shortcuts.
+    private static final float SHIFT = 300, ROW_TITLE = 790, ROW_TOP = 812, ROW_H = 126, CARDS_H = 320;
+    // Top of the home screen: the time and date at the left; below them the weather and the watchlist, side by side.
+    private static final float L_CLOCK_BASE = 194, L_DATE_BASE = 254, L_WEATHER_TOP = 330, WEATHER_CY = 155;
     // "All Apps" sheet.
     private static final int COLUMNS = 5, VISIBLE_ROWS = 3;
     private static final float GRID_W = 300, GRID_H = 169, GRID_GAP = 40, GRID_ROW = 239, GRID_TOP = 196, GRID_RADIUS = 22;
@@ -82,7 +107,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     // The tab bar is a 68 px capsule; the cards sit on the 5-column grid (the wide one spans 3).
     private static final float L_TITLE_BASE = 130, L_TABBAR_TOP = 158, L_TABBAR_H = 68, L_CARDS_TOP = 262, L_CARD_H = 442;
     private static final float L_TALL_W = 320, L_CARD_GAP = 40, L_BUTTON = 68, L_BUTTON_GAP = 20, L_BUTTON_CY = 103;
-    private static final float L_PLATTER_TOP = 814, L_TILE_H = 126;
+    private static final float L_PLATTER_TOP = 790, L_TILE_H = 126;
     private static final int L_INK = 0xFF1D1D1F, L_DIM = 0xFF6E6E73, L_FAINT = 0xFF8E8E93;
     private static final String[] TABS = {"Explorar", "Filmes", "Séries"};
     private static final String[] TABS_EN = {"Explore", "Movies", "Shows"};
@@ -92,6 +117,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private final Activity activity;
     private final Scene scene = new Scene();
     private final HomeData data;
+    private final Stocks stocks;
+    private final Photos photos;
     private final Recs recs;
     private final Click click;
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -113,12 +140,17 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     // At the top: tabs (0 to 2) and icon-only buttons (3 to 5); the three cards
     private int tab, topIndex, cardIndex;
     private List<Recs.Pick> cards = new ArrayList<>();
-    private final Spring[] topFocus = new Spring[6];
-    private final RectF[] topRects = new RectF[6];
+    // Tabs (0 to 2, not shown here) and the corner buttons (3 on): Live TV, HDMI, Network, Lights, Settings.
+    private final Spring[] topFocus = new Spring[12];
+    private final RectF[] topRects = new RectF[12];
     private final Spring[] cardFocus = new Spring[3];
     private final RectF[] cardRects = new RectF[3];
     private final List<HomeApps.Item> lightButtons = new ArrayList<>();
-    private Paint lTitle, lTab, lTabOn, lCardTitle, lCardMeta, lQuote, lTip;
+    private Paint lTitle, lTab, lTabOn, lCardTitle, lCardMeta, lQuote, lTip, lClock, lDate, lPill, lAppName, lDockName,
+            lGreet, lDateCaps, lWxTemp, lWxMain, lWxDim, lCaption, lCredit;
+    private final RectF mainWeather = new RectF(), stocksCard = new RectF();
+    private final Path curve = new Path();
+    private Paint curveLine, closeLine, stockChange;
     private Shader lightGradient;
 
     // Shelf
@@ -130,7 +162,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private static final Map<String, int[]> TILE_STYLE = new HashMap<>();
     static {
         TILE_STYLE.put("netflix", new int[] {0xFF0A0A0A, 0xFF000000, 0});
-        TILE_STYLE.put("youtube", new int[] {0xFFFFFFFF, 0xFFECECEC, 2});
+        TILE_STYLE.put("youtube", new int[] {0xFF1A1A1A, 0xFF000000, 0});     // dark: the logo lifted from the TV art has white text
         TILE_STYLE.put("globoplay", new int[] {0xFFFF8A1F, 0xFFFF2D5A, 1});
         TILE_STYLE.put("prime", new int[] {0xFF2AA8FF, 0xFF0A68D4, 1});
         TILE_STYLE.put("disney", new int[] {0xFF173584, 0xFF08143F, 0});
@@ -165,7 +197,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private int drawerInputs;          // how many leading items are inputs (the rest are shortcuts)
     private Spring[] drawerFocus = new Spring[0];
     private RectF[] drawerRects = new RectF[0];
-    private final RectF weatherCard = new RectF(), quotesCard = new RectF();
     private final Spring drawer = new Spring(0.46f, 0.92f, 0);
     private boolean drawerOpen;
     private int drawerIndex;
@@ -191,9 +222,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private long lastNanos, resumedAt, lastStep;
     private int w, h;
     private float k = 1;
-    private String clockText = "";
+    private String clockText = "", dateText = "", dateLineText = "";
     private long clockMinute = -1;
-    private boolean okDown, backDown;
+    private boolean okDown, okHeld, backDown;
+    /** The WiZ lights: on, off, or null (unknown / no lamps); the bulb button shows it. */
+    private Boolean lightsOn;
+    private static final ExecutorService LIGHTS_IO = Executors.newSingleThreadExecutor();
 
     private Paint labelPaint, metaPaint, clockPaint, buttonPaint, capsuleText, tipPaint, quotePaint, staleQuote;
     private Paint rowTitle, drawerLabel, cardTitle, cardText, cardDim, cardDimRight, bigTemp, hourPaint, hourTemp;
@@ -266,7 +300,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         @Override public void run() {
             if (!running) return;
             data.refreshIfStale();
+            stocks.refreshIfStale();
             recs.refreshIfStale();
+            photos.refresh();       // a new photo every hour (and day ⇄ night)
+            updateNetwork();
             checkNotices();
             updatePalette();
             checkNight(true);
@@ -279,6 +316,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         super(a);
         activity = a;
         data = HomeData.get(a);
+        stocks = Stocks.get(a);
+        photos = Photos.get(a);
         recs = Recs.get(a);
         click = new Click(a);
         ui = a.getSharedPreferences("home-ui", Context.MODE_PRIVATE);
@@ -296,7 +335,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         for (View v : new View[] {heroLayer, status, platter, tiles, drawerLayer, sheetLayer}) v.setLayerType(LAYER_TYPE_HARDWARE, null);
         for (View v : new View[] {sky, heroLayer, status, platter, tiles, drawerLayer, sheetLayer, toastLayer}) addView(v);
         drawerLayer.setVisibility(INVISIBLE);
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < topFocus.length; i++) {
             topFocus[i] = new Spring(0.26f, 0.85f, 0);
             topRects[i] = new RectF();
         }
@@ -307,6 +346,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         makeLightButtons();
         recs.setLight(true);
         checkNight(false);
+        scene.setNight(night);
         sheetLayer.setVisibility(INVISIBLE);
         scene.setMotion(0.6f, 0f);
         updatePalette();
@@ -321,18 +361,30 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     void resume() {
         if (running) return;
         running = true;
+        if (Ui.loadLanguage(getContext())) {   // the language was changed in the settings
+            makeLightButtons();
+            gridLabels = null;
+            clockMinute = -1;
+            updateClock();
+        }
         checkNight(false);
         resumedAt = SystemClock.uptimeMillis();
         lastNanos = 0;
         lastStep = 0;
         data.addListener(this);
+        stocks.addListener(this);
+        photos.addListener(this);
+        photos.refresh();
         recs.addListener(this);
         data.refreshIfStale();
+        stocks.refreshIfStale();
         recs.refreshIfStale();
         if (tvInputs != null) tvInputs.registerCallback(inputCallback, handler);
         handler.postDelayed(tick, 15_000);
         checkNotices();
         reload();
+        refreshLights();
+        updateNetwork();
         updatePalette();
         updatePicks();
         if (sheetOpen) closeSheet();
@@ -348,6 +400,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         Choreographer.getInstance().removeFrameCallback(this);
         handler.removeCallbacks(tick);
         data.removeListener(this);
+        stocks.removeListener(this);
+        photos.removeListener(this);
         recs.removeListener(this);
         if (tvInputs != null) tvInputs.unregisterCallback(inputCallback);
     }
@@ -382,9 +436,18 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     /** The three corner buttons, with their names in the current language. */
     private void makeLightButtons() {
         lightButtons.clear();
-        lightButtons.add(HomeApps.action(HomeApps.LIVE_TV, "live", Ui.tr("TV aberta", "Live TV"), "live_tv"));
-        lightButtons.add(HomeApps.action(HomeApps.INPUTS, "inputs", Ui.tr("Entradas HDMI", "HDMI Inputs"), "hdmi"));
-        lightButtons.add(HomeApps.action(HomeApps.SETTINGS, "settings", Ui.tr("Configurações", "Settings"), "settings"));
+        // The weather: the widget next to the clock (it takes focus too: OK opens the hours); then the round buttons.
+        lightButtons.add(HomeApps.action(HomeApps.WEATHER, "weather", weatherLabel(), weatherSymbol()));
+        lightButtons.add(HomeApps.action(HomeApps.LIVE_TV, "live", Ui.tr("Canlı TV", "Live TV"), "live_tv"));
+        lightButtons.add(HomeApps.action(HomeApps.INPUTS, "inputs", Ui.tr("HDMI Girişleri", "HDMI Inputs"), "hdmi"));
+        if (!stocks.quotes.isEmpty()) {
+            lightButtons.add(HomeApps.action(HomeApps.MARKETS, "markets", Ui.tr("Piyasalar", "Markets"), "chart"));
+        }
+        String net = HomeApps.network(getContext());
+        lightButtons.add(HomeApps.action(HomeApps.NETWORK, "network", HomeApps.networkLabel(net), net));
+        lightButtons.add(HomeApps.action(HomeApps.LIGHTS, "lights",
+                Ui.tr("Işıklar · ayarlar için basılı tut", "Lights · hold for settings"), "lightbulb"));
+        lightButtons.add(HomeApps.action(HomeApps.SETTINGS, "settings", Ui.tr("Ayarlar", "Settings"), "settings"));
     }
 
     private static String[] tabs() {
@@ -395,8 +458,21 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         updatePalette();
         checkNight(true);
         layoutStatus();
+        updateWeatherButton();
         heroDirty = statusDirty = drawerDirty = true;
         platter.invalidate();
+    }
+
+    /** A new photo behind the home screen: everything with glass is redrawn (the glass shows the photo). */
+    @Override public void onPhoto() {
+        checkNight(true);
+        heroDirty = statusDirty = tilesDirty = drawerDirty = true;
+        sky.invalidate();
+        platter.invalidate();
+    }
+
+    @Override public void onStocks() {
+        heroDirty = true;
     }
 
     @Override public void onRecs() {
@@ -414,7 +490,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         float kk = width / 1920f;
         measure(sky, width, height);
         measure(heroLayer, width, Math.round(790 * kk));
-        measure(status, Math.round(1160 * kk), Math.round(240 * kk));
+        measure(status, Math.round(1160 * kk), Math.round(262 * kk));
         // Sized to what they draw (the glass and its shadow; the grown tiles and their shadows): smaller layers are
         // cheaper for the GPU to composite on every frame of the drawer animation.
         measure(platter, width, Math.round(320 * kk));
@@ -488,6 +564,39 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         lQuote = Ui.numbers(Ui.regular, 21 * k, L_FAINT);
         lTip = Ui.text(Ui.semibold, 25 * k, L_INK);
         lTip.setTextAlign(Paint.Align.CENTER);
+        lClock = Ui.numbers(Ui.light, 112 * k, L_INK);
+        lGreet = Ui.text(Ui.semibold, 22 * k, L_INK);
+        lGreet.setLetterSpacing(0.2f);
+        lDateCaps = Ui.text(Ui.medium, 25 * k, L_INK);
+        lDateCaps.setLetterSpacing(0.14f);
+        lWxTemp = Ui.numbers(Ui.medium, 66 * k, L_INK);
+        lWxMain = Ui.text(Ui.regular, 23 * k, L_INK);
+        lWxDim = Ui.numbers(Ui.regular, 20 * k, L_DIM);
+        lCaption = Ui.text(Ui.medium, 21 * k, 0xFFFFFFFF);
+        lCaption.setTextAlign(Paint.Align.RIGHT);
+        lCredit = Ui.text(Ui.regular, 16 * k, 0xFFFFFFFF);
+        lCredit.setTextAlign(Paint.Align.RIGHT);
+        // On a photo, a soft shadow keeps white text readable over bright parts.
+        for (Paint p : new Paint[] {lClock, lGreet, lDateCaps, lWxTemp, lWxMain, lWxDim, lCaption, lCredit}) {
+            p.setShadowLayer(16 * k, 0, 2 * k, 0x66000000);
+        }
+        lPill = Ui.numbers(Ui.semibold, 27 * k, L_INK);
+        lAppName = Ui.text(Ui.semibold, 25 * k, L_INK);
+        lDockName = Ui.text(Ui.medium, 27 * k, 0xFFFFFFFF);
+        lDockName.setTextAlign(Paint.Align.CENTER);
+        lAppName.setTextAlign(Paint.Align.CENTER);
+        lClock.setLetterSpacing(-0.01f);
+        lDate = Ui.text(Ui.medium, 32 * k, L_DIM);
+        stockChange = Ui.numbers(Ui.semibold, 22 * k, UP_COLOR);
+        curveLine = new Paint(Paint.ANTI_ALIAS_FLAG);
+        curveLine.setStyle(Paint.Style.STROKE);
+        curveLine.setStrokeWidth(2.5f * k);
+        curveLine.setStrokeJoin(Paint.Join.ROUND);
+        curveLine.setStrokeCap(Paint.Cap.ROUND);
+        closeLine = new Paint(Paint.ANTI_ALIAS_FLAG);
+        closeLine.setStyle(Paint.Style.STROKE);
+        closeLine.setStrokeWidth(1.5f * k);
+        closeLine.setPathEffect(new android.graphics.DashPathEffect(new float[] {3 * k, 5 * k}, 0));
         lightGradient = null;
         buttonPaint = Ui.text(Ui.semibold, 29 * k, INK);
         capsuleText = Ui.numbers(Ui.medium, 29 * k, 0xF2FFFFFF);
@@ -571,6 +680,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (updateClock()) {
             layoutStatus();
             status.invalidate();
+            heroLayer.invalidate();     // the time and date at the top left
             if (hero != null && hero.clock) {
                 refreshHero(false);
                 heroLayer.invalidate();
@@ -623,6 +733,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (minute == clockMinute || clockPaint == null) return false;
         clockMinute = minute;
         clockText = Ui.clock(now);
+        dateText = Ui.date(now);
+        String line = Ui.dateLine(now);
+        if (!line.equals(dateLineText)) {   // the weather widget sits after the date: its place may move
+            dateLineText = line;
+            layoutLight();
+        }
         return true;
     }
 
@@ -673,7 +789,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         Recs.Pick p = currentPick();
         if (p == null) {
             h.clock = true;
-            h.label = Ui.date(System.currentTimeMillis()).toUpperCase(Ui.en ? java.util.Locale.US : Ui.PT);
+            h.label = Ui.date(System.currentTimeMillis()).toUpperCase(Ui.en ? java.util.Locale.UK : Ui.TR);
             return h;
         }
         h.label = Recs.periodLabel();
@@ -759,7 +875,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     /** Day or night right now (from the sun at your location); `animate`: with the transition. */
     private void checkNight(boolean animate) {
-        boolean want = data.isNight(System.currentTimeMillis());
+        boolean want = Wallpaper.get().hasPhoto() || data.isNight(System.currentTimeMillis());
         if (want == nightTarget) return;
         nightTarget = want;
         if (animate && running) {
@@ -787,6 +903,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     /** Redraws for the current night value (the glass now reads the lightened, blended or darkened photo). */
     private void nightChanged() {
+        scene.setNight(night);
         if (bgFadeAt == 0 && bgTo != null && bgTo.lightGlass != null) {
             scene.setFrost(frostOf(bgTo));
             if (nightAt != 0 && bgTo.nightGlass != null) {
@@ -997,12 +1114,27 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     private void layoutShelf() {
         int n = shelf.size();
-        float pad = SHELF_PAD * k, gap = TILE_GAP * k, th = L_TILE_H * k;
+        if (CLEAN_DOCK) {
+            float pad = CLEAN_PAD * k, gap = 8 * k, th = CLEAN_H * k;
+            float full = (CONTENT_R - MARGIN) * k - 2 * pad;
+            float tw = Math.min(250 * k, (full - Math.max(0, n - 1) * gap) / Math.max(1, n));
+            float width = n * tw + Math.max(0, n - 1) * gap, left = (w - width) / 2f, top = CLEAN_TOP * k;
+            platterRect.set(left - pad, top, left + width + pad, top + th + 2 * pad);
+            float x = left;
+            for (int i = 0; i < n; i++) {
+                tileRects[i].set(x, top + pad, x + tw, top + pad + th);
+                x += tw + gap;
+            }
+            crispLogos.clear();
+            return;
+        }
+        // A ninth app fits with less room between the icons.
+        float pad = SHELF_PAD * k, gap = (n > 8 ? 32 : TILE_GAP) * k, th = L_TILE_H * k;
         float full = (CONTENT_R - MARGIN) * k;
         float tw = Math.min(TILE_MAX_W * k, (full - Math.max(0, n - 1) * gap) / Math.max(1, n));
         float width = n * tw + Math.max(0, n - 1) * gap, left = (w - width) / 2f;
         float top = L_PLATTER_TOP * k;
-        platterRect.set(left - pad, top, left + width + pad, top + th + 2 * pad);
+        platterRect.set(left - pad, top, left + width + pad, top + th + 2 * pad + (SHOW_DOCK ? 30 * k : 0));
         float x = left, y = top + pad;
         for (int i = 0; i < n; i++) {
             tileRects[i].set(x, y, x + tw, y + th);
@@ -1013,51 +1145,16 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     /** Shelf layer: the glass bar and its shadow (it only changes with the background). */
     private void drawPlatter(Canvas c) {
-        if (shelf.isEmpty()) return;
+        if (shelf.isEmpty() || !SHOW_DOCK) return;
         float radius = (TILE_RADIUS + SHELF_PAD) * k;
         tmp.set(platterRect);
         tmp.offset(0, 18 * k);
         shadow.setColor(tone(0x1F000000, 0x52000000));
         c.drawRoundRect(tmp, radius, radius, shadow);
         // White glass by day; smoked glass at night.
-        scene.liquid(c, platterRect, radius, tone(0xFFFFFFFF, SMOKE), tone(0.42f, 0.12f), tone(0.03f, 0.08f),
+        boolean photo = Wallpaper.get().hasPhoto();
+        scene.liquid(c, platterRect, radius, photo ? SMOKE : tone(0xFFFFFFFF, SMOKE), photo ? 0.7f : tone(0.42f, 0.12f), tone(0.03f, 0.08f),
                 tone(30, 34) * k, tone(22, 28) * k, tone(0.65f, 0.95f), 1);
-    }
-
-    /** Coin logo + price in the configured currency, in a row at the right end of the tab bar. */
-    private void drawQuotes(Canvas c) {
-        float right = platterRect.isEmpty() ? CONTENT_R * k : platterRect.right - SHELF_PAD * k;
-        applyTone();
-        Paint text = lQuote;
-        // The corner buttons' names appear in this row: the quotes fade out while one of them has focus.
-        float fade = 1;
-        for (int i = 3; i < 6; i++) fade = Math.min(fade, 1 - Ui.clamp(topFocus[i].value));
-        if (fade <= 0.01f) return;
-        int textColor = text.getColor();
-        text.setColor(Ui.alpha(textColor, fade));
-        // On the tab row, at the right.
-        float base = (L_TABBAR_TOP + L_TABBAR_H / 2) * k + Ui.halfCap(text);
-        float cap = Ui.cap(text), gap = 6 * k, spacing = 24 * k;
-        int n = HomeData.coinCount();
-        String[] values = new String[n];
-        float[] glyphs = new float[n];
-        float total = spacing * (n - 1);
-        for (int i = 0; i < n; i++) {
-            values[i] = HomeData.compact(data.prices[i]);
-            glyphs[i] = Glyphs.width(getContext(), HomeData.COINS[i], cap);
-            total += glyphs[i] + gap + text.measureText(values[i]);
-        }
-        float x = right - total;
-        for (int i = 0; i < n; i++) {
-            Glyphs.coin(getContext(), c, HomeData.COINS[i], x + glyphs[i] / 2, base - cap / 2, cap,
-                    Ui.alpha(tone(0xB38E8E93, 0x8CFFFFFF), fade));
-            x += glyphs[i] + gap;
-            c.drawText(values[i], x, base, text);
-            x += text.measureText(values[i]) + spacing;
-        }
-        text.setColor(textColor);
-        String stale = HomeData.staleness(data.pricesAt, 5 * 60_000L);
-        if (!stale.isEmpty()) c.drawText(stale, right - total - 24 * k, base, staleQuote);
     }
 
     private void drawTiles(Canvas c) {
@@ -1083,7 +1180,55 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
      * Focused: it grows 20% from the center, with a deep shadow (it "rises" toward the viewer) and a subtle glow at the
      * top. No border and no reflection, as Apple does it.
      */
+    /**
+     * CleanFrame's app: its white mark (all at the same height; wide ones narrower) above its name. Focused: a lit pane
+     * of glass behind it, a little larger, and the mark at full white.
+     */
+    private void drawCleanItem(Canvas c, int i) {
+        HomeApps.Item it = shelf.get(i);
+        float f = tileFocus[i].value, fc = Ui.clamp(f), s = 1 + 0.04f * f;
+        RectF base = tileRects[i];
+        float cx = base.centerX(), cy = base.centerY();
+        cell.set(cx - base.width() * s / 2, cy - base.height() * s / 2, cx + base.width() * s / 2, cy + base.height() * s / 2);
+        float r = 28 * k * s;
+        if (fc > 0.01f) {
+            fill.setShader(null);
+            fill.setColor(Ui.alpha(0xFFFFFFFF, 0.18f * fc));
+            c.drawRoundRect(cell, r, r, fill);
+            border.setColor(Ui.alpha(0xFFFFFFFF, 0.3f * fc));
+            c.drawRoundRect(cell, r, r, border);
+        }
+        int ink = Ui.alpha(0xFFFFFFFF, 0.8f + 0.2f * fc);
+        float gy = cell.top + cell.height() * 0.4f, targetH = 52 * k * s, maxW = cell.width() * 0.6f;
+        String glyph = GLYPHS.get(it.key);
+        Bitmap mark = glyph == null ? null : Symbols.get(getContext(), glyph);
+        if (mark != null) {
+            // Symbols draws at size × (pixels / 144): pick the size that gives the target height (or the width cap).
+            float scale = Math.min(targetH / mark.getHeight(), maxW / mark.getWidth());
+            Symbols.draw(getContext(), c, glyph, cx, gy, scale * 144, ink);
+        } else if (it.logo != null) {
+            float scale = Math.min(targetH / it.logo.getHeight(), maxW / it.logo.getWidth());
+            float lw = it.logo.getWidth() * scale, lh = it.logo.getHeight() * scale;
+            tmp.set(cx - lw / 2, gy - lh / 2, cx + lw / 2, gy + lh / 2);
+            bitmapPaint.setColorFilter(whiteLogo);
+            bitmapPaint.setAlpha(Color.alpha(ink));
+            c.drawBitmap(it.logo, null, tmp, bitmapPaint);
+            bitmapPaint.setColorFilter(null);
+            bitmapPaint.setAlpha(255);
+        }
+        lDockName.setColor(ink);
+        float size = 27 * k * s, room = cell.width() - 18 * k;
+        lDockName.setTextSize(size);
+        float wide = lDockName.measureText(it.label);
+        if (wide > room) lDockName.setTextSize(size * room / wide);
+        c.drawText(it.label, cx, cell.top + cell.height() * 0.84f, lDockName);
+    }
+
     private void drawShelfTile(Canvas c, int i) {
+        if (CLEAN_DOCK) {
+            drawCleanItem(c, i);
+            return;
+        }
         HomeApps.Item it = shelf.get(i);
         float f = tileFocus[i].value, fc = Ui.clamp(f), s = 1 + FOCUS_GROW * f;
         RectF base = tileRects[i];
@@ -1125,6 +1270,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             c.clipPath(clip);
             if (it.tile != null) c.drawBitmap(it.tile, null, cell, bitmapPaint);
             c.restore();
+        }
+        // Apple TV: the focused app's name appears below it.
+        if (!CLEAN_DOCK && fc > 0.01f && it.label != null) {
+            lAppName.setColor(Ui.alpha(tone(L_INK, WHITE), fc));
+            c.drawText(it.label, cx, cell.bottom + 40 * k, lAppName);
         }
     }
 
@@ -1222,9 +1372,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             drawerRects[i].set(x, top, x + tw, top + ROW_H * k);
             x += tw + gap;
         }
-        float cardsTop = CARDS_TOP * k, split = left + (right - left) * 0.585f;
-        weatherCard.set(left, cardsTop, split - 16 * k, cardsTop + CARDS_H * k);
-        quotesCard.set(split + 16 * k, cardsTop, right, cardsTop + CARDS_H * k);
         drawerDirty = true;
     }
 
@@ -1268,9 +1415,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         drawerGlass(c, r, 30 * k, 0.72f, 0x1A000000, 10 * k);
     }
 
-    private void drawDrawer(Canvas c) {
-        if (drawerItems.isEmpty()) return;
-        rowTitle.setColor(tone(L_DIM, 0xB3FFFFFF));
+    /** Text colors of the glass cards (the weather): dark by day, white at night. */
+    private void applyCardTone() {
         cardTitle.setColor(tone(L_DIM, 0xB3FFFFFF));
         cardText.setColor(drawerInk(0.95f));
         cardDim.setColor(tone(L_DIM, 0xADFFFFFF));
@@ -1279,15 +1425,18 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         hourPaint.setColor(tone(L_DIM, 0xADFFFFFF));
         hourTemp.setColor(drawerInk(0.95f));
         pricePaint.setColor(drawerInk(0.95f));
+    }
+
+    private void drawDrawer(Canvas c) {
+        if (drawerItems.isEmpty()) return;
+        rowTitle.setColor(tone(L_DIM, 0xB3FFFFFF));
         float titleBase = ROW_TITLE * k;
-        if (drawerInputs > 0) c.drawText(Ui.tr("Entradas", "Inputs"), drawerRects[0].left + 4 * k, titleBase, rowTitle);
-        if (drawerInputs < drawerItems.size()) c.drawText(Ui.tr("Atalhos", "Shortcuts"), drawerRects[drawerInputs].left + 4 * k, titleBase, rowTitle);
+        if (drawerInputs > 0) c.drawText(Ui.tr("Girişler", "Inputs"), drawerRects[0].left + 4 * k, titleBase, rowTitle);
+        if (drawerInputs < drawerItems.size()) c.drawText(Ui.tr("Kısayollar", "Shortcuts"), drawerRects[drawerInputs].left + 4 * k, titleBase, rowTitle);
         int top = -1;
         for (int i = 0; i < drawerItems.size(); i++) if (drawerFocus[i].value > 0.02f && (top < 0 || drawerFocus[i].value > drawerFocus[top].value)) top = i;
         for (int i = 0; i < drawerItems.size(); i++) if (i != top) drawDrawerTile(c, i);
         if (top >= 0) drawDrawerTile(c, top);
-        drawWeatherCard(c, weatherCard);
-        drawQuotesCard(c, quotesCard);
     }
 
     /** Square drawer button: symbol and name; an input with no device is dimmed. Focused: white, with dark text. */
@@ -1327,10 +1476,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private void drawWeatherCard(Canvas c, RectF r) {
         drawerCard(c, r);
         float x = r.left + 34 * k;
-        c.drawText(Config.CITY.trim().isEmpty() ? Ui.tr("Clima", "Weather") : Config.CITY.trim(), x, r.top + 54 * k, cardTitle);
+        c.drawText(Config.CITY.trim().isEmpty() ? Ui.tr("Hava Durumu", "Weather") : Config.CITY.trim(), x, r.top + 54 * k, cardTitle);
         HomeData.Weather wx = data.weather;
         if (Double.isNaN(wx.temp)) {
-            c.drawText(Ui.tr("Sem dados do clima agora.", "No weather data right now."), x, r.top + 120 * k, cardDim);
+            c.drawText(Ui.tr("Şu an hava durumu verisi yok.", "No weather data right now."), x, r.top + 120 * k, cardDim);
             return;
         }
         String symbol = Symbols.weather(wx.code, wx.isDay);
@@ -1340,21 +1489,24 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         c.drawText(now, x + sw + 18 * k - Ui.leftBearing(bigTemp, now), r.top + 170 * k, bigTemp);
         c.drawText(HomeData.condition(wx.code, wx.isDay), x, r.top + 220 * k, cardText);
         c.drawText(Ui.en ? "H:" + HomeData.degrees(wx.max) + "   L:" + HomeData.degrees(wx.min)
-                : "Máx. " + HomeData.degrees(wx.max) + "   Mín. " + HomeData.degrees(wx.min), x, r.top + 258 * k, cardDim);
-        float split = r.left + 392 * k;
+                : "Y: " + HomeData.degrees(wx.max) + "   D: " + HomeData.degrees(wx.min), x, r.top + 258 * k, cardDim);
+        float split = r.left + Math.min(392 * k, r.width() * 0.46f);
         fill.setShader(null);
         fill.setColor(tone(0x1A000000, 0x24FFFFFF));
         c.drawRoundRect(split - k, r.top + 34 * k, split + k, r.bottom - 34 * k, k, k, fill);
-        float hx = split + 30 * k, hw = (r.right - 30 * k - hx) / 6;
-        for (int i = 0; i < wx.hours.size() && i < 6; i++) {
+        float hx = split + 30 * k;
+        int hours = Math.max(3, Math.min(HomeData.HOURS, (int) ((r.right - 30 * k - hx) / (80 * k))));
+        float hw = (r.right - 30 * k - hx) / hours;
+        boolean narrow = r.width() < 1200 * k;
+        for (int i = 0; i < wx.hours.size() && i < hours; i++) {
             float hc = hx + hw * (i + 0.5f);
             c.drawText(HomeData.hour(wx.hours.get(i)), hc, r.top + 96 * k, hourPaint);
             Symbols.draw(getContext(), c, Symbols.weather(wx.hourCode.get(i), wx.hourDay.get(i)), hc, r.top + 142 * k, 30 * k, drawerInk(0.9f));
             c.drawText(HomeData.degrees(wx.hourTemp.get(i)), hc, r.top + 196 * k, hourTemp);
         }
         float sx = hx, base = r.top + 258 * k;
-        if (wx.sunrise != 0) sx = sunItem(c, "sunrise", Ui.tr("Nascer ", "Sunrise ") + Ui.time(wx.sunrise), sx, base) + 36 * k;
-        if (wx.sunset != 0) sunItem(c, "sunset", Ui.tr("Pôr do sol ", "Sunset ") + Ui.time(wx.sunset), sx, base);
+        if (wx.sunrise != 0) sx = sunItem(c, "sunrise", (narrow ? "" : Ui.tr("Gün doğumu ", "Sunrise ")) + Ui.time(wx.sunrise), sx, base) + 36 * k;
+        if (wx.sunset != 0) sunItem(c, "sunset", (narrow ? "" : Ui.tr("Gün batımı ", "Sunset ")) + Ui.time(wx.sunset), sx, base);
     }
 
     private float sunItem(Canvas c, String symbol, String label, float x, float base) {
@@ -1362,32 +1514,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         Symbols.draw(getContext(), c, symbol, x + sw / 2, base - Ui.halfCap(cardDim), size, tone(L_DIM, 0xB3FFFFFF));
         c.drawText(label, x + sw + 10 * k, base, cardDim);
         return x + sw + 10 * k + cardDim.measureText(label);
-    }
-
-    /** Prices in the configured currency with the 24 h change (green/red, like Apple's Stocks app). */
-    private void drawQuotesCard(Canvas c, RectF r) {
-        drawerCard(c, r);
-        float x = r.left + 34 * k, right = r.right - 34 * k;
-        c.drawText(Ui.tr("Cotações", "Crypto"), x, r.top + 54 * k, cardTitle);
-        String stale = HomeData.staleness(data.pricesAt, 5 * 60_000L);
-        c.drawText(stale.isEmpty() ? Ui.tr("variação em 24 h", "24h change") : Ui.tr("de ", "") + stale, right, r.top + 54 * k, cardDimRight);
-        float cap = Ui.cap(cardText);
-        for (int i = 0; i < HomeData.coinCount(); i++) {
-            float base = r.top + (110 + 52 * i) * k, mid = base - cap / 2;
-            float gw = Glyphs.width(getContext(), HomeData.COINS[i], cap);
-            Glyphs.coin(getContext(), c, HomeData.COINS[i], x + 14 * k, mid, cap, tone(L_DIM, 0xCCFFFFFF));
-            c.drawText(HomeData.COIN_NAMES[i], x + Math.max(gw, 28 * k) / 2 + 30 * k, base, cardText);
-            c.drawText(HomeData.brl(data.prices[i]), right - 128 * k, base, pricePaint);
-            double change = data.changes[i];
-            if (Double.isNaN(change)) continue;
-            int color = change >= 0 ? tone(0xFF248A3D, UP_COLOR) : tone(0xFFD70015, DOWN_COLOR);
-            tmp.set(right - 108 * k, mid - 17 * k, right, mid + 17 * k);
-            fill.setShader(null);
-            fill.setColor(Ui.alpha(color, 0.2f));
-            c.drawRoundRect(tmp, 17 * k, 17 * k, fill);
-            changePaint.setColor(color);
-            c.drawText(HomeData.change(change), tmp.centerX(), mid + Ui.halfCap(changePaint), changePaint);
-        }
     }
 
     // MARK: - Focus
@@ -1468,7 +1594,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private void drawSheet(Canvas c) {
         c.drawColor(0xA8000000);
         float shift = scroll.value * GRID_ROW * k;
-        c.drawText(Ui.tr("Todos os Apps", "All Apps"), w / 2f, 124 * k - shift, sheetTitle);
+        c.drawText(Ui.tr("Tüm Uygulamalar", "All Apps"), w / 2f, 124 * k - shift, sheetTitle);
         int n = others.size();
         if (gridLabels == null || gridLabels.length != n) {
             gridLabels = new String[n];
@@ -1647,9 +1773,20 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 // Opens on release, and only if the press happened here: the release of an OK pressed inside another
                 // app opens nothing.
                 if (down) {
-                    if (e.getRepeatCount() == 0) okDown = true;
+                    if (e.getRepeatCount() == 0) {
+                        okDown = true;
+                        okHeld = false;
+                    } else if (okDown && !okHeld && (e.isLongPress() || e.getEventTime() - e.getDownTime() >= 380)) {
+                        if (lightsFocused()) {
+                            okHeld = true;      // OK held on the bulb: the lights panel (a short press switches them)
+                            openCornerButton();
+                        } else if (networkFocused() && HomeApps.guestWifi()) {
+                            okHeld = true;      // held on the network button: the TV's network settings
+                            openCornerButton();
+                        }
+                    }
                 } else {
-                    if (okDown && !e.isCanceled()) activate();
+                    if (okDown && !okHeld && !e.isCanceled()) activate();
                     okDown = false;
                 }
                 return true;
@@ -1821,6 +1958,14 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             r = tileRects[shelfIndex];
         }
         click.open();
+        if (it.kind == HomeApps.LIGHTS && zone == Z_TOP) {
+            toggleLights();
+            return;
+        }
+        if (it.kind == HomeApps.NETWORK && zone == Z_TOP && HomeApps.guestWifi()) {
+            // OK on the network button: the guest Wi-Fi QR code (holding OK opens the network settings).
+            it = HomeApps.action(HomeApps.GUEST_WIFI, "guest-wifi", it.label, it.symbol);
+        }
         if (it.kind == HomeApps.ALL_APPS) {
             openSheet();
             return;
@@ -1838,7 +1983,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         }
         boolean opened = HomeApps.open(activity, it, this, Math.round(r.left), Math.round(r.top),
                 Math.round(r.width()), Math.round(r.height()));
-        if (!opened) showToast(Ui.tr("Não deu para abrir ", "Couldn't open ") + it.label + ".");
+        if (!opened) showToast(Ui.tr("Açılamadı: ", "Couldn't open ") + it.label + ".");
     }
 
     // MARK: - Light design: title, tabs, cards and icon-only buttons
@@ -1854,15 +1999,32 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             x = topRects[i].right + 4 * k;
         }
         float b = L_BUTTON * k, right = CONTENT_R * k, cy = L_BUTTON_CY * k;
-        for (int i = 2; i >= 0; i--) {
-            topRects[3 + i].set(right - b, cy - b / 2, right, cy + b / 2);
-            right -= b + L_BUTTON_GAP * k;
+        int weather = -1;
+        for (int i = lightButtons.size() - 1; i >= 0; i--) {
+            if (lightButtons.get(i).kind == HomeApps.WEATHER) {
+                weather = i;
+                continue;
+            }
+            float bw = buttonWidth(lightButtons.get(i));
+            topRects[3 + i].set(right - bw, cy - b / 2, right, cy + b / 2);
+            right -= bw + L_BUTTON_GAP * k;
+        }
+        if (weather >= 0 && lGreet != null) {
+            float dateRight = MARGIN * k + lClock.measureText(clockText) + 68 * k + lDateCaps.measureText(dateLineText);
+            float wl = Math.max(770 * k, dateRight + 56 * k), wr = Math.min(wl + weatherWidth(true), right - 24 * k);
+            if (wr - wl < weatherWidth(false)) wr = Math.min(wl + weatherWidth(false), right - 24 * k);
+            topRects[3 + weather].set(wl, (WEATHER_CY - 58) * k, wr, (WEATHER_CY + 58) * k);
         }
         float top = L_CARDS_TOP * k, ch = L_CARD_H * k, g = L_CARD_GAP * k, left = MARGIN * k, tall = L_TALL_W * k;
         float wide = (CONTENT_R - MARGIN) * k - 2 * tall - 2 * g;
         cardRects[0].set(left, top, left + wide, top + ch);
         cardRects[1].set(cardRects[0].right + g, top, cardRects[0].right + g + tall, top + ch);
         cardRects[2].set(cardRects[1].right + g, top, cardRects[1].right + g + tall, top + ch);
+        float cardsTop = L_WEATHER_TOP * k, cardsBottom = (L_WEATHER_TOP + CARDS_H) * k;
+        float split = left + (CONTENT_R - MARGIN) * k * 0.44f;
+        if (stocks.quotes.isEmpty()) split = CONTENT_R * k + 16 * k;     // no watchlist: the weather takes the row
+        mainWeather.set(left, cardsTop, split - 16 * k, cardsBottom);
+        stocksCard.set(split + 16 * k, cardsTop, CONTENT_R * k, cardsBottom);
         heroDirty = statusDirty = true;
     }
 
@@ -1900,6 +2062,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         boolean fading = bgFadeAt != 0;
         // Drawer open: the background lightens (by day) or darkens (at night), as a filter on the drawing itself.
         android.graphics.ColorFilter v = veil(tone(0.32f, 0.42f) * Ui.clamp(drawer.value), blend(0xFFFFFFFF, 0xFF000000, night));
+        if (scene.flat()) {    // Android 12: the clouds of color (Wallpaper), which the glass shows through
+            scene.drawBackground(c, v);
+            return;
+        }
         if (bgTo == null || (fading && bgFrom == null)) {
             if (lightGradient == null) lightGradient = new LinearGradient(0, 0, 0, h, 0xFFF5F5F7, 0xFFE2E2E7, Shader.TileMode.CLAMP);
             if (nightGradient == null) nightGradient = new LinearGradient(0, 0, 0, h, 0xFF1C1C1E, 0xFF0B0B0D, Shader.TileMode.CLAMP);
@@ -1928,39 +2094,89 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (night > 0.001f) drawImage(c, b.nightImage, alpha * night);
     }
 
+    /**
+     * Top of the home screen, plain like Apple TV: only the time and date at the top left. The weather and the
+     * watchlist are small buttons in the corner (their details open in a panel).
+     */
     private void drawLightTop(Canvas c) {
         applyTone();
-        String hello = Ui.tr("Para você", "For You");
-        c.drawText(hello, MARGIN * k - Ui.leftBearing(lTitle, hello), L_TITLE_BASE * k, lTitle);
-        // Text tabs (the selected one in bold, in the main text color); with focus on the tabs, the selected one gets
-        // the white pill with a shadow and grows a little (the tvOS focus).
-        float focus = Ui.clamp(topFocus[tab].value);
-        for (int i = 0; i < 3; i++) {
-            RectF r = topRects[i];
-            if (i == tab && focus > 0.01f) {
-                float s = 1 + 0.05f * focus;
-                cell.set(r.centerX() - r.width() * s / 2, r.centerY() - r.height() * s / 2,
-                        r.centerX() + r.width() * s / 2, r.centerY() + r.height() * s / 2);
-                float rr = cell.height() / 2;
-                if (focus > 0.01f) {
-                    tmp.set(cell);
-                    tmp.offset(0, 8 * k * focus);
-                    shadow.setColor(Ui.alpha(0xFF000000, tone(0.22f, 0.4f) * focus));
-                    c.drawRoundRect(tmp, rr, rr, shadow);
-                }
-                fill.setShader(null);
-                fill.setColor(Ui.alpha(0xFFFFFFFF, focus));
-                c.drawRoundRect(cell, rr, rr, fill);
-            }
-            Paint p = i == tab ? lTabOn : lTab;
-            if (i == tab) lTabOn.setColor(blend(tone(L_INK, WHITE), L_INK, focus));   // always dark on the white pill
-            c.drawText(tabs()[i], r.centerX() - p.measureText(tabs()[i]) / 2, r.centerY() + Ui.halfCap(p), p);
+        int ink = tone(L_INK, WHITE);
+        lGreet.setColor(Ui.alpha(ink, 0.85f));
+        lClock.setColor(ink);
+        lDateCaps.setColor(Ui.alpha(ink, 0.88f));
+        float x = MARGIN * k;
+        c.drawText(greeting(), x, 78 * k, lGreet);
+        c.drawText(clockText, x - Ui.leftBearing(lClock, clockText), L_CLOCK_BASE * k, lClock);
+        float bar = x + lClock.measureText(clockText) + 34 * k;
+        fill.setShader(null);
+        fill.setColor(Ui.alpha(ink, 0.35f));
+        c.drawRect(bar, (WEATHER_CY - 34) * k, bar + Math.max(1, 2 * k), (WEATHER_CY + 34) * k, fill);
+        c.drawText(dateLineText, bar + 34 * k, WEATHER_CY * k + Ui.halfCap(lDateCaps), lDateCaps);
+    }
+
+    /** "MERHABA ALİ" (the name from config.properties). */
+    private static String greeting() {
+        String name = Config.NAME.trim();
+        String hello = Ui.tr("Merhaba", "Hello") + (name.isEmpty() ? "" : " " + name);
+        return hello.toUpperCase(Ui.en ? java.util.Locale.UK : Ui.TR);
+    }
+
+    /**
+     * The watchlist (Stocks): two columns of symbol and name, today's curve (with the previous close dotted), price
+     * and the change since the previous close in green or red.
+     */
+    private void drawStocksCard(Canvas c, RectF r) {
+        drawerCard(c, r);
+        float x = r.left + 34 * k, right = r.right - 34 * k;
+        c.drawText(Ui.tr("Piyasalar", "Markets"), x, r.top + 54 * k, cardTitle);
+        String stale = HomeData.staleness(stocks.at, 2 * 60_000L);
+        if (!stale.isEmpty()) c.drawText(stale, right, r.top + 54 * k, cardDimRight);
+        int n = stocks.quotes.size(), rows = (n + 1) / 2;
+        float gap = 48 * k, colW = (right - x - gap) / 2, top0 = r.top + 78 * k;
+        float rowH = Math.min(76 * k, (r.bottom - 14 * k - top0) / Math.max(1, rows));
+        stockChange.setTextAlign(Paint.Align.RIGHT);
+        for (int i = 0; i < n; i++) {
+            Stocks.Quote q = stocks.quotes.get(i);
+            float cx = x + (i % 2) * (colW + gap), top = top0 + (i / 2) * rowH, cr = cx + colW;
+            float base1 = top + 30 * k, base2 = top + 60 * k;
+            double change = q.change();
+            int color = Double.isNaN(change) ? tone(L_DIM, 0xADFFFFFF) : change >= 0 ? tone(0xFF248A3D, UP_COLOR) : tone(0xFFD70015, DOWN_COLOR);
+            c.drawText(q.label, cx, base1, cardText);
+            String name = Stocks.name(q.label);
+            if (!name.isEmpty()) c.drawText(name, cx, base2, cardDim);
+            c.drawText(Stocks.price(q.price), cr, base1, pricePaint);
+            stockChange.setColor(color);
+            c.drawText(Stocks.change(change), cr, base2, stockChange);
+            drawCurve(c, q, cx + 132 * k, top + 12 * k, cr - 156 * k, top + 56 * k, color);
         }
-        int top = -1;
-        for (int i = 0; i < 3; i++) if (cardFocus[i].value > 0.02f && (top < 0 || cardFocus[i].value > cardFocus[top].value)) top = i;
-        for (int i = 0; i < 3; i++) if (i != top) drawLightCard(c, i);
-        if (top >= 0) drawLightCard(c, top);
-        drawQuotes(c);
+    }
+
+    private void drawCurve(Canvas c, Stocks.Quote q, float left, float top, float right, float bottom, int color) {
+        float[] p = q.curve;
+        if (p.length < 2 || right - left < 24 * k) return;
+        float min = Float.MAX_VALUE, max = -Float.MAX_VALUE;
+        for (float v : p) {
+            min = Math.min(min, v);
+            max = Math.max(max, v);
+        }
+        if (q.previous > 0) {
+            min = Math.min(min, (float) q.previous);
+            max = Math.max(max, (float) q.previous);
+        }
+        float span = Math.max(max - min, 1e-6f);
+        if (q.previous > 0) {
+            float py = bottom - (bottom - top) * ((float) q.previous - min) / span;
+            closeLine.setColor(tone(0x40000000, 0x4DFFFFFF));
+            c.drawLine(left, py, right, py, closeLine);
+        }
+        curve.reset();
+        for (int i = 0; i < p.length; i++) {
+            float px = left + (right - left) * i / (p.length - 1), py = bottom - (bottom - top) * (p[i] - min) / span;
+            if (i == 0) curve.moveTo(px, py);
+            else curve.lineTo(px, py);
+        }
+        curveLine.setColor(color);
+        c.drawPath(curve, curveLine);
     }
 
     /**
@@ -2021,46 +2237,280 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
      * Live TV, HDMI Inputs and Settings: icon-only glass circles (light by day, smoked at night); the focused one turns
      * white with a dark icon (the tvOS focus) and its name appears below it.
      */
+    /** The weather button is a pill (symbol and temperature); the others are circles. */
+    private float buttonWidth(HomeApps.Item it) {
+        float b = L_BUTTON * k;
+        if (it.kind != HomeApps.WEATHER || lPill == null) return b;
+        return Math.max(b, 20 * k + Symbols.width(getContext(), it.symbol, 27 * k) + 10 * k + lPill.measureText(weatherText()) + 22 * k);
+    }
+
+    private String weatherText() {
+        return Double.isNaN(data.weather.temp) ? "—" : HomeData.degrees(data.weather.temp);
+    }
+
+    private String weatherSymbol() {
+        HomeData.Weather wx = data.weather;
+        return wx.code < 0 ? "cloud" : Symbols.weather(wx.code, wx.isDay);
+    }
+
+    /** "Berlin · Bulutlu" (the name under the focused weather button). */
+    private String weatherLabel() {
+        HomeData.Weather wx = data.weather;
+        String city = Config.CITY.trim().isEmpty() ? Ui.tr("Hava durumu", "Weather") : Config.CITY.trim();
+        return wx.code < 0 ? city : city + " · " + HomeData.condition(wx.code, wx.isDay);
+    }
+
+    /** New weather: the button's symbol, temperature and name (and its width). */
+    private void updateWeatherButton() {
+        for (HomeApps.Item it : lightButtons) {
+            if (it.kind != HomeApps.WEATHER) continue;
+            it.symbol = weatherSymbol();
+            it.label = weatherLabel();
+        }
+        layoutLight();
+    }
+
     private void drawLightButtons(Canvas c) {
         applyTone();
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < lightButtons.size(); i++) {
             RectF r = topRects[3 + i];
-            float f = Ui.clamp(topFocus[3 + i].value), s = 1 + 0.1f * f, rad = r.width() / 2 * s;
-            cell.set(r.centerX() - rad, r.centerY() - rad, r.centerX() + rad, r.centerY() + rad);
-            tmp.set(cell);
-            tmp.offset(0, (6 + 8 * f) * k);
-            shadow.setColor(Ui.alpha(0xFF000000, tone(0.1f, 0.3f) + tone(0.14f, 0.2f) * f));
-            c.drawRoundRect(tmp, rad, rad, shadow);
-            scene.liquid(c, cell, rad, tone(0xFFFFFFFF, SMOKE), tone(0.55f, 0.5f), tone(0.02f, 0.01f), 12 * k, 8 * k,
-                    tone(0.6f, 0.45f), 1 - f);
-            if (f > 0.01f) {
-                fill.setShader(null);
-                fill.setColor(Ui.alpha(0xFFFFFFFF, f));
-                c.drawCircle(cell.centerX(), cell.centerY(), rad, fill);
+            HomeApps.Item item = lightButtons.get(i);
+            if (item.kind == HomeApps.WEATHER) {
+                drawWeatherWidget(c, r, Ui.clamp(topFocus[3 + i].value));
+                continue;
             }
-            Symbols.draw(getContext(), c, lightButtons.get(i).symbol, cell.centerX(), cell.centerY(), 27 * k * s,
-                    blend(tone(L_INK, 0xEBFFFFFF), L_INK, f));
-            if (f > 0.01f) {
-                String label = lightButtons.get(i).label;
-                float half = lTip.measureText(label) / 2;
-                float x = Math.min(r.centerX(), CONTENT_R * k - half);
-                lTip.setAlpha(Math.round(255 * f));
-                c.drawText(label, x, r.bottom + (40 + 4 * f) * k, lTip);
+            float f = Ui.clamp(topFocus[3 + i].value), s = 1 + 0.1f * f, rad = r.height() / 2 * s, half = r.width() / 2 * s;
+            cell.set(r.centerX() - half, r.centerY() - rad, r.centerX() + half, r.centerY() + rad);
+            boolean clean = Wallpaper.get().hasPhoto();
+            if (clean) {
+                // CleanFrame: the icon alone on the photo; focused, a pane of glass appears behind it.
+                if (f > 0.01f) {
+                    tmp.set(cell);
+                    tmp.offset(0, 8 * k * f);
+                    shadow.setColor(Ui.alpha(0xFF000000, 0.3f * f));
+                    c.drawRoundRect(tmp, rad, rad, shadow);
+                    scene.liquid(c, cell, rad, SMOKE, 0.5f, 0.01f, 12 * k, 8 * k, 0.5f, f);
+                    fill.setShader(null);
+                    fill.setColor(Ui.alpha(0xFFFFFFFF, 0.16f * f));
+                    c.drawRoundRect(cell, rad, rad, fill);
+                }
+            } else {
+                tmp.set(cell);
+                tmp.offset(0, (6 + 8 * f) * k);
+                shadow.setColor(Ui.alpha(0xFF000000, tone(0.1f, 0.3f) + tone(0.14f, 0.2f) * f));
+                c.drawRoundRect(tmp, rad, rad, shadow);
+                scene.liquid(c, cell, rad, tone(0xFFFFFFFF, SMOKE), tone(0.55f, 0.5f), tone(0.02f, 0.01f), 12 * k, 8 * k,
+                        tone(0.6f, 0.45f), 1 - f);
+                if (f > 0.01f) {
+                    fill.setShader(null);
+                    fill.setColor(Ui.alpha(0xFFFFFFFF, f));
+                    c.drawRoundRect(cell, rad, rad, fill);
+                }
             }
+            int ink = clean ? 0xF2FFFFFF : blend(tone(L_INK, 0xEBFFFFFF), L_INK, f);
+            if (item.kind == HomeApps.WEATHER) {
+                float sw = Symbols.width(getContext(), item.symbol, 27 * k * s), sx = cell.left + 20 * k * s;
+                Symbols.draw(getContext(), c, item.symbol, sx + sw / 2, cell.centerY(), 27 * k * s, ink);
+                lPill.setColor(ink);
+                lPill.setTextSize(27 * k * s);
+                c.drawText(weatherText(), sx + sw + 10 * k * s, cell.centerY() + Ui.halfCap(lPill), lPill);
+                lPill.setTextSize(27 * k);
+                if (f > 0.01f) drawButtonLabel(c, r, item.label, f);
+                continue;
+            }
+            // The bulb glows warm while the lights are on.
+            if (lightButtons.get(i).kind == HomeApps.LIGHTS && Boolean.TRUE.equals(lightsOn)) ink = clean ? 0xFFFFC94D : blend(0xFFFFC94D, 0xFFE0A100, f);
+            Symbols.draw(getContext(), c, lightButtons.get(i).symbol, cell.centerX(), cell.centerY(), 27 * k * s, ink);
+            if (f > 0.01f) drawButtonLabel(c, r, lightButtons.get(i).label, f);
         }
+        drawPhotoCaption(c);
+    }
+
+    /**
+     * The weather, open next to the clock: the symbol in its own color, the temperature large with the sky in words
+     * below it, and a column with feels-like, the city, and wind and humidity. No background: only when focused does
+     * a glass pill appear behind it (OK opens the hours).
+     */
+    private void drawWeatherWidget(Canvas c, RectF r, float f) {
+        if (f > 0.01f) {
+            float rad = r.height() / 2;
+            tmp.set(r);
+            tmp.offset(0, 10 * k * f);
+            shadow.setColor(Ui.alpha(0xFF000000, 0.3f * f));
+            c.drawRoundRect(tmp, rad, rad, shadow);
+            scene.liquid(c, r, rad, SMOKE, 0.6f, 0.01f, 12 * k, 8 * k, 0.5f, f);
+        }
+        HomeData.Weather wx = data.weather;
+        int ink = tone(L_INK, WHITE), dim = tone(L_DIM, 0xD9FFFFFF);
+        float cy = r.centerY(), x = r.left + 24 * k;
+        String symbol = weatherSymbol();
+        float sw = Symbols.width(getContext(), symbol, 56 * k);
+        Symbols.draw(getContext(), c, symbol, x + sw / 2, cy - 4 * k, 56 * k, weatherColor(symbol));
+        x += sw + 18 * k;
+        String temp = tempText(wx.temp);
+        lWxTemp.setColor(ink);
+        c.drawText(temp, x - Ui.leftBearing(lWxTemp, temp), cy + 8 * k, lWxTemp);
+        lWxMain.setColor(dim);
+        c.drawText(wx.code < 0 ? "" : HomeData.condition(wx.code, wx.isDay), x, cy + 42 * k, lWxMain);
+        x += Math.max(lWxTemp.measureText(temp), lWxMain.measureText(wx.code < 0 ? "" : HomeData.condition(wx.code, wx.isDay))) + 40 * k;
+        // The column: feels-like; 📍 city; wind and 💧 humidity.
+        lWxDim.setColor(dim);
+        float icon = 17 * k;
+        int iconInk = Ui.alpha(dim, 0.9f);
+        String feels = feelsText();
+        if (!feels.isEmpty()) c.drawText(feels, x, cy - 18 * k, lWxDim);
+        String city = Config.CITY.trim();
+        float line = cy + 10 * k, mid = line - Ui.halfCap(lWxDim);
+        if (!city.isEmpty()) {
+            Symbols.draw(getContext(), c, "pin", x + 7 * k, mid, icon, iconInk);
+            c.drawText(city, x + 22 * k, line, lWxDim);
+        }
+        line = cy + 38 * k;
+        mid = line - Ui.halfCap(lWxDim);
+        float lx = x;
+        if (!Double.isNaN(wx.wind)) {
+            Symbols.draw(getContext(), c, "wind", lx + 9 * k, mid, icon, iconInk);
+            String w = windText();
+            c.drawText(w, lx + 26 * k, line, lWxDim);
+            lx += 26 * k + lWxDim.measureText(w) + 20 * k;
+        }
+        if (!Double.isNaN(wx.humidity)) {
+            Symbols.draw(getContext(), c, "drop", lx + 6 * k, mid, icon, 0xFF64B5F6);
+            c.drawText(humidityText(), lx + 20 * k, line, lWxDim);
+        }
+    }
+
+    /** The weather symbol in its own color: a golden sun or moon, white clouds, blue rain, yellow lightning. */
+    private static int weatherColor(String symbol) {
+        switch (symbol) {
+            case "sunny": return 0xFFFFC23D;
+            case "clear_night": return 0xFFFFCF5C;
+            case "rainy": return 0xFF8EC5FF;
+            case "thunderstorm": return 0xFFFFD60A;
+            default: return 0xFFF2F2F7;
+        }
+    }
+
+    /** "7°C" (with the unit, like the big temperature on phones). */
+    private static String tempText(double v) {
+        return Double.isNaN(v) ? "—" : HomeData.degrees(v) + (HomeData.fahrenheit() ? "F" : "C");
+    }
+
+    /** Width the weather widget needs (`details`: with the column of feels-like, city, wind and humidity). */
+    private float weatherWidth(boolean details) {
+        HomeData.Weather wx = data.weather;
+        String sky = wx.code < 0 ? "" : HomeData.condition(wx.code, wx.isDay);
+        float w = 24 * k + Symbols.width(getContext(), weatherSymbol(), 56 * k) + 18 * k
+                + Math.max(lWxTemp.measureText(tempText(wx.temp)), lWxMain.measureText(sky)) + 30 * k;
+        if (details) {
+            float wind = Double.isNaN(wx.wind) ? 0 : 26 * k + lWxDim.measureText(windText()) + 20 * k;
+            float hum = Double.isNaN(wx.humidity) ? 0 : 20 * k + lWxDim.measureText(humidityText());
+            w += 10 * k + Math.max(lWxDim.measureText(feelsText()), Math.max(22 * k + lWxDim.measureText(Config.CITY.trim()), wind + hum)) + 10 * k;
+        }
+        return w;
+    }
+
+    private String feelsText() {
+        double v = data.weather.feels;
+        return Double.isNaN(v) ? "" : Ui.tr("Hissedilen ", "Feels like ") + tempText(v);
+    }
+
+    private String windText() {
+        double v = data.weather.wind;
+        return Double.isNaN(v) ? "" : Math.round(v) + Ui.tr(" km/s", " km/h");
+    }
+
+    private String humidityText() {
+        double v = data.weather.humidity;
+        return Double.isNaN(v) ? "" : Ui.en ? Math.round(v) + "%" : "%" + Math.round(v);
+    }
+
+    /** Where the photo behind is, and who took it (their license asks for the credit), under the corner buttons. */
+    private void drawPhotoCaption(Canvas c) {
+        Photos.Photo p = photos.current;
+        if (p == null || !Wallpaper.get().hasPhoto()) return;
+        float fade = 1;
+        for (int i = 3; i < topFocus.length; i++) fade = Math.min(fade, 1 - Ui.clamp(topFocus[i].value));
+        if (fade <= 0.01f) return;
+        lCaption.setAlpha(Math.round(230 * fade));
+        lCredit.setAlpha(Math.round(150 * fade));
+        c.drawText(p.place(), CONTENT_R * k, 214 * k, lCaption);
+        c.drawText(p.credit(), CONTENT_R * k, 240 * k, lCredit);
+    }
+
+    /** The focused corner button's name, below it (kept inside the right margin). */
+    private void drawButtonLabel(Canvas c, RectF r, String label, float f) {
+        float half = lTip.measureText(label) / 2;
+        float x = Math.min(r.centerX(), CONTENT_R * k - half);
+        lTip.setAlpha(Math.round(255 * f));
+        c.drawText(label, x, r.bottom + (40 + 4 * f) * k, lTip);
+    }
+
+    // MARK: - Lights (WiZ): OK on the bulb switches them all; holding OK opens the panel (LightsActivity)
+
+    /** The network button follows the connection (Ethernet, Wi-Fi, none). */
+    private void updateNetwork() {
+        String net = HomeApps.network(getContext());
+        for (HomeApps.Item it : lightButtons) {
+            if (it.kind != HomeApps.NETWORK || net.equals(it.symbol)) continue;
+            it.symbol = net;
+            it.label = HomeApps.networkLabel(net);
+            statusDirty = true;
+        }
+    }
+
+    private boolean networkFocused() {
+        return !sheetOpen && zone == Z_TOP && topIndex >= 3 && topIndex - 3 < lightButtons.size()
+                && lightButtons.get(topIndex - 3).kind == HomeApps.NETWORK;
+    }
+
+    private boolean lightsFocused() {
+        return !sheetOpen && zone == Z_TOP && topIndex >= 3 && topIndex - 3 < lightButtons.size()
+                && lightButtons.get(topIndex - 3).kind == HomeApps.LIGHTS;
+    }
+
+    /** Opens the focused corner button's own screen (the lights panel; the TV's network settings). */
+    private void openCornerButton() {
+        click.open();
+        RectF r = topRects[topIndex];
+        HomeApps.open(activity, lightButtons.get(topIndex - 3), this, Math.round(r.left), Math.round(r.top),
+                Math.round(r.width()), Math.round(r.height()));
+    }
+
+    private void toggleLights() {
+        final Context c = getContext().getApplicationContext();
+        LIGHTS_IO.execute(() -> {
+            final Boolean on = Wiz.toggleAll(c);
+            AppLog.w("lights: switched " + (on == null ? "(no lamps)" : on ? "on" : "off"));
+            handler.post(() -> {
+                if (on == null) showToast(Ui.tr("Lamba bulunamadı. Basılı tutarak ışıkları aç.", "No lamps found. Hold OK to open the lights."));
+                lightsOn = on;
+                statusDirty = true;
+            });
+        });
+    }
+
+    /** Whether the lights are on (when the home screen appears), for the bulb's color. Only once lamps were found. */
+    private void refreshLights() {
+        final Context c = getContext().getApplicationContext();
+        if (!Wiz.known(c)) return;
+        LIGHTS_IO.execute(() -> {
+            final Boolean on = Wiz.anyOn(Wiz.discover(c, 900));
+            AppLog.w("lights: " + (on == null ? "no answer" : on ? "on" : "off"));
+            handler.post(() -> {
+                lightsOn = on;
+                statusDirty = true;
+            });
+        });
     }
 
     private boolean moveLight(int dx, int dy) {
         switch (zone) {
             case Z_SHELF:
+                // No tabs or cards on this home screen: ↑ goes straight to the buttons at the top right.
                 if (dy >= 0 || shelf.isEmpty()) return false;
-                if (cards.isEmpty()) {
-                    zone = Z_TOP;
-                    topIndex = tab;
-                } else {
-                    zone = Z_CARDS;
-                    cardIndex = nearest(cardRects, cards.size(), tileRects[shelfIndex].centerX());
-                }
+                zone = Z_TOP;
+                topIndex = !lightButtons.isEmpty() && lightButtons.get(0).kind == HomeApps.WEATHER ? 4 : 3;
                 break;
             case Z_CARDS:
                 if (dx != 0) {
@@ -2077,17 +2527,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 break;
             case Z_TOP:
                 if (dx != 0) {
-                    int next = Math.max(0, Math.min(5, topIndex + dx));
+                    int next = Math.max(3, Math.min(2 + lightButtons.size(), topIndex + dx));
                     if (next == topIndex) return true;
                     topIndex = next;
-                    if (topIndex < 3) selectTab(topIndex);   // like Apple TV tabs: focusing a tab selects it
                 } else if (dy > 0) {
-                    if (cards.isEmpty()) {
-                        zone = Z_SHELF;
-                    } else {
-                        zone = Z_CARDS;
-                        cardIndex = nearest(cardRects, cards.size(), topRects[topIndex].centerX());
-                    }
+                    zone = Z_SHELF;
                 } else {
                     return true;
                 }

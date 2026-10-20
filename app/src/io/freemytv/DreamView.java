@@ -756,7 +756,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
             String symbol = Symbols.weather(wx.code, wx.isDay);
             String now = HomeData.degrees(wx.temp);
             String range = Ui.en ? "H:" + HomeData.degrees(wx.max) + "  L:" + HomeData.degrees(wx.min)
-                    : "Máx. " + HomeData.degrees(wx.max) + "  Mín. " + HomeData.degrees(wx.min);
+                    : "Y: " + HomeData.degrees(wx.max) + "  D: " + HomeData.degrees(wx.min);
             float sw = Symbols.width(getContext(), symbol, 32 * k);
             float width = sw + 12 * k + weatherPaint.measureText(now) + 18 * k + weatherDim.measureText(range);
             float x = cx - width / 2;
@@ -766,24 +766,5 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
             x += weatherPaint.measureText(now) + 18 * k;
             c.drawText(range, x, base, weatherDim);
         }
-
-        // Prices near the bottom edge: small white logo + value, all four on one line.
-        float cap = Ui.cap(quotePaint), spacing = 56 * k, gap = 10 * k;
-        String[] values = new String[HomeData.coinCount()];
-        float total = spacing * (values.length - 1);
-        for (int i = 0; i < values.length; i++) {
-            values[i] = HomeData.price(data.prices[i]);
-            total += Glyphs.width(getContext(), HomeData.COINS[i], cap) + gap + quotePaint.measureText(values[i]);
-        }
-        float x = cx - total / 2, base = h - 92 * k;
-        for (int i = 0; i < values.length; i++) {
-            float gw = Glyphs.width(getContext(), HomeData.COINS[i], cap);
-            Glyphs.coin(getContext(), c, HomeData.COINS[i], x + gw / 2, base - cap / 2, cap, 0x80FFFFFF);
-            x += gw + gap;
-            c.drawText(values[i], x, base, quotePaint);
-            x += quotePaint.measureText(values[i]) + spacing;
-        }
-        String stale = HomeData.staleness(data.pricesAt, 5 * 60_000L);
-        if (!stale.isEmpty()) c.drawText(Ui.tr("cotações de ", "prices from ") + stale, cx, base + 38 * k, stalePaint);
     }
 }

@@ -9,4 +9,13 @@
         <item name="android:windowShowWallpaper">false</item>
         <item name="android:colorBackgroundCacheHint">@null</item>
     </style>
+    <!-- The lights panel: a small floating window over the home screen (dimmed a little behind it). -->
+    <style name="FreeMyTV.Panel" parent="@android:style/Theme.DeviceDefault.Dialog.NoActionBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Dialog</item>
+    </style>
 </resources>

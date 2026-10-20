@@ -1,11 +1,9 @@
-# Free My TV: notes for Claude
+# At Yazılım: notes for Claude
 
 A home screen for Google TV and Android TV that replaces the stock one, plus a settings app that switches between
-Free My TV and the TV's original home screen. A plain Android app in Java, built without Gradle by `build.sh`.
-The website (freemytv.io) is in `docs/`: static HTML, CSS and JS, no build step. A push to `main` that changes it
-publishes it to GitHub Pages (`.github/workflows/pages.yml`). `docs/index.html` (English) and `docs/pt/index.html`
-(Brazilian Portuguese) are the same page in two languages, so change both; visitors from Brazil land on the
-Portuguese one by themselves, and the PT/EN switch in the menu is remembered.
+At Yazılım and the TV's original home screen. A plain Android app in Java, built without Gradle by `build.sh`.
+It is a fork of [Free My TV](https://github.com/simbasjungles/free-my-tv) (MIT): the package is still `io.freemytv`
+and many comments still say "Free My TV"; the app's visible name is At Yazılım.
 
 The person you're helping may not be technical. Keep it short and friendly, say what you're about to do on their TV
 before you do it, and let them do the taps on the TV.
@@ -20,19 +18,18 @@ before you do it, and let them do the taps on the TV.
    - Linux: OpenJDK 17, Android's command-line tools and adb from the package manager, then the same `sdkmanager` line.
    - Windows: WSL, then as on Linux.
 3. **Settings:** run `./build.sh` once; it creates `config.properties`. Fill in `latitude` and `longitude` (decimal
-   degrees) and `city` for their city, `tmdb_region` (two-letter country), and `currency` and `temperature` to match.
-4. **The TMDB key is theirs and secret.** Ask them to create one (free: themoviedb.org → Settings → API) and paste it
-   after `tmdb_key=` in `config.properties` themselves. Don't ask for it in the chat, never print it, never commit
-   it. If they paste it in the chat anyway, put it only in `config.properties`.
-   Without a key everything works except the picks and the screensaver photos.
+   degrees) and `city` for their city, `name` for the greeting, `temperature`, and `stocks` if they want the markets
+   panel (Yahoo Finance symbols).
+4. No keys are needed: the weather (Open-Meteo) and the markets (Yahoo Finance chart data) are keyless, and the
+   WiZ lights are found on the home network.
 5. **Build:** `./build.sh` → `FreeMyTV.apk`. Keep `freemytv.keystore`: updates must be signed with the same key.
 6. **Install:** `adb connect <IP>:5555`. The TV asks *Allow USB debugging?*: tell them to accept and tick *Always
    allow*. Then `adb install -r FreeMyTV.apk`.
 7. **Tell them what the switch does** before they make it: the home screen and screensaver change, a short list of
    promo apps is turned off (never uninstalled), and *Original* brings it all back. On some TVs the remote's
-   shortcut buttons belong to the stock home screen (TCL: Netflix, YouTube, Prime), so they rest while Free My TV
+   shortcut buttons belong to the stock home screen (TCL: Netflix, YouTube, Prime), so they rest while At Yazılım
    is on.
-8. **They switch on the TV:** *Free My TV* → *Home Screen* → *Free My TV*. The app uses the TV's own ADB on
+8. **They switch on the TV:** *At Yazılım* → *Home Screen* → *At Yazılım*. The app uses the TV's own ADB on
    127.0.0.1 with its own key, so the TV asks once more to allow debugging. Don't switch modes from the computer.
 9. **Check:** `adb logcat -s FreeMyTV` shows what the switch did.
 
@@ -72,7 +69,7 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
   Android 13+, with a fallback for 12). Keep it at 60 fps: no allocations in `onDraw`, no work on the UI thread.
 - `HomeMode` runs every switch as a background job (`ModeJob`) in the main process; the UI is in the `:home`
   process. `Watchdog` goes back to the stock home screen after 3 crashes in 5 minutes.
-- On-screen text is bilingual, `Ui.tr("pt", "en")`: add both. Comments in English, short, only where the why
+- On-screen text is bilingual, `Ui.tr("tr", "en")` (Turkish, English): add both. Comments in English, short, only where the why
   isn't obvious.
 - Settings come from `config.properties` through the generated `out/gen/io/freemytv/Config.java` (never edit that).
 - After any change, `./build.sh` must end with `Built FreeMyTV.apk`.
@@ -84,3 +81,25 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
   *Original* can bring it back.
 - Don't change the TV's picture, sound, network or account settings.
 - Keep the way back working: the *Original* mode and the watchdog.
+
+## At Yazılım's additions
+
+- **Android 12 look (no AGSL).** `Scene.flat()` is true without RuntimeShader. Then the background is `Wallpaper`
+  (a photo from `Photos`, or soft clouds of colour) and every glass surface is `LiquidGlass`: the pre-blurred
+  wallpaper ("frost") drawn through a slight lens, a tint, light on top and a specular rim. Plain Canvas, cheap.
+- **Photos** (`Photos`, `assets/wallpapers/photos.json`): nature photos from Wikimedia Commons, day and night sets, a
+  new one every hour. Each keeps its own licence; list them in `assets/wallpapers/CREDITS.md` and keep the on-screen
+  credit (place, photographer, licence). Only add photos with a free licence and no extra conditions.
+- **Top of the home screen** (`HomeView.drawLightTop`, `drawWeatherWidget`): greeting (`name`), clock, date, the
+  weather (Open-Meteo: feels-like, wind, humidity); the corner buttons are icons, with glass only on focus.
+- **Dock** (`CLEAN_DOCK`, after CleanFrame): white brand marks in `assets/symbols/app_*.png` (`GLYPHS` maps shelf
+  keys to them; licences in `LICENSE-app-icons.txt`) with the app names, on a smoked glass bar.
+- **Panels** (floating windows over the home screen, theme `FreeMyTV.Panel`): `InfoActivity` (weather hours,
+  markets) and `LightsActivity` (WiZ: all lamps or one, on/off, scenes, brightness, colour). OK on the bulb switches
+  every lamp; holding OK opens the panel.
+- **WiZ** (`Wiz`): local UDP on port 38899 (`getPilot`, `setPilot`), broadcast discovery, no cloud. Lamps answer
+  only with "Allow local communication" on in the WiZ app.
+- **Markets** (`Stocks`): Yahoo Finance's public chart endpoint, unofficial and keyless; off when `stocks` is empty.
+- **Android 12 HOME role**: `cmd role get-role-holders` doesn't exist there; `HomeMode.homeHolder` reads `dumpsys
+  role` instead.
+- **Sony BRAVIA** entries are in `HomeMode.DEBLOAT` and `PROTECTED` (Samba TV, Sony Select, promos, demo, IDD).

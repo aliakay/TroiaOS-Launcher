@@ -56,6 +56,11 @@ final class HomeMode {
         "com.tcl.messagebox", "com.tcl.usercenter",                                   // TCL messages and account
         "com.tcl.exhibit", "com.tcl.esticker", "com.tcl.hotelmenu",                   // store demo, hotel menu
         "com.tcl.repairguide", "com.tcl.ocean.instructions", "com.tcl.logkit",        // repair guide, manual, logs
+        // Sony BRAVIA
+        "tv.samba.ssm", "tv.samba.ssm.ui",                                            // Samba TV (tracks what you watch)
+        "com.sony.dtv.sonyselect", "com.sony.dtv.promos",                             // Sony Select and promos
+        "com.sony.dtv.demosupport", "com.sony.dtv.multiscreendemo",                   // store demo
+        "com.sonyericsson.idd.agent",                                                 // usage data (IDD)
     };
 
     /** The voice assistant, only with disable_assistant=true in config.properties (the mic button stops working). */
@@ -70,7 +75,16 @@ final class HomeMode {
         "com.tcl.useragreement", "com.tcl.factory.view", "com.tcl.guard", "com.tcl.t_solo",
         "com.google.android.gms", "com.google.android.gsf", "com.android.vending", "com.google.android.apps.mediashell",
         "com.google.android.tv.remote.service", "com.google.android.inputmethod.latin", "com.google.android.webview",
-        "com.android.tv.settings", "com.android.systemui", "android", PKG));
+        "com.android.tv.settings", "com.android.systemui", "android", PKG,
+        // Sony BRAVIA: live TV, inputs, picture and sound, remote, settings, updates, AirPlay
+        "com.sony.dtv.tvx", "com.sony.dtv.tvinput.external", "com.sony.dtv.tvinput.hardwaremanager",
+        "com.sony.dtv.tvinput.provider", "com.sony.dtv.tvinput.tuner", "com.sony.dtv.tvapi", "com.sony.dtv.settings",
+        "com.sony.dtv.settingsprovider", "com.sony.dtv.sonysystemservice", "com.sony.dtv.sonyvendorservice",
+        "com.sony.dtv.systemcontrolproxy", "com.sony.dtv.globalkeyoverlay", "com.sony.dtv.devicecontrolservice",
+        "com.sony.dtv.audiooutput", "com.sony.dtv.panelsettings", "com.sony.dtv.networksettings",
+        "com.sony.dtv.remotecontrolsettings", "com.sony.dtv.systemupdate", "com.sony.dtv.update",
+        "com.sony.dtv.imeproxy", "com.sony.dtv.ime.chww", "com.sony.dtv.airplayapp", "com.uei.quicksetsdk.sony",
+        "mtktvapi.agent", "com.mediatek.agent"));
 
     /** One switch at a time (jobs can overlap: a boot check and a button press). */
     private static final Object RUN = new Object();
@@ -122,13 +136,13 @@ final class HomeMode {
             latest.put("originalHome", home).put("originalDream", dream);
             save(c, latest);
             if (metrics(latest, ORIGINAL) == null && !home.isEmpty()) {
-                busy(c, Ui.tr("Medindo o Início original…", "Measuring the original home screen…"));
+                busy(c, Ui.tr("Orijinal ana ekran ölçülüyor…", "Measuring the original home screen…"));
                 measureHomeTime(c, adb, ORIGINAL);
                 measureMemory(c, adb, ORIGINAL);
             }
-            busy(c, Ui.tr("Trocando o Início e a tela de descanso…", "Switching the home screen and screensaver…"));
+            busy(c, Ui.tr("Ana ekran ve ekran koruyucu değiştiriliyor…", "Switching the home screen and screensaver…"));
             check(adb.shell("cmd package set-home-activity " + HOME_ACTIVITY), "Success",
-                    Ui.tr("o Android não aceitou o novo Início", "Android didn't accept the new home screen"));
+                    Ui.tr("Android yeni ana ekranı kabul etmedi", "Android didn't accept the new home screen"));
             adb.shell("settings put secure screensaver_components " + DREAM);
             List<String> targets = targets(home, dream);
             Set<String> disabled = new HashSet<>(stringList(state(c), "disabled"));
@@ -136,7 +150,7 @@ final class HomeMode {
             int done = 0;
             for (String pkg : targets) {
                 done++;
-                busy(c, Ui.tr("Desligando apps (", "Turning off apps (") + done + "/" + targets.size() + ")…");
+                busy(c, Ui.tr("Uygulamalar kapatılıyor (", "Turning off apps (") + done + "/" + targets.size() + ")…");
                 if (PROTECTED.contains(pkg) || !present.contains(pkg)) continue;
                 String out = adb.shell("pm disable-user --user 0 " + pkg);
                 if (out.contains("disabled-user")) disabled.add(pkg);
@@ -147,22 +161,22 @@ final class HomeMode {
             s.put("mode", FREE).put("since", System.currentTimeMillis()).put("homeReverted", false)
                     .put("disabled", new JSONArray(sorted(disabled)));
             save(c, s);
-            notice(c, Ui.tr("Free My TV ligado: Início e tela de descanso novos, " + disabled.size() + " apps desligados.",
-                    "Free My TV is on: new home screen and screensaver, " + disabled.size() + " apps turned off."));
-            busy(c, Ui.tr("Medindo o Free My TV…", "Measuring Free My TV…"));
+            notice(c, Ui.tr("At Yazılım açık: yeni ana ekran ve ekran koruyucu, " + disabled.size() + " uygulama kapatıldı.",
+                    "At Yazılım is on: new home screen and screensaver, " + disabled.size() + " apps turned off."));
+            busy(c, Ui.tr("At Yazılım ölçülüyor…", "Measuring At Yazılım…"));
             measureHomeTime(c, adb, FREE);
             done(c, null);
             adb.shell("am start -a android.intent.action.MAIN -c android.intent.category.HOME");
             ModeJob.schedule(c, ModeJob.MEMORY, FREE, 120_000);
         } catch (Exception e) {
-            done(c, Ui.tr("Não deu para ligar o Free My TV: ", "Couldn't turn on Free My TV: ") + e.getMessage());
+            done(c, Ui.tr("At Yazılım açılamadı: ", "Couldn't turn on At Yazılım: ") + e.getMessage());
         }
     }
 
     private static void applyOriginal(Context c) {
         JSONObject s = state(c);
         try (Adb adb = connect(c, s)) {
-            busy(c, Ui.tr("Religando os apps…", "Turning the apps back on…"));
+            busy(c, Ui.tr("Uygulamalar yeniden açılıyor…", "Turning the apps back on…"));
             String home = s.optString("originalHome", "");
             Set<String> toEnable = new HashSet<>(stringList(s, "disabled"));
             for (String pkg : targets(home, s.optString("originalDream", ""))) {
@@ -173,13 +187,13 @@ final class HomeMode {
             List<String> failed = new ArrayList<>();
             for (String pkg : sorted(toEnable)) {
                 done++;
-                busy(c, Ui.tr("Religando apps (", "Turning apps back on (") + done + "/" + toEnable.size() + ")…");
+                busy(c, Ui.tr("Uygulamalar açılıyor (", "Turning apps back on (") + done + "/" + toEnable.size() + ")…");
                 if (!present.contains(pkg)) continue;
                 // Checked: whatever didn't come back stays on the list (and in the notice); nothing disappears silently.
                 String out = adb.shell("pm enable " + pkg);
                 if (!out.contains("new state: enabled")) failed.add(pkg);
             }
-            busy(c, Ui.tr("Devolvendo o Início original…", "Restoring the original home screen…"));
+            busy(c, Ui.tr("Orijinal ana ekran geri getiriliyor…", "Restoring the original home screen…"));
             boolean homeOk = restoreHome(adb, home);
             adb.shell("settings delete secure screensaver_components");
             s = state(c);
@@ -187,21 +201,21 @@ final class HomeMode {
                     .put("disabled", new JSONArray(failed));
             save(c, s);
             if (failed.isEmpty() && homeOk) {
-                notice(c, Ui.tr("Modo original: Início, tela de descanso e apps de fábrica de volta.",
+                notice(c, Ui.tr("Orijinal mod: fabrika ana ekranı, ekran koruyucu ve uygulamalar geri geldi.",
                         "Original mode: the factory home screen, screensaver and apps are back."));
             } else {
                 List<String> problems = new ArrayList<>(failed);
-                if (!homeOk) problems.add(Ui.tr("o Início original", "the original home screen"));
-                notice(c, Ui.tr("Modo original, mas não consegui religar: ", "Original mode, but I couldn't turn back on: ")
+                if (!homeOk) problems.add(Ui.tr("orijinal ana ekran", "the original home screen"));
+                notice(c, Ui.tr("Orijinal mod, ama şunlar yeniden açılamadı: ", "Original mode, but I couldn't turn back on: ")
                         + String.join(", ", problems) + ".");
             }
-            busy(c, Ui.tr("Medindo o Início original…", "Measuring the original home screen…"));
+            busy(c, Ui.tr("Orijinal ana ekran ölçülüyor…", "Measuring the original home screen…"));
             measureHomeTime(c, adb, ORIGINAL);
             done(c, null);
             adb.shell("am start -a android.intent.action.MAIN -c android.intent.category.HOME");
             ModeJob.schedule(c, ModeJob.MEMORY, ORIGINAL, 120_000);
         } catch (Exception e) {
-            done(c, Ui.tr("Não deu para voltar ao original: ", "Couldn't go back to the original: ") + e.getMessage());
+            done(c, Ui.tr("Orijinale dönülemedi: ", "Couldn't go back to the original: ") + e.getMessage());
         }
     }
 
@@ -213,7 +227,24 @@ final class HomeMode {
             if (adb.shell("cmd package set-home-activity " + home).contains("Success")) return true;
         }
         adb.shell("cmd role remove-role-holder --user 0 android.app.role.HOME " + PKG);
-        return !adb.shell("cmd role get-role-holders --user 0 android.app.role.HOME").contains(PKG);
+        return !homeHolder(adb).contains(PKG);
+    }
+
+    /**
+     * The package holding the HOME role, or "". Android 12 has no `cmd role get-role-holders` (it answers "Unknown
+     * command"), so there it comes from `dumpsys role`.
+     */
+    private static String homeHolder(Adb adb) throws IOException {
+        String out = adb.shell("cmd role get-role-holders --user 0 android.app.role.HOME").trim();
+        if (!out.contains("Unknown command") && !out.contains("Exception")) return out;
+        boolean home = false;
+        for (String line : adb.shell("dumpsys role").split("\n")) {
+            line = line.trim();
+            if (line.equals("name=android.app.role.HOME")) home = true;
+            else if (home && line.startsWith("holders=")) return line.substring(8).trim();
+            else if (home && line.startsWith("name=")) return "";
+        }
+        return "";
     }
 
     /** Safety net: our home screen crashed 3 times in a row. Only the home screen goes back; the rest stays. */
@@ -231,8 +262,8 @@ final class HomeMode {
                 }
                 s.put("homeReverted", true).put("disabled", kept);
                 save(app, s);
-                notice(app, Ui.tr("O Início do Free My TV caiu 3 vezes seguidas; voltei para o Início original.",
-                        "Free My TV's home screen crashed 3 times in a row; I switched back to the original one."));
+                notice(app, Ui.tr("At Yazılım ana ekranı üst üste 3 kez çöktü; orijinal ana ekrana dönüldü.",
+                        "At Yazılım's home screen crashed 3 times in a row; I switched back to the original one."));
                 adb.shell("am start -a android.intent.action.MAIN -c android.intent.category.HOME");
             } catch (Exception e) {
                 AppLog.w("could not give the home screen back: " + e.getMessage());
@@ -277,26 +308,26 @@ final class HomeMode {
                         fixed.add(pkg);
                     }
                 }
-                if (!reverted && !adb.shell("cmd role get-role-holders --user 0 android.app.role.HOME").contains(PKG)) {
+                if (!reverted && !homeHolder(adb).contains(PKG)) {
                     adb.shell("cmd package set-home-activity " + HOME_ACTIVITY);
-                    fixed.add(Ui.tr("o Início", "the home screen"));
+                    fixed.add(Ui.tr("ana ekran", "the home screen"));
                 }
                 if (!adb.shell("settings get secure screensaver_components").contains(DREAM)) {
                     adb.shell("settings put secure screensaver_components " + DREAM);
-                    fixed.add(Ui.tr("a tela de descanso", "the screensaver"));
+                    fixed.add(Ui.tr("ekran koruyucu", "the screensaver"));
                 }
                 JSONObject latest = state(app);
                 latest.put("disabled", new JSONArray(sorted(disabled)));
                 save(app, latest);
             } catch (Exception e) {
-                notice(app, Ui.tr("Não consegui conferir o Free My TV: ", "Couldn't check Free My TV: ") + e.getMessage());
+                notice(app, Ui.tr("At Yazılım kontrol edilemedi: ", "Couldn't check At Yazılım: ") + e.getMessage());
                 return;
             }
             if (!fixed.isEmpty()) {
-                notice(app, (updated ? Ui.tr("A atualização da TV religou ", "The TV update turned back on ")
-                        : Ui.tr("Desliguei o que faltava: ", "Turned off what was missing: ")) + String.join(", ", fixed) + ".");
+                notice(app, (updated ? Ui.tr("TV güncellemesi şunları yeniden açtı: ", "The TV update turned back on ")
+                        : Ui.tr("Eksik kalanlar kapatıldı: ", "Turned off what was missing: ")) + String.join(", ", fixed) + ".");
             } else if (updated) {
-                notice(app, Ui.tr("A TV foi atualizada; o Free My TV continua igual.", "The TV was updated; Free My TV is still on."));
+                notice(app, Ui.tr("TV güncellendi; At Yazılım aynen devam ediyor.", "The TV was updated; At Yazılım is still on."));
             }
         }
     }
@@ -316,7 +347,7 @@ final class HomeMode {
 
     /** The home screen in use now ("package/activity"): the HOME role holder, among the TV's home screens. */
     private static String currentHome(Adb adb) throws IOException {
-        String holder = adb.shell("cmd role get-role-holders --user 0 android.app.role.HOME").trim();
+        String holder = homeHolder(adb);
         if (holder.isEmpty() || holder.contains(PKG)) return null;
         String list = adb.shell("cmd package query-activities --brief --user 0 -a android.intent.action.MAIN"
                 + " -c android.intent.category.HOME");
@@ -350,8 +381,8 @@ final class HomeMode {
     }
 
     private static Adb connect(Context c, JSONObject s) throws IOException {
-        busy(c, Ui.tr("Conectando…", "Connecting…"));
-        Adb adb = Adb.connect(c, 120_000, () -> busy(c, Ui.tr("Aceite o aviso “Permitir depuração” na TV (marque “Sempre permitir”).",
+        busy(c, Ui.tr("Bağlanıyor…", "Connecting…"));
+        Adb adb = Adb.connect(c, 120_000, () -> busy(c, Ui.tr("TV'deki “USB hata ayıklamaya izin verilsin mi?” uyarısını onaylayın (“Her zaman izin ver”i işaretleyin).",
                 "Accept “Allow USB debugging?” on the TV (tick “Always allow”).")));
         if (!s.optBoolean("adbAuthorized")) {
             JSONObject latest = state(c);

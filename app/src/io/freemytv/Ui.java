@@ -22,8 +22,8 @@ import java.util.Locale;
 final class Ui {
     private Ui() {}
 
-    static final Locale PT = new Locale("pt", "BR");
-    /** English or Portuguese, from config.properties ("language") or, with "auto", the TV's own language. */
+    static final Locale TR = new Locale("tr", "TR");
+    /** English or Turkish: the choice in Free My TV's settings; without one, config.properties ("language"). */
     static volatile boolean en = english();
     static Typeface thin, light, displayMedium, displaySemibold, regular, medium, semibold;
     private static boolean loaded;
@@ -31,6 +31,7 @@ final class Ui {
     private static final RectF OVAL = new RectF();
 
     static synchronized void init(Context c) {
+        loadLanguage(c);
         if (loaded) return;
         loaded = true;
         AssetManager a = c.getAssets();
@@ -58,12 +59,24 @@ final class Ui {
 
     private static final String FONT = "fonts/InterVariable.ttf";
 
-    /** "en"/"pt" in config.properties, or "auto": Portuguese when the TV is set to Portuguese, English otherwise. */
+    /** "en"/"tr" in config.properties, or "auto": Turkish when the TV is set to Turkish, English otherwise. */
     static boolean english() {
         String lang = Config.LANGUAGE.trim().toLowerCase(Locale.ROOT);
-        if (lang.startsWith("pt")) return false;
+        if (lang.startsWith("tr")) return false;
         if (lang.startsWith("en")) return true;
-        return !"pt".equals(Locale.getDefault().getLanguage());
+        return !"tr".equals(Locale.getDefault().getLanguage());
+    }
+
+    /**
+     * The language picked in the settings (saved in the state file, shared by the app's processes); true if it
+     * changed since the last call.
+     */
+    static boolean loadLanguage(Context c) {
+        String saved = HomeMode.state(c).optString("language", "");
+        boolean next = saved.equals("en") || (!saved.equals("tr") && english());
+        boolean changed = next != en;
+        en = next;
+        return changed;
     }
 
     private static boolean has(AssetManager a, String path) {
@@ -120,26 +133,30 @@ final class Ui {
         return Math.max(0, Math.min(1, v));
     }
 
-    static String tr(String pt, String english) {
-        return en ? english : pt;
+    static String tr(String turkish, String english) {
+        return en ? english : turkish;
     }
 
-    /** "21:47" (in English, "9:47", like the iPhone in the US). */
+    /** "21:47" (24-hour in both languages, as in Germany and Turkey). */
     static String clock(long now) {
-        return en ? new SimpleDateFormat("h:mm", Locale.US).format(new Date(now))
-                : new SimpleDateFormat("HH:mm", PT).format(new Date(now));
+        return new SimpleDateFormat("HH:mm", en ? Locale.UK : TR).format(new Date(now));
     }
 
-    /** "5:21" (sunrise and sunset; in English, "5:21 AM"). */
+    /** "7:21" (sunrise and sunset). */
     static String time(long at) {
-        return en ? new SimpleDateFormat("h:mm a", Locale.US).format(new Date(at))
-                : new SimpleDateFormat("H:mm", PT).format(new Date(at));
+        return new SimpleDateFormat("H:mm", en ? Locale.UK : TR).format(new Date(at));
     }
 
-    /** "domingo, 18 de outubro" (lowercase, like the iPhone in Portuguese); "Sunday, October 18" in English. */
+    /** "19 Ekim Pazartesi" in Turkish; "Monday, 19 October" in English. */
     static String date(long now) {
-        return en ? new SimpleDateFormat("EEEE, MMMM d", Locale.US).format(new Date(now))
-                : new SimpleDateFormat("EEEE, d 'de' MMMM", PT).format(new Date(now));
+        return en ? new SimpleDateFormat("EEEE, d MMMM", Locale.UK).format(new Date(now))
+                : new SimpleDateFormat("d MMMM EEEE", TR).format(new Date(now));
+    }
+
+    /** "SALI · 20 EKİM" / "TUESDAY · 20 OCTOBER": the date next to the clock, in capitals. */
+    static String dateLine(long now) {
+        Locale l = en ? Locale.UK : TR;
+        return new SimpleDateFormat("EEEE · d MMMM", l).format(new Date(now)).toUpperCase(l);
     }
 
     /** Spinning arc (work in progress). */

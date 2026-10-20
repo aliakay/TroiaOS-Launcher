@@ -17,8 +17,8 @@ import android.graphics.Shader;
  * and only redrawn when it moves (advance, up to ~30 times per second); in the frames between steps the GPU just
  * reuses the layer. The glass reads the frosted aurora computed in Frost or, with a recommendation's image as the
  * background, its blurred version (setFrost).
- * If AGSL fails (it shouldn't on Android 13+), it falls back to a gradient and plain translucent glass: the home screen
- * is never left blank.
+ * Without AGSL (Android 12) the background is Wallpaper's clouds of color and the glass is LiquidGlass, drawn with the
+ * plain Canvas: the home screen is never flat or blank.
  */
 final class Scene {
     final Shaders.Palette palette = new Shaders.Palette();
@@ -27,9 +27,11 @@ final class Scene {
     private final Paint auroraPaint = new Paint();
     private final Paint glassPaint = new Paint();
     private final Paint liquidPaint = new Paint();
-    private final Paint flatFill = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint flatRim = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint fallback = new Paint();
+    private final Paint wallPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
+    private final LiquidGlass flatGlass = new LiquidGlass();
+    /** Android 12 look: 0 = the day wallpaper, 1 = the night one (dark by default: white text reads on it). */
+    private float night = 1, offsetX, offsetY;
     private final RenderNode auroraNode = new RenderNode("aurora");
     private int w = 1, h = 1, lw = 1, lh = 1;
     private float speed = 1, baseDim, dim, time;
@@ -52,9 +54,6 @@ final class Scene {
             liquid = null;
         }
         auroraNode.setUseCompositingLayer(true, null);
-        flatRim.setStyle(Paint.Style.STROKE);
-        flatRim.setColor(0x33FFFFFF);
-        flatRim.setStrokeWidth(1.5f);
     }
 
     void setSize(int width, int height) {
@@ -161,7 +160,7 @@ final class Scene {
                 float specular, float alpha) {
         if (alpha <= 0.004f) return;
         if (liquid == null) {
-            glass(c, r, radius, tint, Math.max(0.5f, tintAlpha), 0, 0, lift, 1, alpha);
+            glass(c, r, radius, tint, tintAlpha, 0, 0, lift, 1, alpha);
             return;
         }
         liquid.setFloatUniform("center", r.centerX(), r.centerY());
@@ -202,8 +201,20 @@ final class Scene {
         return imageFrost ? frostImage : null;
     }
 
+    /** True without AGSL: the wallpaper and LiquidGlass are used instead of the shaders. */
+    boolean flat() {
+        return aurora == null;
+    }
+
+    /** Day (0) or night (1) wallpaper and glass, for the Android 12 look. */
+    void setNight(float value) {
+        night = Math.max(0, Math.min(1, value));
+    }
+
     /** Offset (px) of the layer that will draw glass, if it was moved on screen without being redrawn. */
     void setOffset(float x, float y) {
+        offsetX = x;
+        offsetY = y;
         if (glass != null) glass.setFloatUniform("offset", x, y);
         if (liquid != null) liquid.setFloatUniform("offset", x, y);
     }
@@ -215,9 +226,15 @@ final class Scene {
     }
 
     void drawBackground(Canvas c) {
+        drawBackground(c, null);
+    }
+
+    /** `filter` (Android 12 look only): a color filter on the wallpaper (the drawer's veil). */
+    void drawBackground(Canvas c, android.graphics.ColorFilter filter) {
         if (aurora == null) {
-            if (fallback.getShader() == null) applyPalette();
-            c.drawRect(0, 0, w, h, fallback);
+            wallPaint.setColorFilter(filter);
+            LiquidGlass.background(c, w, h, night, wallPaint);
+            wallPaint.setColorFilter(null);
             return;
         }
         if (auroraDirty) {
@@ -247,11 +264,8 @@ final class Scene {
     void glass(Canvas c, RectF r, float radius, int tint, float tintAlpha, int glow, float glowAlpha, float lift, float body, float alpha) {
         if (alpha <= 0.004f) return;
         if (glass == null) {
-            if (body > 0) {
-                flatFill.setColor(Ui.alpha(tint | 0xFF000000, Math.max(0.35f, tintAlpha)));
-                c.drawRoundRect(r, radius, radius, flatFill);
-            }
-            c.drawRoundRect(r, radius, radius, flatRim);
+            // The tints were made for the shader's glass, which already lightens: here a little less of them.
+            flatGlass.draw(c, r, radius, tint, Math.min(0.62f, tintAlpha * 0.55f), w, h, offsetX, offsetY, night, body, alpha);
             return;
         }
         float hw = r.width() / 2, hh = r.height() / 2, inner = Math.min(hw, hh);

@@ -1,0 +1,11 @@
+App marks (app_*.png): single-colour brand marks, rendered white from SVG. They identify their services and are not
+endorsements; trademarks remain with their owners.
+
+- app_netflix, app_youtube, app_appletv, app_primevideo (the smile only), app_hbomax, app_bitdefender:
+  Simple Icons (https://simpleicons.org), CC0 1.0.
+- app_disneyplus: Custom Brand Icons by elax46 (https://github.com/elax46/custom-brand-icons), MIT License.
+- Selection and adaptations as in CleanFrame by Nathan Clark (https://github.com/nthnclrk/CleanFrame), MIT License:
+  Copyright (c) 2026. Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+  and associated documentation files, to deal in the Software without restriction, subject to including this notice.
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+- app_browsehere (globe): drawn for At Yazılım.

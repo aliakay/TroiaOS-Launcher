@@ -57,6 +57,11 @@ final class Config {
     static final String CURRENCY = "$(prop currency USD)";
     static final String TEMPERATURE = "$(prop temperature auto)";
     static final boolean DISABLE_ASSISTANT = $ASSIST;
+    static final String STOCKS = "$(prop stocks '')";
+    static final String NAME = "$(prop name '')";
+    static final String WIFI_SSID = "$(prop guest_wifi_ssid '')";
+    static final String WIFI_PASSWORD = "$(prop guest_wifi_password '')";
+    static final String WIFI_SECURITY = "$(prop guest_wifi_security WPA)";
 }
 EOF
 

@@ -42,7 +42,7 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
     <application
-        android:label="Free My TV"
+        android:label="At Yazılım"
         android:icon="@drawable/icon"
         android:banner="@drawable/banner"
         android:allowBackup="false"
@@ -53,7 +53,7 @@
             android:name=".SettingsActivity"
             android:process=":home"
             android:exported="true"
-            android:label="Free My TV"
+            android:label="At Yazılım"
             android:launchMode="singleTask"
             android:taskAffinity="io.freemytv.settings"
             android:excludeFromRecents="true"
@@ -73,7 +73,7 @@
             android:name=".HomeActivity"
             android:process=":home"
             android:exported="true"
-            android:label="Free My TV"
+            android:label="At Yazılım"
             android:launchMode="singleTask"
             android:taskAffinity=""
             android:stateNotNeeded="true"
@@ -90,11 +90,33 @@
             </intent-filter>
         </activity>
 
+        <!-- WiZ lights panel: hold OK on the home screen's bulb (a short press switches all lights on or off). -->
+        <activity
+            android:name=".LightsActivity"
+            android:process=":home"
+            android:exported="false"
+            android:label="At Yazılım"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
+            android:theme="@style/FreeMyTV.Panel" />
+
+        <!-- The weather and the watchlist in detail: panels under the home screen's corner buttons. -->
+        <activity
+            android:name=".InfoActivity"
+            android:process=":home"
+            android:exported="false"
+            android:label="At Yazılım"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
+            android:theme="@style/FreeMyTV.Panel" />
+
         <service
             android:name=".Screensaver"
             android:process=":home"
             android:exported="true"
-            android:label="Free My TV"
+            android:label="At Yazılım"
             android:permission="android.permission.BIND_DREAM_SERVICE">
             <intent-filter>
                 <action android:name="android.service.dreams.DreamService" />

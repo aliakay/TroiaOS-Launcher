@@ -57,6 +57,14 @@ final class HomeApps {
     static final int APP = 0, LIVE_TV = 1, INPUT = 2, ALL_APPS = 3, SETTINGS = 4, ANDROID_SETTINGS = 5;
     /** The "HDMI Inputs" button: opens the bottom drawer on the inputs (the home screen handles it). */
     static final int INPUTS = 7;
+    /** The WiZ lights screen (LightsActivity). */
+    static final int LIGHTS = 8;
+    /** The TV's network settings (Ethernet and Wi-Fi). */
+    static final int NETWORK = 9;
+    /** The weather and the watchlist in detail (InfoActivity panels). */
+    static final int WEATHER = 10, MARKETS = 11;
+    /** The guest Wi-Fi QR code (InfoActivity panel). */
+    static final int GUEST_WIFI = 12;
     /** Image size of each card (16:9; on screen it shows up to ~330 px wide). */
     static final int TILE_W = 384, TILE_H = 216;
 
@@ -81,17 +89,17 @@ final class HomeApps {
     private static final String[][] SHELF = {
         {"netflix", "Netflix", "com.netflix.ninja", "E50914", "", "1"},
         {"youtube", "YouTube", "com.google.android.youtube.tv", "FF0033", "play", "1"},
-        {"prime", "Prime Video", "com.amazon.amazonvideo.livingroom", "1A98FF", "tint", "0.96"},
         {"disney", "Disney+", "com.disney.disneyplus", "1838C8", "", "1"},
-        {"max", "Max", "com.wbd.stream", "6C3BE0", "", "1.32"},
+        {"max", "HBO Max", "com.wbd.stream", "6C3BE0", "", "1.32"},
+        {"prime", "Prime Video", "com.amazon.amazonvideo.livingroom", "1A98FF", "tint", "0.96"},
+        {"appletv", "Apple TV", "com.apple.atve.sony.appletv", "B8BCC6", "", "1.1"},     // Sony's own build
         {"appletv", "Apple TV", "com.apple.atve.androidtv.appletv", "B8BCC6", "", "1.1"},
-        {"hulu", "Hulu", "com.hulu.livingroomplus", "1CE783", "", "1"},
-        {"paramount", "Paramount+", "com.cbs.ott", "0064FF", "", "1"},
-        {"peacock", "Peacock", "com.peacocktv.peacockandroid", "6E55DC", "", "1"},
-        {"globoplay", "Globoplay", "com.globo.globotv", "FF5A1F", "tint", "1"},
+        {"tivimate", "TiviMate", "ar.tvplayer.tv", "2A7AE4", "", "1"},
+        {"browsehere", "BrowseHere", "com.tcl.browser", "1E88E5", "", "1"},
+        {"bitdefender", "Bitdefender VPN", "com.bitdefender.vpn", "ED1C24", "", "1"},
         {"spotify", "Spotify", "com.spotify.tv.android", "1DB954", "", "1"},
     };
-    private static final int MAX_SHELF = 8;
+    private static final int MAX_SHELF = 9;
     /** Live TV apps of some brands (the antenna's channels open through the standard Android request first). */
     static final String[] LIVE_TV_APPS = {"com.tcl.tv", "com.google.android.tv", "com.mediatek.wwtv.tvcenter", "com.sony.dtv.tvx"};
     /** Kept out of "All Apps" (only hidden, still installed). Add the ones your TV shows that you never use. */
@@ -136,10 +144,10 @@ final class HomeApps {
     static List<Item> shortcuts(Context c) {
         List<Item> items = new ArrayList<>();
         if (liveTv(c) != null) {
-            items.add(shortcut(LIVE_TV, "live", Ui.tr("TV ao Vivo", "Live TV"), "tv"));
+            items.add(shortcut(LIVE_TV, "live", Ui.tr("Canlı TV", "Live TV"), "tv"));
         }
         items.addAll(inputs(c));
-        items.add(shortcut(ALL_APPS, "all", Ui.tr("Todos os Apps", "All Apps"), "apps"));
+        items.add(shortcut(ALL_APPS, "all", Ui.tr("Tüm Uygulamalar", "All Apps"), "apps"));
         return items;
     }
 
@@ -159,15 +167,16 @@ final class HomeApps {
 
     /** Free My TV settings, in the corner of the home screen. */
     static Item settings() {
-        return shortcut(SETTINGS, "settings", Ui.tr("Ajustes", "Settings"), "settings");
+        return shortcut(SETTINGS, "settings", Ui.tr("Ayarlar", "Settings"), "settings");
     }
 
     /** Shortcuts in the bottom drawer. */
     static List<Item> drawerShortcuts() {
         List<Item> items = new ArrayList<>();
-        items.add(shortcut(ALL_APPS, "all", Ui.tr("Todos os Apps", "All Apps"), "apps"));
-        items.add(shortcut(SETTINGS, "settings", Ui.tr("Ajustes do Início", "Home Settings"), "settings"));
-        items.add(shortcut(ANDROID_SETTINGS, "tv-settings", Ui.tr("Ajustes da TV", "TV Settings"), "tv_settings"));
+        items.add(shortcut(ALL_APPS, "all", Ui.tr("Tüm Uygulamalar", "All Apps"), "apps"));
+        items.add(shortcut(SETTINGS, "settings", Ui.tr("Ana Ekran Ayarları", "Home Settings"), "settings"));
+        items.add(shortcut(LIGHTS, "lights", Ui.tr("Işıklar", "Lights"), "lightbulb"));
+        items.add(shortcut(ANDROID_SETTINGS, "tv-settings", Ui.tr("TV Ayarları", "TV Settings"), "tv_settings"));
         return items;
     }
 
@@ -184,7 +193,7 @@ final class HomeApps {
     /** For the bottom drawer: live TV and every HDMI input (the ones with no device are shown dimmed). */
     static List<Item> allInputs(Context c) {
         List<Item> items = new ArrayList<>();
-        if (liveTv(c) != null) items.add(shortcut(LIVE_TV, "live", Ui.tr("TV ao Vivo", "Live TV"), "tv"));
+        if (liveTv(c) != null) items.add(shortcut(LIVE_TV, "live", Ui.tr("Canlı TV", "Live TV"), "tv"));
         items.addAll(inputs(c, true));
         return items;
     }
@@ -263,7 +272,7 @@ final class HomeApps {
             items.add(it);
         }
         Collections.sort(items, (a, b) -> a.label.toLowerCase(Locale.ROOT).compareTo(b.label.toLowerCase(Locale.ROOT)));
-        items.add(special(c, SETTINGS, "freemytv-settings", "Free My TV", "sparkles"));
+        items.add(special(c, SETTINGS, "freemytv-settings", "At Yazılım", "horse"));
         return items;
     }
 
@@ -289,6 +298,18 @@ final class HomeApps {
                 break;
             case SETTINGS:
                 intent = new Intent().setComponent(new ComponentName(a, SettingsActivity.class));
+                break;
+            case WEATHER:
+            case MARKETS:
+            case GUEST_WIFI:
+                intent = new Intent().setComponent(new ComponentName(a, InfoActivity.class)).putExtra(InfoActivity.EXTRA,
+                        it.kind == MARKETS ? InfoActivity.MARKETS : it.kind == GUEST_WIFI ? InfoActivity.WIFI : InfoActivity.WEATHER);
+                break;
+            case NETWORK:
+                intent = new Intent(Settings.ACTION_WIFI_SETTINGS);
+                break;
+            case LIGHTS:
+                intent = new Intent().setComponent(new ComponentName(a, LightsActivity.class));
                 break;
             case ANDROID_SETTINGS:
                 intent = new Intent(Settings.ACTION_SETTINGS);
@@ -342,6 +363,41 @@ final class HomeApps {
         } catch (RuntimeException ignored) {
         }
         return fallback;
+    }
+
+    /**
+     * How the TV is online: "ethernet", "wifi" or "wifi_off" (the symbol of the network button). The VPN (Tailscale)
+     * doesn't count: it rides on one of the others.
+     */
+    static String network(Context c) {
+        android.net.ConnectivityManager cm = (android.net.ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return "wifi_off";
+        boolean wifi = false;
+        try {
+            for (android.net.Network n : cm.getAllNetworks()) {
+                android.net.NetworkCapabilities caps = cm.getNetworkCapabilities(n);
+                if (caps == null || caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)) continue;
+                if (!caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)) continue;
+                if (caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_ETHERNET)) return "ethernet";
+                if (caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI)) wifi = true;
+            }
+        } catch (RuntimeException ignored) {
+        }
+        return wifi ? "wifi" : "wifi_off";
+    }
+
+    /** True when config.properties has a guest Wi-Fi network (the network button then shows its QR code). */
+    static boolean guestWifi() {
+        return !Config.WIFI_SSID.trim().isEmpty();
+    }
+
+    static String networkLabel(String symbol) {
+        if (guestWifi()) return Ui.tr("Misafir Wi-Fi · ayarlar için basılı tut", "Guest Wi-Fi · hold for settings");
+        switch (symbol) {
+            case "ethernet": return Ui.tr("Ethernet bağlı", "Ethernet connected");
+            case "wifi": return Ui.tr("Wi-Fi bağlı", "Wi-Fi connected");
+            default: return Ui.tr("Bağlantı yok", "Not connected");
+        }
     }
 
     static Intent launchIntent(PackageManager pm, String pkg) {

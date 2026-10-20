@@ -24,9 +24,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Crypto prices (Binance, every 5 min) and weather/sunrise/sunset for your location (Open-Meteo, every 30 min), cached
- * so the screen opens with numbers. Only fetched while the home screen or the screensaver is visible (the screen asks).
- * Neither source needs a key. Location and currency come from config.properties.
+ * Weather/sunrise/sunset for your location (Open-Meteo, every 30 min), cached so the screen opens with numbers. Only
+ * fetched while the home screen or the screensaver is visible (the screen asks). No key needed. The location comes from
+ * config.properties. (The crypto price code is still here but no longer fetched or shown.)
  */
 final class HomeData {
     static final String[] COINS = {"BTC", "ETH", "SOL", "USDT"};
@@ -36,10 +36,11 @@ final class HomeData {
     private static final String QUOTE = CURRENCY.equals("USD") ? "USDT" : CURRENCY;
     private static final String WEATHER_URL = "https://api.open-meteo.com/v1/forecast?latitude=" + Config.LATITUDE
             + "&longitude=" + Config.LONGITUDE
-            + "&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset"
+            + "&current=temperature_2m,weather_code,is_day,apparent_temperature,relative_humidity_2m,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset"
             + "&hourly=temperature_2m,weather_code,is_day&timezone=auto&forecast_days=2";
-    private static final long PRICES_EVERY = 5 * 60_000L, WEATHER_EVERY = 30 * 60_000L;
-    private static final Locale PT = new Locale("pt", "BR");
+    private static final long WEATHER_EVERY = 30 * 60_000L;
+    /** Hours in the forecast row of the weather card. */
+    static final int HOURS = 8;
 
     interface Listener { void onData(); }
 
@@ -49,7 +50,7 @@ final class HomeData {
     }
 
     static String coinName(int i) {
-        return i == 3 ? Ui.tr("Dólar", "Dollar") : COIN_NAMES[i];
+        return i == 3 ? Ui.tr("Dolar", "Dollar") : COIN_NAMES[i];
     }
 
     private static String pricesUrl() {
@@ -59,7 +60,7 @@ final class HomeData {
     }
 
     static final class Weather {
-        double temp = Double.NaN, max = Double.NaN, min = Double.NaN;
+        double temp = Double.NaN, max = Double.NaN, min = Double.NaN, feels = Double.NaN, wind = Double.NaN, humidity = Double.NaN;
         int code = -1;
         boolean isDay = true;
         long sunrise, sunset;   // today's, in epoch ms
@@ -87,7 +88,7 @@ final class HomeData {
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final Handler main = new Handler(Looper.getMainLooper());
     private final List<Listener> listeners = new ArrayList<>();
-    private volatile boolean fetchingPrices, fetchingWeather;
+    private volatile boolean fetchingWeather;
 
     private HomeData(Context c) {
         cache = c.getSharedPreferences("homedata", Context.MODE_PRIVATE);
@@ -98,32 +99,20 @@ final class HomeData {
             String w = cache.getString("weather", null);
             if (w != null) weather = parseWeather(w);
             weatherAt = cache.getLong("weatherAt", 0);
+            if (Double.isNaN(weather.feels)) weatherAt = 0;     // saved before "feels like" was asked for: fetch again
         } catch (Exception ignored) {}
     }
 
     void addListener(Listener l) { if (!listeners.contains(l)) listeners.add(l); }
     void removeListener(Listener l) { listeners.remove(l); }
 
-    /** Fetches whatever is stale. The screen calls this when it appears and every minute while it's visible. */
+    /**
+     * Fetches the weather if it's stale. The screen calls this when it appears and every minute while it's visible.
+     * Crypto prices are not fetched: this home screen doesn't show them.
+     */
     void refreshIfStale() {
         long now = System.currentTimeMillis();
         // A negative age (the TV's clock went back) counts as stale: otherwise the data would freeze.
-        if (!fetchingPrices && (now - pricesAt > PRICES_EVERY || now < pricesAt)) {
-            fetchingPrices = true;
-            io.execute(() -> {
-                try {
-                    String body = get(pricesUrl());
-                    parsePrices(body);
-                    pricesAt = System.currentTimeMillis();
-                    cache.edit().putString("prices", body).putLong("pricesAt", pricesAt).apply();
-                    notifyListeners();
-                } catch (Exception e) {
-                    AppLog.w("prices: " + e.getMessage());
-                } finally {
-                    fetchingPrices = false;
-                }
-            });
-        }
         if (!fetchingWeather && (now - weatherAt > WEATHER_EVERY || now < weatherAt)) {
             fetchingWeather = true;
             io.execute(() -> {
@@ -173,6 +162,9 @@ final class HomeData {
         w.temp = current.getDouble("temperature_2m");
         w.code = current.getInt("weather_code");
         w.isDay = current.optInt("is_day", 1) == 1;
+        w.feels = current.optDouble("apparent_temperature", Double.NaN);
+        w.wind = current.optDouble("wind_speed_10m", Double.NaN);
+        w.humidity = current.optDouble("relative_humidity_2m", Double.NaN);
         JSONObject daily = o.getJSONObject("daily");
         w.max = daily.getJSONArray("temperature_2m_max").getDouble(0);
         w.min = daily.getJSONArray("temperature_2m_min").getDouble(0);
@@ -185,7 +177,7 @@ final class HomeData {
             JSONArray codes = hourly.getJSONArray("weather_code");
             JSONArray days = hourly.optJSONArray("is_day");
             long now = System.currentTimeMillis();
-            for (int i = 0; i < times.length() && w.hours.size() < 6; i++) {
+            for (int i = 0; i < times.length() && w.hours.size() < HOURS; i++) {
                 long at = localTime(times.getString(i), zone);
                 if (at <= now) continue;
                 w.hours.add(at);
@@ -236,7 +228,7 @@ final class HomeData {
     // MARK: - Formatting
 
     private static Locale locale() {
-        return Ui.en ? Locale.US : PT;
+        return Ui.en ? Locale.UK : Ui.TR;
     }
 
     /** 580.4k · 21.0k · 1.04k · 5.61 (as short as possible; the dollar always with cents). */
@@ -278,16 +270,16 @@ final class HomeData {
             if (code >= 95) return "Thunderstorms";
             return "Rain";
         }
-        if (code == 0) return day ? "Céu limpo" : "Noite limpa";
-        if (code == 1) return "Poucas nuvens";
-        if (code == 2) return "Parcialmente nublado";
-        if (code == 3) return "Nublado";
-        if (code == 45 || code == 48) return "Neblina";
-        if (code >= 51 && code <= 57) return "Garoa";
-        if (code == 65 || code == 67 || code == 82) return "Chuva forte";
-        if (code >= 71 && code <= 77 || code == 85 || code == 86) return "Neve";
-        if (code >= 95) return "Tempestade";
-        return "Chuva";
+        if (code == 0) return day ? "Güneşli" : "Açık";
+        if (code == 1) return day ? "Çoğunlukla güneşli" : "Çoğunlukla açık";
+        if (code == 2) return "Parçalı bulutlu";
+        if (code == 3) return "Bulutlu";
+        if (code == 45 || code == 48) return "Sisli";
+        if (code >= 51 && code <= 57) return "Çisenti";
+        if (code == 65 || code == 67 || code == 82) return "Kuvvetli yağmur";
+        if (code >= 71 && code <= 77 || code == 85 || code == 86) return "Kar";
+        if (code >= 95) return "Gök gürültülü fırtına";
+        return "Yağmurlu";
     }
 
     private static String currencySymbol() {
@@ -307,7 +299,7 @@ final class HomeData {
         return Math.round(fahrenheit() ? v * 9 / 5 + 32 : v) + "°";
     }
 
-    private static boolean fahrenheit() {
+    static boolean fahrenheit() {
         String unit = Config.TEMPERATURE.trim().toUpperCase(Locale.ROOT);
         if (unit.startsWith("F")) return true;
         if (unit.startsWith("C")) return false;
@@ -320,9 +312,9 @@ final class HomeData {
         return (v >= 0 ? "+" : "−") + String.format(locale(), "%.1f%%", Math.abs(v));
     }
 
+    /** "15:00" (24-hour, in both languages). */
     static String hour(long at) {
-        return Ui.en ? new SimpleDateFormat("h a", Locale.US).format(new java.util.Date(at))
-                : new SimpleDateFormat("HH'h'", PT).format(new java.util.Date(at));
+        return new SimpleDateFormat("HH:mm", locale()).format(new java.util.Date(at));
     }
 
     /** How long ago the data was fetched, if it's stale (no internet): "12 min ago". */
@@ -332,6 +324,6 @@ final class HomeData {
         if (age < every * 2) return "";
         long minutes = age / 60_000;
         if (Ui.en) return minutes < 60 ? minutes + " min ago" : (minutes / 60) + " h ago";
-        return minutes < 60 ? "há " + minutes + " min" : "há " + (minutes / 60) + " h";
+        return minutes < 60 ? minutes + " dk önce" : (minutes / 60) + " sa önce";
     }
 }

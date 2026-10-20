@@ -204,7 +204,7 @@ public class SettingsActivity extends Activity {
         }
 
         private int rowCount() {
-            return screen == MAIN ? 3 : 2;
+            return screen == MAIN ? 4 : 2;
         }
 
         @Override protected void onDraw(Canvas c) {
@@ -226,9 +226,9 @@ public class SettingsActivity extends Activity {
 
             // On the left: big symbol, title, description.
             float cx = 500 * k;
-            Symbols.draw(getContext(), c, "sparkles", cx, 400 * k, 150 * k, 0xEBFFFFFF);
-            c.drawText("Free My TV", cx, 612 * k, title);
-            c.drawText(Ui.tr("Início e tela de descanso da TV", "Your TV's home screen and screensaver"), cx, 660 * k, subtitle);
+            Symbols.draw(getContext(), c, "horse", cx, 400 * k, 150 * k, 0xEBFFFFFF);
+            c.drawText("At Yazılım", cx, 612 * k, title);
+            c.drawText(Ui.tr("TV'nin ana ekranı ve ekran koruyucusu", "Your TV's home screen and screensaver"), cx, 660 * k, subtitle);
             c.drawText(versionName(getContext()), cx, 704 * k, version);
 
             if (screen == MAIN) drawMain(c, seconds); else drawChoice(c);
@@ -237,10 +237,11 @@ public class SettingsActivity extends Activity {
         private void drawMain(Canvas c, float seconds) {
             boolean working = busy();
             String busyText = state.optString("busy");
-            String mode = freeActive() ? "Free My TV" : Ui.tr("Original", "Original");
-            String[] labels = {Ui.tr("Início", "Home Screen"), Ui.tr("Tela de Descanso", "Screensaver"), Ui.tr("Ajustes da TV", "TV Settings")};
-            String[] values = {working ? "" : mode, Ui.tr("Ver agora", "Preview"), ""};
-            for (int i = 0; i < 3; i++) {
+            String mode = freeActive() ? "At Yazılım" : Ui.tr("Orijinal", "Original");
+            String[] labels = {Ui.tr("Ana Ekran", "Home Screen"), Ui.tr("Ekran Koruyucu", "Screensaver"), "Dil / Language",
+                    Ui.tr("TV Ayarları", "TV Settings")};
+            String[] values = {working ? "" : mode, Ui.tr("Önizle", "Preview"), Ui.en ? "English" : "Türkçe", ""};
+            for (int i = 0; i < 4; i++) {
                 float y = (LIST_TOP + i * (ROW_H + ROW_GAP)) * k;
                 rowRect.set(LIST_X * k, y, LIST_R * k, y + ROW_H * k);
                 float f = drawRowBackground(c, i);
@@ -249,12 +250,12 @@ public class SettingsActivity extends Activity {
                 float base = rowRect.centerY() + Ui.halfCap(rowLabel);
                 c.drawText(labels[i], rowRect.left + 30 * k, base, rowLabel);
                 float right = rowRect.right - 30 * k;
-                if (i >= 2) {
+                if (i >= 3) {
                     float cw = Symbols.width(getContext(), "chevron_right", 22 * k);
                     Symbols.draw(getContext(), c, "chevron_right", right - cw / 2, rowRect.centerY(), 22 * k, blend(0x66FFFFFF, 0x991C1C1E, f));
                 } else if (i == 0 && working) {
                     // Switching: the current step in place of the value, with the spinning arc.
-                    String text = busyText.isEmpty() ? Ui.tr("Começando…", "Starting…") : busyText;
+                    String text = busyText.isEmpty() ? Ui.tr("Başlıyor…", "Starting…") : busyText;
                     rowValue.setColor(blend(0xB3FFFFFF, 0xB31C1C1E, f));
                     String shown = TextUtils.ellipsize(text, new TextPaint(rowValue), 470 * k, TextUtils.TruncateAt.END).toString();
                     c.drawText(shown, right, base, rowValue);
@@ -267,10 +268,10 @@ public class SettingsActivity extends Activity {
                 }
             }
 
-            float y = (LIST_TOP + 3 * (ROW_H + ROW_GAP) + 46) * k;
+            float y = (LIST_TOP + 4 * (ROW_H + ROW_GAP) + 46) * k;
             String error = state.optString("error");
-            if (working && (busyText.contains("Permitir") || busyText.contains("Allow"))) {
-                c.drawText(Ui.tr("Na TV: marque “Sempre permitir” e aperte OK.", "On the TV: tick “Always allow” and press OK."),
+            if (working && (busyText.contains("izin") || busyText.contains("Allow"))) {
+                c.drawText(Ui.tr("TV'de: “Her zaman izin ver”i işaretleyip OK'ye basın.", "On the TV: tick “Always allow” and press OK."),
                         LIST_X * k + 30 * k, y, warn);
                 y += 46 * k;
             } else if (!working && !error.isEmpty()) {
@@ -278,28 +279,7 @@ public class SettingsActivity extends Activity {
                 y += 46 * k;
             }
             y = drawComparison(c, y);
-            y = drawRecs(c, y + 26 * k);
             drawNotices(c, y + 40 * k);
-        }
-
-        /** Home screen picks: status, and the credit TMDB asks for. */
-        private float drawRecs(Canvas c, float y) {
-            float x = LIST_X * k + 30 * k;
-            c.drawText(Ui.tr("RECOMENDAÇÕES", "RECOMMENDATIONS"), x, y, header);
-            String line;
-            String error = recs.optString("error");
-            int count = recs.optInt("count");
-            if (!hasKey) line = Ui.tr("Sem chave do TMDB: veja o README (config.properties).", "No TMDB key: see the README (config.properties).");
-            else if (!error.isEmpty()) line = Ui.tr("Erro: ", "Error: ") + error + ".";
-            else if (count > 0) line = Ui.tr("Ligadas · " + count + " títulos nos apps da TV, 3 novos a cada hora.",
-                    "On · " + count + " titles from the TV's apps, 3 new ones every hour.");
-            else line = Ui.tr("Buscando os títulos…", "Fetching titles…");
-            c.drawText(TextUtils.ellipsize(line, notice, 790 * k, TextUtils.TruncateAt.END).toString(), x, y + 42 * k, notice);
-            version.setTextAlign(Paint.Align.LEFT);
-            c.drawText(Ui.tr("Usa a API do TMDB, sem endosso ou certificação do TMDB.",
-                    "This product uses the TMDB API but is not endorsed or certified by TMDB."), x, y + 78 * k, version);
-            version.setTextAlign(Paint.Align.CENTER);
-            return y + 78 * k;
         }
 
         /** List row: no background; focused, white with a shadow (the Apple TV focus). Returns how focused it is. */
@@ -323,16 +303,16 @@ public class SettingsActivity extends Activity {
 
         private float drawComparison(Canvas c, float y) {
             float x = LIST_X * k + 30 * k, colA = LIST_R * k - 220 * k, colB = LIST_R * k - 30 * k;
-            c.drawText(Ui.tr("COMPARAÇÃO", "COMPARISON"), x, y, header);
+            c.drawText(Ui.tr("KARŞILAŞTIRMA", "COMPARISON"), x, y, header);
             cellValue.setColor(0x73FFFFFF);
-            c.drawText("Original", colA, y, cellValue);
-            c.drawText("Free My TV", colB, y, cellValue);
+            c.drawText(Ui.tr("Orijinal", "Original"), colA, y, cellValue);
+            c.drawText("At Yazılım", colB, y, cellValue);
             cellValue.setColor(0xD9FFFFFF);
             JSONObject metrics = state.optJSONObject("metrics");
             JSONObject a = metrics == null ? null : metrics.optJSONObject(HomeMode.ORIGINAL);
             JSONObject b = metrics == null ? null : metrics.optJSONObject(HomeMode.FREE);
-            String[][] rows = {{Ui.tr("Botão Início", "Home button"), "homeMs"}, {Ui.tr("Memória livre", "Free memory"), "memAvailableMB"},
-                    {Ui.tr("Memória do Início", "Home screen memory"), "homePssMB"}};
+            String[][] rows = {{Ui.tr("Ana ekran tuşu", "Home button"), "homeMs"}, {Ui.tr("Boş bellek", "Free memory"), "memAvailableMB"},
+                    {Ui.tr("Ana ekran belleği", "Home screen memory"), "homePssMB"}};
             for (int i = 0; i < rows.length; i++) {
                 float base = y + (46 + 40 * i) * k;
                 c.drawText(rows[i][0], x, base, cellLabel);
@@ -344,7 +324,7 @@ public class SettingsActivity extends Activity {
 
         private void drawNotices(Canvas c, float y) {
             float x = LIST_X * k + 30 * k;
-            c.drawText(Ui.tr("AVISOS", "NOTICES"), x, y, header);
+            c.drawText(Ui.tr("BİLDİRİMLER", "NOTICES"), x, y, header);
             JSONArray notices = state.optJSONArray("notices");
             int shown = 0;
             for (int i = 0; notices != null && i < notices.length() && shown < 2; i++) {
@@ -354,15 +334,15 @@ public class SettingsActivity extends Activity {
                 c.drawText(TextUtils.ellipsize(line, notice, 790 * k, TextUtils.TruncateAt.END).toString(), x, y + (42 + 38 * shown) * k, notice);
                 shown++;
             }
-            if (shown == 0) c.drawText(Ui.tr("Nenhum ainda.", "None yet."), x, y + 42 * k, notice);
+            if (shown == 0) c.drawText(Ui.tr("Henüz yok.", "None yet."), x, y + 42 * k, notice);
         }
 
         /** Home screen choice: Free My TV or the original, with a check on the one in use. */
         private void drawChoice(Canvas c) {
             Paint heading = Ui.text(Ui.displaySemibold, 34 * k, 0xFFFFFFFF);
-            c.drawText(Ui.tr("Início", "Home Screen"), LIST_X * k + 30 * k, (LIST_TOP - 24) * k, heading);
-            String[][] options = {{"Free My TV", Ui.tr("Sem anúncios, com a tela de descanso nova", "No ads, with the new screensaver")},
-                    {"Original", Ui.tr("O Início de fábrica da TV", "The TV's factory home screen")}};
+            c.drawText(Ui.tr("Ana Ekran", "Home Screen"), LIST_X * k + 30 * k, (LIST_TOP - 24) * k, heading);
+            String[][] options = {{"At Yazılım", Ui.tr("Reklamsız, yeni ekran koruyucuyla", "No ads, with the new screensaver")},
+                    {Ui.tr("Orijinal", "Original"), Ui.tr("TV'nin fabrika ana ekranı", "The TV's factory home screen")}};
             int current = freeActive() ? 0 : 1;
             for (int i = 0; i < 2; i++) {
                 float y = (LIST_TOP + 20 + i * (CHOICE_H + ROW_GAP)) * k;
@@ -378,7 +358,7 @@ public class SettingsActivity extends Activity {
                 }
             }
             Paint hint = Ui.text(Ui.regular, 23 * k, 0x8CFFFFFF);
-            c.drawText(Ui.tr("A troca leva uns segundos e a tela pisca nas medições.",
+            c.drawText(Ui.tr("Geçiş birkaç saniye sürer; ölçüm sırasında ekran yanıp sönebilir.",
                     "Switching takes a few seconds; the screen blinks while it measures."), LIST_X * k + 30 * k,
                     (LIST_TOP + 20 + 2 * (CHOICE_H + ROW_GAP) + 40) * k, hint);
         }
@@ -394,23 +374,23 @@ public class SettingsActivity extends Activity {
             if (m == null || !m.has(key)) return "—";
             long v = m.optLong(key);
             if (key.equals("homeMs")) return v + " ms";
-            if (key.equals("memAvailableMB") && v >= 1024) return String.format(Ui.en ? java.util.Locale.US : Ui.PT, "%.2f GB", v / 1024.0);
+            if (key.equals("memAvailableMB") && v >= 1024) return String.format(Ui.en ? java.util.Locale.UK : Ui.TR, "%.2f GB", v / 1024.0);
             return v + " MB";
         }
 
         private static String ago(long at) {
             long minutes = Math.max(0, (System.currentTimeMillis() - at) / 60_000);
-            if (minutes < 1) return Ui.tr("agora", "now");
-            if (minutes < 60) return Ui.tr("há " + minutes + " min", minutes + " min ago");
-            if (minutes < 48 * 60) return Ui.tr("há " + (minutes / 60) + " h", (minutes / 60) + " h ago");
-            return Ui.tr("há " + (minutes / 1440) + " dias", (minutes / 1440) + " days ago");
+            if (minutes < 1) return Ui.tr("şimdi", "now");
+            if (minutes < 60) return Ui.tr(minutes + " dk önce", minutes + " min ago");
+            if (minutes < 48 * 60) return Ui.tr((minutes / 60) + " sa önce", (minutes / 60) + " h ago");
+            return Ui.tr((minutes / 1440) + " gün önce", (minutes / 1440) + " days ago");
         }
 
         private static String versionName(Context c) {
             try {
-                return "Free My TV " + c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;
+                return "At Yazılım " + c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                return "Free My TV";
+                return "At Yazılım";
             }
         }
 
@@ -473,6 +453,12 @@ public class SettingsActivity extends Activity {
             } else if (focus == 1) {
                 pause();
                 activity.showPreview();
+            } else if (focus == 2) {
+                // Türkçe ⇄ English: saved in the state file, so the home screen (another process) follows it.
+                JSONObject s = HomeMode.state(c);
+                try { s.put("language", Ui.en ? "tr" : "en"); } catch (org.json.JSONException ignored) {}
+                HomeMode.save(c, s);
+                Ui.loadLanguage(c);
             } else {
                 activity.startActivity(new Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             }
