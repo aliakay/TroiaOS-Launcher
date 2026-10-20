@@ -64,7 +64,7 @@ About fifteen minutes. You need a Google TV or Android TV (Android 12+) and a co
    the TV's IP address (Settings → Network & Internet).
 2. **On your computer**, get the code:
    ```bash
-   git clone https://github.com/aliakay/at-yazilim && cd at-yazilim
+   git clone https://github.com/aliakay/glass-tv-launcher && cd glass-tv-launcher
    ```
 3. **The easy way:** open [Claude Code](https://claude.com/claude-code) in that folder and say
    > Install At Yazılım on my TV at 192.168.1.50. I live in Berlin.
