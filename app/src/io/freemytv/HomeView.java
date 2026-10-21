@@ -2149,6 +2149,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         // "Last watched · 36 min ago", in a small capsule.
         float x = contThumb.left;
         String when = (e.music ? Ui.tr("Son dinlenen", "Last played") : Ui.tr("Son izlenen", "Last watched")) + " · " + Continue.ago(e.at);
+        // Every line of text stays inside the card: each is cut with "…" to the room it has.
+        when = TextUtils.ellipsize(when, new TextPaint(cWhen), contThumb.width() - 24 * k, TextUtils.TruncateAt.END).toString();
         float pw = cWhen.measureText(when) + 24 * k;
         tmp.set(x, contPillTop, x + pw, contPillTop + 32 * k);
         fill.setColor(0x24FFFFFF);
@@ -2160,7 +2162,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         contTitle.draw(c);
         c.restore();
 
-        String left = Continue.left(e);
+        String left = TextUtils.ellipsize(Continue.left(e), new TextPaint(cMeta), contThumb.width() * 0.45f, TextUtils.TruncateAt.END).toString();
         String meta = e.subtitle.isEmpty() ? contApp : e.subtitle + " · " + contApp;
         float room = contThumb.width() - (left.isEmpty() ? 0 : cMeta.measureText(left) + 20 * k);
         c.drawText(TextUtils.ellipsize(meta, new TextPaint(cMeta), room, TextUtils.TruncateAt.END).toString(), x, contMetaBase, cMeta);
