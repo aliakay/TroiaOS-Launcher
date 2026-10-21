@@ -12,12 +12,26 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Does nothing by itself: Android only shows the "now playing" sessions (title, artist, cover, play/pause) to an app
- * that has notification access, and this listener is how the app holds that access. Control Center grants it once
- * through the TV's own ADB (`cmd notification allow_listener`).
+ * Android only shows the "now playing" sessions (title, artist, cover, play/pause) to an app that has notification
+ * access, and this listener is how the app holds that access. Control Center grants it once through the TV's own ADB
+ * (`cmd notification allow_listener`). The system keeps it running from then on, so it also records where each app
+ * stopped (Continue.Recorder) for the home screen's "continue watching" card. It reads no notifications.
  */
 public class MediaListener extends NotificationListenerService {
     static final String YT_MUSIC = "com.google.android.youtube.tvmusic";
+
+    private Continue.Recorder recorder;
+
+    @Override public void onListenerConnected() {
+        super.onListenerConnected();
+        if (recorder == null) recorder = new Continue.Recorder(this);
+        recorder.start();
+    }
+
+    @Override public void onListenerDisconnected() {
+        if (recorder != null) recorder.stop();
+        super.onListenerDisconnected();
+    }
 
     static ComponentName component(Context c) {
         return new ComponentName(c, MediaListener.class);

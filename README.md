@@ -33,6 +33,9 @@ a guest Wi-Fi QR code and your WiZ lights on the remote. No ads. One button to u
   settings and sleep; Now Playing (YouTube Music or whatever is playing: cover, song, ⏮ ⏯ ⏭); the lights with their
   brightness; the markets; the volume. Choose which of these show, and in what order. While music plays, the
   screensaver shows it too: a frosted card with the cover, the song and how far into it.
+- **Continue watching.** Focus YouTube (or any app) in the dock and a card shows what you left half-way: its
+  picture, when you watched it, the title, the channel, the time left, and the latest from another app. ↑ to the
+  card and OK picks it up (a YouTube video at the second you stopped, when the app tells which video it was).
 - **Make it yours, on the TV.** Settings → *Customize*: the dock's apps, Control Center's controls, the greeting,
   the weather's city (search it by name), °C or °F, your watchlist and the language. No rebuild needed.
 - **The weather at a glance.** Temperature, sky, feels-like, wind and humidity next to the clock; OK shows the next
@@ -120,6 +123,7 @@ Keep `freemytv.keystore`: updates must be signed with the same key.
 | An app | Opens it | Customize → Dock, on that app (move, remove, add) |
 | Weather | The next hours | |
 | Control Center | Opens it | |
+| ↑ from an app with a card | The card: OK continues it (↓ to the other app's row) | |
 | ↓ on the apps | Inputs, All Apps, settings | |
 
 In Control Center:

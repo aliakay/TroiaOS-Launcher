@@ -110,6 +110,12 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
   notifications. Without access, ⏯ ⏮ ⏭ fall back to media keys; with nothing playing, OK opens YouTube Music
   (`com.google.android.youtube.tvmusic`). The screensaver (`DreamView.drawNowPlaying`) shows a frosted card at the
   top left while music plays, and for a minute after it pauses.
+- **Continue watching** (`Continue`, `HomeView.drawContinue`): `Continue.Recorder` runs inside `MediaListener` (kept
+  bound by the system once access is granted) and saves, per app, the latest session with a title: position,
+  duration, media ID, picture (`files/continue.json`, `continue-<pkg>.jpg`); finished ones are dropped, idle or
+  stopped states never overwrite the position. The home screen reads it on resume and shows a card above the dock
+  for the focused app (its own hardware layer, `contLayer`; zone `Z_CONTINUE`). YouTube resumes through
+  `youtube.com/watch?v=ID&t=Ns` when the session's media ID looks like a video ID; otherwise the app just opens.
 - **Panels** (floating windows over the home screen, theme `FreeMyTV.Panel`): `InfoActivity` (weather hours,
   markets) and `LightsActivity` (WiZ: all lamps or one, on/off, scenes, brightness, colour). OK on the bulb switches
   every lamp; holding OK opens the panel.
