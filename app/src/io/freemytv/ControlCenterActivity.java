@@ -5,8 +5,6 @@ import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
@@ -15,10 +13,7 @@ import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.media.AudioManager;
-import android.media.MediaMetadata;
 import android.media.session.MediaController;
-import android.media.session.MediaSessionManager;
-import android.media.session.PlaybackState;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -112,9 +107,7 @@ public class ControlCenterActivity extends Activity {
         private List<HomeApps.Item> inputs = new ArrayList<>();
         private List<Wiz.Lamp> lamps;           // null: still looking
         private int brightness = -1;            // waiting to be sent
-        private MediaController media;
-        private Bitmap art;
-        private String mediaApp = "", title = "", artist = "";
+        private final NowPlaying now;
         private long lastNanos;
         private int w;
         private float k = 1;
@@ -127,6 +120,7 @@ public class ControlCenterActivity extends Activity {
             for (int i = 0; i < pop.length; i++) pop[i] = new Spring(0.3f, 0.85f, 0);
             for (int i = 0; i < rowPop.length; i++) rowPop[i] = new Spring(0.3f, 0.85f, 0);
             for (int i = 0; i < press.length; i++) press[i] = new Spring(0.35f, 0.9f, 0);
+            now = new NowPlaying(a, this::invalidate);
             setFocusable(true);
         }
 
@@ -155,7 +149,7 @@ public class ControlCenterActivity extends Activity {
             Stocks st = Stocks.get(c);
             st.addListener(this);
             st.refreshIfStale();
-            if (MediaListener.allowed(c)) watchMedia();
+            if (MediaListener.allowed(c)) now.start();
             else askAccess();
             Choreographer.getInstance().postFrameCallback(this);
         }
@@ -164,7 +158,7 @@ public class ControlCenterActivity extends Activity {
             running = false;
             Choreographer.getInstance().removeFrameCallback(this);
             Stocks.get(getContext()).removeListener(this);
-            unwatchMedia();
+            now.stop();
             if (brightness >= 0) handler.removeCallbacks(sendBrightness);
             if (brightness >= 0) sendBrightness.run();
         }
@@ -393,15 +387,16 @@ public class ControlCenterActivity extends Activity {
             // The cover (or YouTube Music's mark on its red).
             float s = 92 * k, ax = x + 18 * k, ay = top + (h - s) / 2;
             tmp.set(ax, ay, ax + s, ay + s);
-            if (art != null) {
+            MediaController media = now.controller;
+            if (now.art != null) {
                 clip.reset();
                 clip.addRoundRect(tmp, 18 * k, 18 * k, Path.Direction.CW);
                 c.save();
                 c.clipPath(clip);
-                c.drawBitmap(art, null, tmp, bitmapPaint);
+                c.drawBitmap(now.art, null, tmp, bitmapPaint);
                 c.restore();
             } else {
-                boolean yt = media == null || MediaListener.YT_MUSIC.equals(media.getPackageName());
+                boolean yt = now.isYouTubeMusic();
                 fill.setShader(new LinearGradient(0, tmp.top, 0, tmp.bottom, yt ? 0xFFFF2D55 : 0xFF48484A, yt ? 0xFFD70022 : 0xFF2C2C2E,
                         Shader.TileMode.CLAMP));
                 c.drawRoundRect(tmp, 18 * k, 18 * k, fill);
@@ -409,16 +404,16 @@ public class ControlCenterActivity extends Activity {
                 Symbols.draw(getContext(), c, yt ? "app_ytmusic" : "music_note", tmp.centerX(), tmp.centerY(), yt ? 50 * k : 40 * k, 0xFFFFFFFF);
             }
             // The controls at the right; the words fill what is left.
-            boolean playing = media != null ? MediaListener.playing(media) : audio.isMusicActive();
+            boolean playing = media != null ? now.playing() : audio.isMusicActive();
             float cy = top + h / 2, gap = 58 * k, cNext = right - 40 * k, cPlay = cNext - gap, cPrev = cPlay - gap;
             int ink = ink(f, 0.95f);
             control(c, "skip_previous", cPrev, cy, 24, ink, press[0]);
             control(c, playing ? "pause" : "play_arrow", cPlay, cy, 32, ink, press[1]);
             control(c, "skip_next", cNext, cy, 24, ink, press[2]);
             float tx = ax + s + 20 * k, room = cPrev - 34 * k - tx;
-            String app = media == null ? "YouTube Music" : mediaApp;
-            String song = title.isEmpty() ? (media == null ? Ui.tr("Çalan bir şey yok", "Not playing") : app) : title;
-            String sub = title.isEmpty() ? (media == null ? Ui.tr("OK ile aç", "Press OK to open") : "") : artist;
+            String app = media == null ? "YouTube Music" : now.app;
+            String song = now.title.isEmpty() ? (media == null ? Ui.tr("Çalan bir şey yok", "Not playing") : app) : now.title;
+            String sub = now.title.isEmpty() ? (media == null ? Ui.tr("OK ile aç", "Press OK to open") : "") : now.artist;
             caption.setColor(ink(f, 0.6f));
             c.drawText(fit(app.toUpperCase(Ui.en ? Locale.ROOT : Ui.TR), caption, room), tx, top + 40 * k, caption);
             text.setColor(ink(f, 0.95f));
@@ -445,87 +440,6 @@ public class ControlCenterActivity extends Activity {
             return s.substring(0, Math.max(0, n)).trim() + "…";
         }
 
-        private final MediaController.Callback mediaCallback = new MediaController.Callback() {
-            @Override public void onPlaybackStateChanged(PlaybackState state) {
-                invalidate();
-            }
-
-            @Override public void onMetadataChanged(MediaMetadata metadata) {
-                readMetadata();
-                invalidate();
-            }
-
-            @Override public void onSessionDestroyed() {
-                pickMedia();
-            }
-        };
-
-        private final MediaSessionManager.OnActiveSessionsChangedListener sessionsListener = list -> pickMedia();
-
-        private void watchMedia() {
-            try {
-                MediaSessionManager m = (MediaSessionManager) getContext().getSystemService(Context.MEDIA_SESSION_SERVICE);
-                m.addOnActiveSessionsChangedListener(sessionsListener, MediaListener.component(getContext()), handler);
-            } catch (RuntimeException e) {
-                AppLog.w("media: " + e.getMessage());
-            }
-            pickMedia();
-        }
-
-        private void unwatchMedia() {
-            try {
-                MediaSessionManager m = (MediaSessionManager) getContext().getSystemService(Context.MEDIA_SESSION_SERVICE);
-                m.removeOnActiveSessionsChangedListener(sessionsListener);
-            } catch (RuntimeException ignored) {
-            }
-            if (media != null) media.unregisterCallback(mediaCallback);
-            media = null;   // so the next resume registers again
-        }
-
-        private void pickMedia() {
-            MediaController next = MediaListener.pick(MediaListener.sessions(getContext()));
-            if (media != null && (next == null || !media.getSessionToken().equals(next.getSessionToken()))) {
-                media.unregisterCallback(mediaCallback);
-            }
-            boolean changed = next == null ? media != null : media == null || !media.getSessionToken().equals(next.getSessionToken());
-            media = next;
-            if (changed && media != null) media.registerCallback(mediaCallback, handler);
-            readMetadata();
-            invalidate();
-        }
-
-        private void readMetadata() {
-            MediaMetadata m = media == null ? null : media.getMetadata();
-            title = text(m, MediaMetadata.METADATA_KEY_TITLE, MediaMetadata.METADATA_KEY_DISPLAY_TITLE);
-            artist = text(m, MediaMetadata.METADATA_KEY_ARTIST, MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE);
-            if (artist.isEmpty()) artist = text(m, MediaMetadata.METADATA_KEY_ALBUM_ARTIST, MediaMetadata.METADATA_KEY_ALBUM);
-            Bitmap b = null;
-            if (m != null) {
-                b = m.getBitmap(MediaMetadata.METADATA_KEY_ART);
-                if (b == null) b = m.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART);
-                if (b == null) b = m.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON);
-            }
-            art = b;
-            mediaApp = media == null ? "" : appName(media.getPackageName());
-        }
-
-        private static String text(MediaMetadata m, String key, String fallback) {
-            if (m == null) return "";
-            CharSequence s = m.getText(key);
-            if (s == null || s.length() == 0) s = m.getText(fallback);
-            return s == null ? "" : s.toString().trim();
-        }
-
-        private String appName(String pkg) {
-            if (MediaListener.YT_MUSIC.equals(pkg)) return "YouTube Music";
-            try {
-                PackageManager pm = getContext().getPackageManager();
-                return pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString();
-            } catch (PackageManager.NameNotFoundException | RuntimeException e) {
-                return pkg;
-            }
-        }
-
         /** Notification access, once, through the TV's own ADB (the key it already allowed for the home screen switch). */
         private void askAccess() {
             if (askedAccess) return;
@@ -538,7 +452,7 @@ public class ControlCenterActivity extends Activity {
                     AppLog.w("media access: " + e.getMessage());
                 }
                 handler.post(() -> {
-                    if (running && MediaListener.allowed(c)) watchMedia();
+                    if (running && MediaListener.allowed(c)) now.start();
                 });
             });
         }
@@ -546,11 +460,12 @@ public class ControlCenterActivity extends Activity {
         private void mediaKey(int which) {
             press[which].value = 1;
             press[which].target = 0;
+            MediaController media = now.controller;
             if (media != null) {
                 MediaController.TransportControls t = media.getTransportControls();
                 if (which == 0) t.skipToPrevious();
                 else if (which == 2) t.skipToNext();
-                else if (MediaListener.playing(media)) t.pause();
+                else if (now.playing()) t.pause();
                 else t.play();
             } else if (which != 1 || audio.isMusicActive()) {
                 // No access (yet): the key goes to whichever app last played.
@@ -566,6 +481,7 @@ public class ControlCenterActivity extends Activity {
 
         /** The playing app (its own screen for the song), or YouTube Music; the store page if it isn't installed. */
         private void openMusicApp() {
+            MediaController media = now.controller;
             if (media != null) {
                 PendingIntent pi = media.getSessionActivity();
                 if (pi != null) {

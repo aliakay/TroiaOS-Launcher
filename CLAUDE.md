@@ -105,10 +105,11 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
   (add any installed app, move, remove), Control Center (show, hide, move), and the home screen (greeting, weather
   city via Open-Meteo geocoding, °C/°F, watchlist, language). Saved by `Prefs` in `custom.json` (both processes read
   it on resume); every getter falls back to `Config`, so config.properties is the default, never the only way.
-- **Now Playing** (`MediaListener`): media sessions are only visible to a notification listener, so Control Center
+- **Now Playing** (`MediaListener`, `NowPlaying`): media sessions are only visible to a notification listener, so Control Center
   grants itself that access once through the TV's ADB (`cmd notification allow_listener`). The listener reads no
   notifications. Without access, ⏯ ⏮ ⏭ fall back to media keys; with nothing playing, OK opens YouTube Music
-  (`com.google.android.youtube.tvmusic`).
+  (`com.google.android.youtube.tvmusic`). The screensaver (`DreamView.drawNowPlaying`) shows a frosted card at the
+  top left while music plays, and for a minute after it pauses.
 - **Panels** (floating windows over the home screen, theme `FreeMyTV.Panel`): `InfoActivity` (weather hours,
   markets) and `LightsActivity` (WiZ: all lamps or one, on/off, scenes, brightness, colour). OK on the bulb switches
   every lamp; holding OK opens the panel.

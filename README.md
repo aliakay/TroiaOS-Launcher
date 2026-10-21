@@ -31,7 +31,8 @@ a guest Wi-Fi QR code and your WiZ lights on the remote. No ads. One button to u
   an app to move it, remove it or add another.
 - **Control Center.** One button next to the weather opens a glass panel, like Apple's: Live TV, inputs, Wi-Fi,
   settings and sleep; Now Playing (YouTube Music or whatever is playing: cover, song, ⏮ ⏯ ⏭); the lights with their
-  brightness; the markets; the volume. Choose which of these show, and in what order.
+  brightness; the markets; the volume. Choose which of these show, and in what order. While music plays, the
+  screensaver shows it too: a frosted card with the cover, the song and how far into it.
 - **Make it yours, on the TV.** Settings → *Customize*: the dock's apps, Control Center's controls, the greeting,
   the weather's city (search it by name), °C or °F, your watchlist and the language. No rebuild needed.
 - **The weather at a glance.** Temperature, sky, feels-like, wind and humidity next to the clock; OK shows the next

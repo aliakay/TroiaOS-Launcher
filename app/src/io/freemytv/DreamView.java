@@ -6,6 +6,8 @@ import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
 import android.graphics.Matrix;
+import android.graphics.Path;
+import android.graphics.RectF;
 import android.graphics.Paint;
 import android.graphics.RadialGradient;
 import android.graphics.Rect;
@@ -126,6 +128,16 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
     private Paint datePaint, clockPaint, weatherPaint, weatherDim, quotePaint, stalePaint;
     private Paint cornerDate, cornerQuote, cornerStale, cornerClock, labelPaint, metaPaint;
     private TextPaint titlePaint;
+    // Now Playing: a frosted card at the top left while music plays (and for a minute after it pauses).
+    private final NowPlaying now;
+    private final Path npClip = new Path();
+    private final RectF npRect = new RectF(), npTmp = new RectF();
+    private final Paint npFill = new Paint(Paint.ANTI_ALIAS_FLAG), npRim = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint npArt = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+    private Paint npTitle, npArtist;
+    private float npAlpha;
+    private long npLast, npPlayedAt;
+    private String npTitleRaw, npTitleFit = "", npArtistRaw, npArtistFit = "";
 
     private final Runnable tick = new Runnable() {
         @Override public void run() {
@@ -158,6 +170,8 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
         }
         black.setColor(0xFF000000);
         shadowPaint.setColor(0xFF000000);
+        now = new NowPlaying(c, this::invalidate);
+        npRim.setStyle(Paint.Style.STROKE);
     }
 
     void start() {
@@ -174,6 +188,9 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
         recs.refreshIfStale();
         recs.prefetchAll();
         Photos.get(getContext()).refresh();     // the hour's nature photo behind the clock (Android 12 look)
+        if (MediaListener.allowed(getContext())) now.start();
+        npAlpha = 0;
+        npLast = 0;
         prepareNext();
         handler.postDelayed(tick, 60_000);
         Choreographer.getInstance().postFrameCallback(this);
@@ -189,6 +206,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
         handler.removeCallbacks(tick);
         data.removeListener(this);
         recs.removeListener(this);
+        now.stop();
         // The photos stay in GPU memory until the garbage collector runs: release them now (after the last frame).
         final java.util.Set<Bitmap> gone = new java.util.HashSet<>();
         for (Slide s : new Slide[] {current, incoming, prepared}) {
@@ -247,6 +265,10 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
         titlePaint.setLetterSpacing(0.005f);
         metaPaint = Ui.text(Ui.medium, 29 * k, 0xC7FFFFFF);
         metaPaint.setLetterSpacing(0.014f);
+        npTitle = Ui.text(Ui.semibold, 28 * k, 0xFFFFFFFF);
+        npArtist = Ui.text(Ui.regular, 23 * k, 0xBFFFFFFF);
+        npTitleRaw = npArtistRaw = null;
+        npRim.setStrokeWidth(Math.max(1, 1.6f * k));
         for (Paint p : new Paint[] {cornerDate, cornerQuote, cornerStale, cornerClock, labelPaint, titlePaint, metaPaint}) {
             p.setShadowLayer(18 * k, 0, 2 * k, 0x66000000);
         }
@@ -430,7 +452,10 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
             if (fallback) drawFallback(canvas, up, current == null ? 1 : 1 - first);
             else canvas.drawRect(0, 0, w, h, black);
         }
-        if (current == null) return;
+        if (current == null) {
+            drawNowPlaying(canvas, up, 0);
+            return;
+        }
         if (fallback && first >= 1) fallback = false;
 
         place(current, up, placeA);
@@ -446,6 +471,117 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
         canvas.drawRenderNode(chrome);
         drawGlass(canvas, first, e);
         drawCaptions(canvas, up);
+        drawNowPlaying(canvas, up, e);
+    }
+
+    // MARK: - Now Playing
+
+    /**
+     * The song that's playing, like the iPhone's: the cover, the song and the artist, how far into it, and its state.
+     * Frosted glass over the photo (the photo's blurred copy, at the same place), fading in and out.
+     */
+    private void drawNowPlaying(Canvas c, long up, float e) {
+        boolean playing = now.playing();
+        if (playing) npPlayedAt = up;
+        boolean show = now.controller != null && (playing || up - npPlayedAt < 60_000) && npPlayedAt != 0;
+        float dt = npLast == 0 ? 0 : Math.min(0.2f, (up - npLast) / 1000f);
+        npLast = up;
+        npAlpha = show ? Math.min(1, npAlpha + dt / 0.6f) : Math.max(0, npAlpha - dt / 0.6f);
+        if (npAlpha <= 0.004f) return;
+        float a = npAlpha * npAlpha * (3 - 2 * npAlpha);
+        float left = MARGIN * k, top = (60 + 14 * (1 - a)) * k, cw = 640 * k, ch = 132 * k, r = 34 * k;
+        npRect.set(left, top, left + cw, top + ch);
+
+        // The glass: the photo's frosted copy behind the card, a light veil, a highlight at the top and a thin rim.
+        npClip.reset();
+        npClip.addRoundRect(npRect, r, r, Path.Direction.CW);
+        c.save();
+        c.clipPath(npClip);
+        if (current != null) {
+            drawFrost(c, current, placeA, a);
+            if (incoming != null) drawFrost(c, incoming, placeB, a * e);
+        }
+        npFill.setShader(null);
+        npFill.setColor(Ui.alpha(current != null ? 0xFF201C24 : 0xFF000000, (current != null ? 0.22f : 0.3f) * a));
+        c.drawRect(npRect, npFill);
+        npFill.setShader(new LinearGradient(0, npRect.top, 0, npRect.bottom, Ui.alpha(0xFFFFFFFF, 0.2f * a),
+                Ui.alpha(0xFFFFFFFF, 0.06f * a), Shader.TileMode.CLAMP));
+        c.drawRect(npRect, npFill);
+        npFill.setShader(null);
+        c.restore();
+        npTmp.set(npRect);
+        npTmp.inset(npRim.getStrokeWidth() / 2, npRim.getStrokeWidth() / 2);
+        npRim.setShader(new LinearGradient(npRect.left, npRect.top, npRect.right, npRect.bottom,
+                new int[] {Ui.alpha(0xFFFFFFFF, 0.55f * a), Ui.alpha(0xFFFFFFFF, 0.08f * a), Ui.alpha(0xFFFFFFFF, 0.3f * a)},
+                new float[] {0, 0.55f, 1}, Shader.TileMode.CLAMP));
+        c.drawRoundRect(npTmp, r - npRim.getStrokeWidth() / 2, r - npRim.getStrokeWidth() / 2, npRim);
+
+        // The cover.
+        float s = 96 * k, ax = npRect.left + 18 * k, ay = npRect.top + (ch - s) / 2;
+        npTmp.set(ax, ay, ax + s, ay + s);
+        if (now.art != null) {
+            npClip.reset();
+            npClip.addRoundRect(npTmp, 16 * k, 16 * k, Path.Direction.CW);
+            c.save();
+            c.clipPath(npClip);
+            npArt.setAlpha(Math.round(255 * a));
+            c.drawBitmap(now.art, null, npTmp, npArt);
+            c.restore();
+        } else {
+            boolean yt = now.isYouTubeMusic();
+            npFill.setColor(Ui.alpha(yt ? 0xFFE8002D : 0xFF3A3A3C, a));
+            c.drawRoundRect(npTmp, 16 * k, 16 * k, npFill);
+            Symbols.draw(getContext(), c, yt ? "app_ytmusic" : "music_note", npTmp.centerX(), npTmp.centerY(), yt ? 52 * k : 42 * k,
+                    Ui.alpha(0xFFFFFFFF, a));
+        }
+
+        // The button: the state, as the iPhone shows it (pause while it plays).
+        float bx = npRect.right - 54 * k, by = npRect.centerY(), br = 30 * k;
+        npFill.setColor(Ui.alpha(0xFFFFFFFF, 0.85f * a));
+        c.drawCircle(bx, by, br, npFill);
+        Symbols.draw(getContext(), c, playing ? "pause" : "play_arrow", bx + (playing ? 0 : 2 * k), by, 24 * k, Ui.alpha(0xFF1C1C1E, a));
+
+        // The song, the artist and how far into it.
+        float tx = ax + s + 22 * k, room = bx - br - 26 * k - tx;
+        String title = now.title.isEmpty() ? now.app : now.title;
+        if (!title.equals(npTitleRaw)) {
+            npTitleRaw = title;
+            npTitleFit = fit(title, npTitle, room);
+        }
+        if (!now.artist.equals(npArtistRaw)) {
+            npArtistRaw = now.artist;
+            npArtistFit = fit(now.artist, npArtist, room);
+        }
+        npTitle.setAlpha(Math.round(255 * a));
+        c.drawText(npTitleFit, tx, npRect.top + 50 * k, npTitle);
+        npArtist.setAlpha(Math.round(191 * a));
+        c.drawText(npArtistFit, tx, npRect.top + 82 * k, npArtist);
+        float p = now.progress();
+        if (p >= 0) {
+            float y = npRect.top + 106 * k, bh = 5 * k;
+            npTmp.set(tx, y, tx + room, y + bh);
+            npFill.setColor(Ui.alpha(0xFFFFFFFF, 0.28f * a));
+            c.drawRoundRect(npTmp, bh / 2, bh / 2, npFill);
+            npTmp.right = tx + Math.max(bh, room * p);
+            npFill.setColor(Ui.alpha(0xFFFFFFFF, 0.85f * a));
+            c.drawRoundRect(npTmp, bh / 2, bh / 2, npFill);
+        }
+    }
+
+    /** The slide's frosted copy where the photo is now (it is a smaller image: scaled up by the same ratio). */
+    private void drawFrost(Canvas c, Slide sl, float[] place, float alpha) {
+        if (alpha <= 0.004f) return;
+        float f = place[2] * sl.image.getWidth() / (float) sl.frost.getWidth();
+        matrix.setScale(f, f);
+        matrix.postTranslate(place[0], place[1]);
+        photoPaint.setAlpha(Math.round(255 * Math.min(1, alpha)));
+        c.drawBitmap(sl.frost, matrix, photoPaint);
+    }
+
+    private static String fit(String text, Paint p, float room) {
+        if (p.measureText(text) <= room) return text;
+        int n = p.breakText(text, true, Math.max(0, room - p.measureText("…")), null);
+        return text.substring(0, Math.max(0, n)).trim() + "…";
     }
 
     private static float fadeIn(long elapsed, long duration) {
