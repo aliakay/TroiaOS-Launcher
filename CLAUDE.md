@@ -1,9 +1,9 @@
-# At Yazılım: notes for Claude
+# Toria: notes for Claude
 
 A home screen for Google TV and Android TV that replaces the stock one, plus a settings app that switches between
-At Yazılım and the TV's original home screen. A plain Android app in Java, built without Gradle by `build.sh`.
+Toria and the TV's original home screen. A plain Android app in Java, built without Gradle by `build.sh`.
 It is a fork of [Free My TV](https://github.com/simbasjungles/free-my-tv) (MIT): the package is still `io.freemytv`
-and many comments still say "Free My TV"; the app's visible name is At Yazılım.
+and many comments still say "Free My TV"; the app's visible name is Toria.
 
 The person you're helping may not be technical. Keep it short and friendly, say what you're about to do on their TV
 before you do it, and let them do the taps on the TV.
@@ -28,9 +28,9 @@ before you do it, and let them do the taps on the TV.
    allow*. Then `adb install -r FreeMyTV.apk`.
 7. **Tell them what the switch does** before they make it: the home screen and screensaver change, a short list of
    promo apps is turned off (never uninstalled), and *Original* brings it all back. On some TVs the remote's
-   shortcut buttons belong to the stock home screen (TCL: Netflix, YouTube, Prime), so they rest while At Yazılım
+   shortcut buttons belong to the stock home screen (TCL: Netflix, YouTube, Prime), so they rest while Toria
    is on.
-8. **They switch on the TV:** *At Yazılım* → *Home Screen* → *At Yazılım*. The app uses the TV's own ADB on
+8. **They switch on the TV:** *Toria* → *Home Screen* → *Toria*. The app uses the TV's own ADB on
    127.0.0.1 with its own key, so the TV asks once more to allow debugging. Don't switch modes from the computer.
 9. **Check:** `adb logcat -s FreeMyTV` shows what the switch did.
 
@@ -83,7 +83,7 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
 - Don't change the TV's picture, sound, network or account settings.
 - Keep the way back working: the *Original* mode and the watchdog.
 
-## At Yazılım's additions
+## Toria's additions
 
 - **Android 12 look (no AGSL).** `Scene.flat()` is true without RuntimeShader. Then the background is `Wallpaper`
   (a photo from `Photos`, or soft clouds of colour) and every glass surface is `LiquidGlass`: the pre-blurred

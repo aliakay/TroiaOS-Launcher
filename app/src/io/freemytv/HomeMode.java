@@ -161,15 +161,15 @@ final class HomeMode {
             s.put("mode", FREE).put("since", System.currentTimeMillis()).put("homeReverted", false)
                     .put("disabled", new JSONArray(sorted(disabled)));
             save(c, s);
-            notice(c, Ui.tr("At Yazılım açık: yeni ana ekran ve ekran koruyucu, " + disabled.size() + " uygulama kapatıldı.",
-                    "At Yazılım is on: new home screen and screensaver, " + disabled.size() + " apps turned off."));
-            busy(c, Ui.tr("At Yazılım ölçülüyor…", "Measuring At Yazılım…"));
+            notice(c, Ui.tr("Toria açık: yeni ana ekran ve ekran koruyucu, " + disabled.size() + " uygulama kapatıldı.",
+                    "Toria is on: new home screen and screensaver, " + disabled.size() + " apps turned off."));
+            busy(c, Ui.tr("Toria ölçülüyor…", "Measuring Toria…"));
             measureHomeTime(c, adb, FREE);
             done(c, null);
             adb.shell("am start -a android.intent.action.MAIN -c android.intent.category.HOME");
             ModeJob.schedule(c, ModeJob.MEMORY, FREE, 120_000);
         } catch (Exception e) {
-            done(c, Ui.tr("At Yazılım açılamadı: ", "Couldn't turn on At Yazılım: ") + e.getMessage());
+            done(c, Ui.tr("Toria açılamadı: ", "Couldn't turn on Toria: ") + e.getMessage());
         }
     }
 
@@ -262,8 +262,8 @@ final class HomeMode {
                 }
                 s.put("homeReverted", true).put("disabled", kept);
                 save(app, s);
-                notice(app, Ui.tr("At Yazılım ana ekranı üst üste 3 kez çöktü; orijinal ana ekrana dönüldü.",
-                        "At Yazılım's home screen crashed 3 times in a row; I switched back to the original one."));
+                notice(app, Ui.tr("Toria ana ekranı üst üste 3 kez çöktü; orijinal ana ekrana dönüldü.",
+                        "Toria's home screen crashed 3 times in a row; I switched back to the original one."));
                 adb.shell("am start -a android.intent.action.MAIN -c android.intent.category.HOME");
             } catch (Exception e) {
                 AppLog.w("could not give the home screen back: " + e.getMessage());
@@ -320,14 +320,14 @@ final class HomeMode {
                 latest.put("disabled", new JSONArray(sorted(disabled)));
                 save(app, latest);
             } catch (Exception e) {
-                notice(app, Ui.tr("At Yazılım kontrol edilemedi: ", "Couldn't check At Yazılım: ") + e.getMessage());
+                notice(app, Ui.tr("Toria kontrol edilemedi: ", "Couldn't check Toria: ") + e.getMessage());
                 return;
             }
             if (!fixed.isEmpty()) {
                 notice(app, (updated ? Ui.tr("TV güncellemesi şunları yeniden açtı: ", "The TV update turned back on ")
                         : Ui.tr("Eksik kalanlar kapatıldı: ", "Turned off what was missing: ")) + String.join(", ", fixed) + ".");
             } else if (updated) {
-                notice(app, Ui.tr("TV güncellendi; At Yazılım aynen devam ediyor.", "The TV was updated; At Yazılım is still on."));
+                notice(app, Ui.tr("TV güncellendi; Toria aynen devam ediyor.", "The TV was updated; Toria is still on."));
             }
         }
     }

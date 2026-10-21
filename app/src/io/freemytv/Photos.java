@@ -18,7 +18,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * At Yazılım's photos behind the home screen: Berlin and Türkiye (assets/wallpapers, listed in photos.json with the
+ * Toria's photos behind the home screen: Berlin and Türkiye (assets/wallpapers, listed in photos.json with the
  * place, author and license; all from Wikimedia Commons under free licenses, credited on screen). Daytime photos by
  * day, night photos at night, a different one every hour. Loaded in the background into Wallpaper (with its blur, for
  * the glass).

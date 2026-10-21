@@ -8,4 +8,4 @@ endorsements; trademarks remain with their owners.
   Copyright (c) 2026. Permission is hereby granted, free of charge, to any person obtaining a copy of this software
   and associated documentation files, to deal in the Software without restriction, subject to including this notice.
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
-- app_browsehere (globe): drawn for At Yazılım.
+- app_browsehere (globe): drawn for Toria.

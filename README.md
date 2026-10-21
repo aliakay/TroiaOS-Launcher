@@ -2,18 +2,19 @@
 
 <img src="app/res/drawable-nodpi/icon.png" width="96" alt="">
 
-# At Yazılım
+# Toria
 
-**A calm, Apple TV-style home screen for Google TV and Android TV.**
+**A calm, customizable launcher for Google TV and Android TV.**
 
-Nature photos behind everything, Liquid Glass (even on Android 12), the weather at a glance, a markets panel,
-a guest Wi-Fi QR code and your WiZ lights on the remote. No ads. One button to undo.
+Nature photos behind everything, Liquid Glass (even on Android 12), an Apple-style Control Center, "continue
+watching" for any app, and your apps as a glass dock or a big list. Set it all up on the TV itself. No ads, no root.
+One button to undo.
 
-<img src=".github/screenshots/home.jpg" width="880" alt="The At Yazılım home screen: a Himalayan landscape, the time and weather at the top, and the apps on a glass bar">
+<img src=".github/screenshots/home.jpg" width="880" alt="The Toria home screen: a Himalayan landscape, the time and weather at the top, and the apps on a glass bar">
 
 </div>
 
-> At Yazılım ("at" is Turkish for *horse*: hence the Trojan horse icon 🐴) is a fork of
+> Toria ("at" is Turkish for *horse*: hence the Trojan horse icon 🐴) is a fork of
 > [Free My TV](https://github.com/simbasjungles/free-my-tv) by simbasjungles and contributors, reworked into a
 > photo-first, Apple TV-like look and extended with smart-home and everyday features. Built with
 > [Claude Code](https://claude.com/claude-code).
@@ -61,7 +62,7 @@ a guest Wi-Fi QR code and your WiZ lights on the remote. No ads. One button to u
 
 ## Tested on
 
-- **Sony BRAVIA 4K VH21** (Google TV, Android 12): At Yazılım's own TV.
+- **Sony BRAVIA 4K VH21** (Google TV, Android 12): Toria's own TV.
 - Free My TV was built on a **TCL** Google TV (Android 14), whose lists are still here.
 
 Other Google TV and Android TV sets (Android 12 or newer) and Google TV streamers should work; another brand's promo
@@ -79,7 +80,7 @@ About fifteen minutes. You need a Google TV or Android TV (Android 12+) and a co
    git clone https://github.com/aliakay/glass-tv-launcher && cd glass-tv-launcher
    ```
 3. **The easy way:** open [Claude Code](https://claude.com/claude-code) in that folder and say
-   > Install At Yazılım on my TV at 192.168.1.50. I live in Berlin.
+   > Install Toria on my TV at 192.168.1.50. I live in Berlin.
 
    **The manual way:** install a JDK 17+, the Android SDK command-line tools (`build-tools;34.0.0`,
    `platforms;android-34`) and adb, then:
@@ -89,11 +90,11 @@ About fifteen minutes. You need a Google TV or Android TV (Android 12+) and a co
    adb connect 192.168.1.50:5555    # accept "Allow USB debugging?" on the TV (tick "Always allow")
    adb install -r FreeMyTV.apk
    ```
-4. **On the TV**, open *At Yazılım* → *Home Screen* → *At Yazılım*, and accept the debugging prompt once more (the
+4. **On the TV**, open *Toria* → *Home Screen* → *Toria*, and accept the debugging prompt once more (the
    app uses the TV's own ADB to switch the home screen).
 
 **Computer and TV on different networks?** Install [Tailscale](https://tailscale.com) on both (it's in the TV's
-Play Store) and use the TV's Tailscale address: `adb connect 100.x.y.z:5555`. That's how At Yazılım was built and
+Play Store) and use the TV's Tailscale address: `adb connect 100.x.y.z:5555`. That's how Toria was built and
 installed, from a server in another city.
 
 ## Settings
@@ -141,7 +142,7 @@ In Control Center:
 
 ## Going back
 
-On the TV: *At Yazılım* → *Home Screen* → *Original*. The factory home screen, screensaver and every app come back
+On the TV: *Toria* → *Home Screen* → *Original*. The factory home screen, screensaver and every app come back
 exactly as they were. To remove it for good, switch to *Original* first, then uninstall it (Settings → Apps).
 
 ## Any TV

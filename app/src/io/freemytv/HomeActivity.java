@@ -24,8 +24,8 @@ public class HomeActivity extends Activity {
             // Don't try to draw again: only show a notice while the main process restores the original home screen.
             HomeMode.requestRevertHome(this);
             TextView t = new TextView(this);
-            t.setText(Ui.tr("At Yazılım ana ekranında bir sorun oldu.\nTV'nin orijinal ana ekranına dönülüyor…",
-                    "At Yazılım's home screen ran into a problem.\nGoing back to the TV's original home screen…"));
+            t.setText(Ui.tr("Toria ana ekranında bir sorun oldu.\nTV'nin orijinal ana ekranına dönülüyor…",
+                    "Toria's home screen ran into a problem.\nGoing back to the TV's original home screen…"));
             t.setTextColor(Color.WHITE);
             t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
             t.setGravity(Gravity.CENTER);

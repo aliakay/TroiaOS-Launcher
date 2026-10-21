@@ -227,7 +227,7 @@ public class SettingsActivity extends Activity {
             // On the left: big symbol, title, description.
             float cx = 500 * k;
             Symbols.draw(getContext(), c, "horse", cx, 400 * k, 150 * k, 0xEBFFFFFF);
-            c.drawText("At Yazılım", cx, 612 * k, title);
+            c.drawText("Toria", cx, 612 * k, title);
             c.drawText(Ui.tr("TV'nin ana ekranı ve ekran koruyucusu", "Your TV's home screen and screensaver"), cx, 660 * k, subtitle);
             c.drawText(versionName(getContext()), cx, 704 * k, version);
 
@@ -237,7 +237,7 @@ public class SettingsActivity extends Activity {
         private void drawMain(Canvas c, float seconds) {
             boolean working = busy();
             String busyText = state.optString("busy");
-            String mode = freeActive() ? "At Yazılım" : Ui.tr("Orijinal", "Original");
+            String mode = freeActive() ? "Toria" : Ui.tr("Orijinal", "Original");
             String[] labels = {Ui.tr("Ana Ekran", "Home Screen"), Ui.tr("Özelleştir", "Customize"), Ui.tr("Ekran Koruyucu", "Screensaver"),
                     "Dil / Language", Ui.tr("TV Ayarları", "TV Settings")};
             String[] values = {working ? "" : mode, "", Ui.tr("Önizle", "Preview"), Ui.en ? "English" : "Türkçe", ""};
@@ -306,7 +306,7 @@ public class SettingsActivity extends Activity {
             c.drawText(Ui.tr("KARŞILAŞTIRMA", "COMPARISON"), x, y, header);
             cellValue.setColor(0x73FFFFFF);
             c.drawText(Ui.tr("Orijinal", "Original"), colA, y, cellValue);
-            c.drawText("At Yazılım", colB, y, cellValue);
+            c.drawText("Toria", colB, y, cellValue);
             cellValue.setColor(0xD9FFFFFF);
             JSONObject metrics = state.optJSONObject("metrics");
             JSONObject a = metrics == null ? null : metrics.optJSONObject(HomeMode.ORIGINAL);
@@ -341,7 +341,7 @@ public class SettingsActivity extends Activity {
         private void drawChoice(Canvas c) {
             Paint heading = Ui.text(Ui.displaySemibold, 34 * k, 0xFFFFFFFF);
             c.drawText(Ui.tr("Ana Ekran", "Home Screen"), LIST_X * k + 30 * k, (LIST_TOP - 24) * k, heading);
-            String[][] options = {{"At Yazılım", Ui.tr("Reklamsız, yeni ekran koruyucuyla", "No ads, with the new screensaver")},
+            String[][] options = {{"Toria", Ui.tr("Reklamsız, yeni ekran koruyucuyla", "No ads, with the new screensaver")},
                     {Ui.tr("Orijinal", "Original"), Ui.tr("TV'nin fabrika ana ekranı", "The TV's factory home screen")}};
             int current = freeActive() ? 0 : 1;
             for (int i = 0; i < 2; i++) {
@@ -388,9 +388,9 @@ public class SettingsActivity extends Activity {
 
         private static String versionName(Context c) {
             try {
-                return "At Yazılım " + c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;
+                return "Toria " + c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                return "At Yazılım";
+                return "Toria";
             }
         }
 
