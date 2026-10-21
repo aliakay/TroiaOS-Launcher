@@ -504,6 +504,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
         npFill.setShader(null);
         npFill.setColor(Ui.alpha(current != null ? 0xFF201C24 : 0xFF000000, (current != null ? 0.22f : 0.3f) * a));
         c.drawRect(npRect, npFill);
+        npFill.setColor(0xFFFFFFFF);    // a paint's alpha also dims its shader: opaque first
         npFill.setShader(new LinearGradient(0, npRect.top, 0, npRect.bottom, Ui.alpha(0xFFFFFFFF, 0.2f * a),
                 Ui.alpha(0xFFFFFFFF, 0.06f * a), Shader.TileMode.CLAMP));
         c.drawRect(npRect, npFill);

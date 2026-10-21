@@ -116,6 +116,7 @@ public class CustomizeActivity extends Activity {
         private String[] menu;                                       // the open action menu's options (null: none)
         private int menuFocus;
 
+        private final Paint veil = new Paint();
         private Paint title, subtitle, rowLabel, rowValue, header, hint, menuText, white, shadow, glassFill;
 
         CustomizeView(CustomizeActivity a, int page, String pkg) {
@@ -127,6 +128,7 @@ public class CustomizeActivity extends Activity {
             scene.setMotion(0.5f, 0.2f);
             scene.applyPalette();
             setFocusable(true);
+            veil.setColor(0x52000000);
             load();
             rebuild();
             if (pkg != null) {
@@ -337,6 +339,7 @@ public class CustomizeActivity extends Activity {
                 scene.advance((up - startedAt) / 1000f);
             }
             scene.drawBackground(c);
+            c.drawRect(0, 0, w, h, veil);   // the white text stays readable on a bright photo
             aimScroll();
             scroll.step(dt);
             menuPop.target = menu != null ? 1 : 0;

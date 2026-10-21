@@ -397,6 +397,7 @@ public class ControlCenterActivity extends Activity {
                 c.restore();
             } else {
                 boolean yt = now.isYouTubeMusic();
+                fill.setColor(0xFFFFFFFF);     // a paint's alpha also dims its shader: opaque first
                 fill.setShader(new LinearGradient(0, tmp.top, 0, tmp.bottom, yt ? 0xFFFF2D55 : 0xFF48484A, yt ? 0xFFD70022 : 0xFF2C2C2E,
                         Shader.TileMode.CLAMP));
                 c.drawRoundRect(tmp, 18 * k, 18 * k, fill);
@@ -447,7 +448,7 @@ public class ControlCenterActivity extends Activity {
             final Context c = getContext().getApplicationContext();
             io.execute(() -> {
                 try (Adb adb = Adb.connect(c, 10_000, null)) {
-                    adb.shell("cmd notification allow_listener " + MediaListener.component(c).flattenToString());
+                    adb.shell("cmd notification allow_listener " + MediaListener.component(c).flattenToString() + " " + android.os.Process.myUid() / 100_000);
                 } catch (Exception e) {
                     AppLog.w("media access: " + e.getMessage());
                 }
