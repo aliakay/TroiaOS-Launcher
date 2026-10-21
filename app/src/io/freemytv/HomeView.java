@@ -2283,6 +2283,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         else contOther = null;
         contRect.set(left, bottom * k - h, right, bottom * k);
         contThumb.set(left + pad, contRect.top + pad, right - pad, contRect.top + pad + inner * 9 / 16);
+        // The rows above were measured from the card's top: now on the screen.
+        contPillTop += contRect.top;
+        contTitleTop += contRect.top;
+        contMetaBase += contRect.top;
+        contBarTop += contRect.top;
+        contOtherTop += contRect.top;
     }
 
     /** The card, like the reference: the picture with a play button, when it was watched, the title, time left. */

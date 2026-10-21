@@ -76,7 +76,7 @@ final class Continue {
             e.position = o.optLong("position");
             e.duration = o.optLong("duration");
             e.at = o.optLong("at");
-            e.music = o.optBoolean("music");
+            e.music = isMusic(e.pkg);   // decided by the app each time (older saves guessed wrong for YouTube)
             return e;
         }
     }
@@ -320,6 +320,8 @@ final class Continue {
             e.position = position;
             e.at = System.currentTimeMillis();
             e.music = isMusic(pkg, md);
+            if (fresh) AppLog.w("continue: " + pkg + " id=" + (e.mediaId.isEmpty() ? "-" : e.mediaId) + " uri=" + (e.mediaUri.isEmpty() ? "-" : "yes")
+                    + " duration=" + duration / 1000 + "s");
             if (fresh || !artFile(context, pkg).exists()) saveArt(pkg, picture(md));
             save(now || st != PlaybackState.STATE_PLAYING || !savedAt.containsKey(pkg));
             savedAt.put(pkg, SystemClock.elapsedRealtime());
@@ -371,8 +373,7 @@ final class Continue {
         }
 
         private static boolean isMusic(String pkg, MediaMetadata md) {
-            if (pkg.contains("music") || pkg.contains("spotify") || pkg.contains("deezer") || pkg.contains("tidal")) return true;
-            return md.getString(MediaMetadata.METADATA_KEY_ALBUM) != null;
+            return Continue.isMusic(pkg);
         }
 
         private static String text(MediaMetadata m, String key, String fallback) {
@@ -380,5 +381,14 @@ final class Continue {
             if (s == null || s.length() == 0) s = m.getText(fallback);
             return s == null ? "" : s.toString().trim();
         }
+    }
+
+    /**
+     * Music or podcasts ("Last played") rather than video ("Last watched"): by the app only, since YouTube fills in an
+     * "album" for videos too.
+     */
+    static boolean isMusic(String pkg) {
+        return pkg.contains("music") || pkg.contains("spotify") || pkg.contains("deezer") || pkg.contains("tidal")
+                || pkg.contains("soundcloud") || pkg.contains("podcast");
     }
 }
