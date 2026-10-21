@@ -24,6 +24,7 @@
         <package android:name="com.peacocktv.peacockandroid" />
         <package android:name="com.globo.globotv" />
         <package android:name="com.spotify.tv.android" />
+        <package android:name="com.google.android.youtube.tvmusic" />
         <package android:name="com.tcl.tv" />
         <package android:name="com.google.android.tv" />
         <package android:name="com.mediatek.wwtv.tvcenter" />
@@ -101,6 +102,17 @@
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
             android:theme="@style/FreeMyTV.Panel" />
 
+        <!-- Control Center: one glass panel with Live TV, inputs, Wi-Fi, settings, sleep, lights, markets and volume. -->
+        <activity
+            android:name=".ControlCenterActivity"
+            android:process=":home"
+            android:exported="false"
+            android:label="At Yazılım"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
+            android:theme="@style/FreeMyTV.Panel" />
+
         <!-- The weather and the watchlist in detail: panels under the home screen's corner buttons. -->
         <activity
             android:name=".InfoActivity"
@@ -122,6 +134,18 @@
             <intent-filter>
                 <action android:name="android.service.dreams.DreamService" />
                 <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
+
+        <!-- Only so Control Center may show what's playing (Android shows media sessions to notification listeners).
+             It reads no notifications. -->
+        <service
+            android:name=".MediaListener"
+            android:exported="true"
+            android:label="At Yazılım"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
 

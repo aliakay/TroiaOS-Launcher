@@ -30,6 +30,11 @@ final class Scene {
     private final Paint fallback = new Paint();
     private final Paint wallPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
     private final LiquidGlass flatGlass = new LiquidGlass();
+
+    /** The rim's brightness for the glass drawn next without AGSL (1: the usual). */
+    void rim(float strength) {
+        flatGlass.rimStrength = strength;
+    }
     /** Android 12 look: 0 = the day wallpaper, 1 = the night one (dark by default: white text reads on it). */
     private float night = 1, offsetX, offsetY;
     private final RenderNode auroraNode = new RenderNode("aurora");

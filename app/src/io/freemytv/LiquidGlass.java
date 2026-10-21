@@ -32,6 +32,9 @@ final class LiquidGlass {
      * Glass in `r` (canvas coordinates). screenW/H: the screen size; (ox, oy): where the canvas's origin is on screen
      * (a moved layer, or a small window); night: 0 = day wallpaper, 1 = night; body = 0: only the rim; alpha: opacity.
      */
+    /** How bright the rim is (1: the usual; the dock asks for a softer one). */
+    float rimStrength = 1;
+
     void draw(Canvas c, RectF r, float radius, int tint, float tintAlpha, int screenW, int screenH, float ox, float oy,
               float night, float body, float alpha) {
         if (alpha <= 0.004f) return;
@@ -72,7 +75,8 @@ final class LiquidGlass {
         edge.inset(stroke / 2, stroke / 2);
         rim.setStrokeWidth(stroke);
         rim.setShader(new LinearGradient(r.left, r.top, r.right, r.bottom,
-                new int[] {Ui.alpha(0xFFFFFFFF, 0.85f * alpha), Ui.alpha(0xFFFFFFFF, 0.10f * alpha), Ui.alpha(0xFFFFFFFF, 0.42f * alpha)},
+                new int[] {Ui.alpha(0xFFFFFFFF, 0.85f * rimStrength * alpha), Ui.alpha(0xFFFFFFFF, 0.10f * rimStrength * alpha),
+                        Ui.alpha(0xFFFFFFFF, 0.42f * rimStrength * alpha)},
                 new float[] {0, 0.55f, 1}, Shader.TileMode.CLAMP));
         c.drawRoundRect(edge, radius, radius, rim);
     }

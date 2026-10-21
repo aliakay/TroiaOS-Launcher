@@ -65,6 +65,8 @@ final class HomeApps {
     static final int WEATHER = 10, MARKETS = 11;
     /** The guest Wi-Fi QR code (InfoActivity panel). */
     static final int GUEST_WIFI = 12;
+    /** Control Center (ControlCenterActivity): Live TV, inputs, Wi-Fi, settings, sleep, lights, markets, volume. */
+    static final int CONTROL = 13;
     /** Image size of each card (16:9; on screen it shows up to ~330 px wide). */
     static final int TILE_W = 384, TILE_H = 216;
 
@@ -304,6 +306,9 @@ final class HomeApps {
             case GUEST_WIFI:
                 intent = new Intent().setComponent(new ComponentName(a, InfoActivity.class)).putExtra(InfoActivity.EXTRA,
                         it.kind == MARKETS ? InfoActivity.MARKETS : it.kind == GUEST_WIFI ? InfoActivity.WIFI : InfoActivity.WEATHER);
+                break;
+            case CONTROL:
+                intent = new Intent().setComponent(new ComponentName(a, ControlCenterActivity.class));
                 break;
             case NETWORK:
                 intent = new Intent(Settings.ACTION_WIFI_SETTINGS);

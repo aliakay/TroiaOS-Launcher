@@ -93,7 +93,15 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
 - **Top of the home screen** (`HomeView.drawLightTop`, `drawWeatherWidget`): greeting (`name`), clock, date, the
   weather (Open-Meteo: feels-like, wind, humidity); the corner buttons are icons, with glass only on focus.
 - **Dock** (`CLEAN_DOCK`, after CleanFrame): white brand marks in `assets/symbols/app_*.png` (`GLYPHS` maps shelf
-  keys to them; licences in `LICENSE-app-icons.txt`) with the app names, on a smoked glass bar.
+  keys to them; licences in `LICENSE-app-icons.txt`) with the app names, on a smoked glass capsule with a soft rim;
+  the focused app gets a pill of light, no outline.
+- **Control Center** (`ControlCenterActivity`, the one corner button next to the weather): round buttons (Live TV,
+  inputs, Wi-Fi QR, settings, sleep through the TV's own ADB), Now Playing, lights (OK on/off, ← → brightness, hold
+  for the panel), markets (OK for the watchlist) and volume (← →, OK mutes).
+- **Now Playing** (`MediaListener`): media sessions are only visible to a notification listener, so Control Center
+  grants itself that access once through the TV's ADB (`cmd notification allow_listener`). The listener reads no
+  notifications. Without access, ⏯ ⏮ ⏭ fall back to media keys; with nothing playing, OK opens YouTube Music
+  (`com.google.android.youtube.tvmusic`).
 - **Panels** (floating windows over the home screen, theme `FreeMyTV.Panel`): `InfoActivity` (weather hours,
   markets) and `LightsActivity` (WiZ: all lamps or one, on/off, scenes, brightness, colour). OK on the bulb switches
   every lamp; holding OK opens the panel.

@@ -70,7 +70,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
      * name; the focused one on a lit pane of glass. Off: the colored tiles.
      */
     private static final boolean CLEAN_DOCK = true;
-    private static final float CLEAN_TOP = 816, CLEAN_H = 168, CLEAN_PAD = 16;
+    private static final float CLEAN_TOP = 836, CLEAN_H = 140, CLEAN_PAD = 14;
     /** Each shelf app's white mark (assets/symbols; see LICENSE-app-icons.txt). */
     private static final Map<String, String> GLYPHS = new HashMap<>();
     static {
@@ -141,7 +141,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private int tab, topIndex, cardIndex;
     private List<Recs.Pick> cards = new ArrayList<>();
     // Tabs (0 to 2, not shown here) and the corner buttons (3 on): Live TV, HDMI, Network, Lights, Settings.
-    private final Spring[] topFocus = new Spring[12];
+    private final Spring[] topFocus = new Spring[12];   // (sized for more corner buttons than there are now)
     private final RectF[] topRects = new RectF[12];
     private final Spring[] cardFocus = new Spring[3];
     private final RectF[] cardRects = new RectF[3];
@@ -438,16 +438,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         lightButtons.clear();
         // The weather: the widget next to the clock (it takes focus too: OK opens the hours); then the round buttons.
         lightButtons.add(HomeApps.action(HomeApps.WEATHER, "weather", weatherLabel(), weatherSymbol()));
-        lightButtons.add(HomeApps.action(HomeApps.LIVE_TV, "live", Ui.tr("Canlı TV", "Live TV"), "live_tv"));
-        lightButtons.add(HomeApps.action(HomeApps.INPUTS, "inputs", Ui.tr("HDMI Girişleri", "HDMI Inputs"), "hdmi"));
-        if (!stocks.quotes.isEmpty()) {
-            lightButtons.add(HomeApps.action(HomeApps.MARKETS, "markets", Ui.tr("Piyasalar", "Markets"), "chart"));
-        }
-        String net = HomeApps.network(getContext());
-        lightButtons.add(HomeApps.action(HomeApps.NETWORK, "network", HomeApps.networkLabel(net), net));
-        lightButtons.add(HomeApps.action(HomeApps.LIGHTS, "lights",
-                Ui.tr("Işıklar · ayarlar için basılı tut", "Lights · hold for settings"), "lightbulb"));
-        lightButtons.add(HomeApps.action(HomeApps.SETTINGS, "settings", Ui.tr("Ayarlar", "Settings"), "settings"));
+        // Everything else lives in Control Center (one button, like Apple's), so the corner stays calm.
+        lightButtons.add(HomeApps.action(HomeApps.CONTROL, "control", Ui.tr("Kontrol Merkezi", "Control Center"), "control"));
     }
 
     private static String[] tabs() {
@@ -1146,15 +1138,18 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     /** Shelf layer: the glass bar and its shadow (it only changes with the background). */
     private void drawPlatter(Canvas c) {
         if (shelf.isEmpty() || !SHOW_DOCK) return;
-        float radius = (TILE_RADIUS + SHELF_PAD) * k;
+        // CleanFrame's bar is a capsule, with a soft rim (a bright one looked hard on the TV).
+        float radius = CLEAN_DOCK ? platterRect.height() / 2 : (TILE_RADIUS + SHELF_PAD) * k;
         tmp.set(platterRect);
         tmp.offset(0, 18 * k);
         shadow.setColor(tone(0x1F000000, 0x52000000));
         c.drawRoundRect(tmp, radius, radius, shadow);
         // White glass by day; smoked glass at night.
         boolean photo = Wallpaper.get().hasPhoto();
+        if (CLEAN_DOCK) scene.rim(0.4f);
         scene.liquid(c, platterRect, radius, photo ? SMOKE : tone(0xFFFFFFFF, SMOKE), photo ? 0.7f : tone(0.42f, 0.12f), tone(0.03f, 0.08f),
-                tone(30, 34) * k, tone(22, 28) * k, tone(0.65f, 0.95f), 1);
+                tone(30, 34) * k, tone(22, 28) * k, CLEAN_DOCK ? tone(0.35f, 0.5f) : tone(0.65f, 0.95f), 1);
+        scene.rim(1);
     }
 
     private void drawTiles(Canvas c) {
@@ -1181,8 +1176,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
      * top. No border and no reflection, as Apple does it.
      */
     /**
-     * CleanFrame's app: its white mark (all at the same height; wide ones narrower) above its name. Focused: a lit pane
-     * of glass behind it, a little larger, and the mark at full white.
+     * CleanFrame's app: its white mark (all at the same height; wide ones narrower) above its name. Focused: a soft
+     * pill of light behind it (no outline, like iOS's tab bars), a little larger, and the mark at full white.
      */
     private void drawCleanItem(Canvas c, int i) {
         HomeApps.Item it = shelf.get(i);
@@ -1190,16 +1185,14 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         RectF base = tileRects[i];
         float cx = base.centerX(), cy = base.centerY();
         cell.set(cx - base.width() * s / 2, cy - base.height() * s / 2, cx + base.width() * s / 2, cy + base.height() * s / 2);
-        float r = 28 * k * s;
+        float r = cell.height() / 2;
         if (fc > 0.01f) {
             fill.setShader(null);
-            fill.setColor(Ui.alpha(0xFFFFFFFF, 0.18f * fc));
+            fill.setColor(Ui.alpha(0xFFFFFFFF, 0.16f * fc));
             c.drawRoundRect(cell, r, r, fill);
-            border.setColor(Ui.alpha(0xFFFFFFFF, 0.3f * fc));
-            c.drawRoundRect(cell, r, r, border);
         }
         int ink = Ui.alpha(0xFFFFFFFF, 0.8f + 0.2f * fc);
-        float gy = cell.top + cell.height() * 0.4f, targetH = 52 * k * s, maxW = cell.width() * 0.6f;
+        float gy = cell.top + cell.height() * 0.39f, targetH = 42 * k * s, maxW = cell.width() * 0.5f;
         String glyph = GLYPHS.get(it.key);
         Bitmap mark = glyph == null ? null : Symbols.get(getContext(), glyph);
         if (mark != null) {
@@ -1217,11 +1210,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             bitmapPaint.setAlpha(255);
         }
         lDockName.setColor(ink);
-        float size = 27 * k * s, room = cell.width() - 18 * k;
+        float size = 23 * k * s, room = cell.width() - 36 * k;
         lDockName.setTextSize(size);
         float wide = lDockName.measureText(it.label);
         if (wide > room) lDockName.setTextSize(size * room / wide);
-        c.drawText(it.label, cx, cell.top + cell.height() * 0.84f, lDockName);
+        c.drawText(it.label, cx, cell.top + cell.height() * 0.81f, lDockName);
     }
 
     private void drawShelfTile(Canvas c, int i) {
