@@ -34,10 +34,12 @@ final class HomeData {
     private static final String CURRENCY = Config.CURRENCY.trim().toUpperCase(Locale.ROOT);
     /** Binance quotes dollars as USDT. */
     private static final String QUOTE = CURRENCY.equals("USD") ? "USDT" : CURRENCY;
-    private static final String WEATHER_URL = "https://api.open-meteo.com/v1/forecast?latitude=" + Config.LATITUDE
-            + "&longitude=" + Config.LONGITUDE
+    /** The location (Customize, or config.properties) at the time of the call. */
+    private static String weatherUrl() {
+        return "https://api.open-meteo.com/v1/forecast?latitude=" + Prefs.latitude() + "&longitude=" + Prefs.longitude()
             + "&current=temperature_2m,weather_code,is_day,apparent_temperature,relative_humidity_2m,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset"
             + "&hourly=temperature_2m,weather_code,is_day&timezone=auto&forecast_days=2";
+    }
     private static final long WEATHER_EVERY = 30 * 60_000L;
     /** Hours in the forecast row of the weather card. */
     static final int HOURS = 8;
@@ -85,12 +87,14 @@ final class HomeData {
     volatile Weather weather = new Weather();
 
     private final SharedPreferences cache;
+    private final Context context;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final Handler main = new Handler(Looper.getMainLooper());
     private final List<Listener> listeners = new ArrayList<>();
     private volatile boolean fetchingWeather;
 
     private HomeData(Context c) {
+        context = c;
         cache = c.getSharedPreferences("homedata", Context.MODE_PRIVATE);
         try {
             String p = cache.getString("prices", null);
@@ -112,15 +116,19 @@ final class HomeData {
      */
     void refreshIfStale() {
         long now = System.currentTimeMillis();
+        // Another city was picked in Customize: the saved weather is someone else's.
+        Prefs.load(context);
+        final String place = Prefs.latitude() + "," + Prefs.longitude();
+        if (!place.equals(cache.getString("weatherFor", place))) weatherAt = 0;
         // A negative age (the TV's clock went back) counts as stale: otherwise the data would freeze.
         if (!fetchingWeather && (now - weatherAt > WEATHER_EVERY || now < weatherAt)) {
             fetchingWeather = true;
             io.execute(() -> {
                 try {
-                    String body = get(WEATHER_URL);
+                    String body = get(weatherUrl());
                     weather = parseWeather(body);
                     weatherAt = System.currentTimeMillis();
-                    cache.edit().putString("weather", body).putLong("weatherAt", weatherAt).apply();
+                    cache.edit().putString("weather", body).putLong("weatherAt", weatherAt).putString("weatherFor", place).apply();
                     notifyListeners();
                 } catch (Exception e) {
                     AppLog.w("weather: " + e.getMessage());
@@ -300,7 +308,7 @@ final class HomeData {
     }
 
     static boolean fahrenheit() {
-        String unit = Config.TEMPERATURE.trim().toUpperCase(Locale.ROOT);
+        String unit = Prefs.temperature().toUpperCase(Locale.ROOT);
         if (unit.startsWith("F")) return true;
         if (unit.startsWith("C")) return false;
         return "US".equals(Locale.getDefault().getCountry());

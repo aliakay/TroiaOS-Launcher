@@ -40,8 +40,9 @@ import java.util.concurrent.Executors;
 
 /**
  * Control Center, like Apple's: one glass panel at the right with the time, the connection, round buttons (Live TV,
- * inputs, Wi-Fi, settings, sleep), what's playing (YouTube Music), the lights, the markets and the volume. The corner
- * of the home screen keeps a single button that opens it.
+ * inputs, Wi-Fi, settings, sleep), what's playing (YouTube Music), the lights, the markets and the volume. Which of
+ * them show, and in what order, is chosen in Customize ("Edit" at the bottom). The corner of the home screen keeps a
+ * single button that opens it.
  */
 public class ControlCenterActivity extends Activity {
     private CenterView view;
@@ -83,11 +84,10 @@ public class ControlCenterActivity extends Activity {
 
     static final class CenterView extends View implements Choreographer.FrameCallback, Stocks.Listener {
         static final float W = 620;
-        private static final float PAD = 34, BTN_TOP = 160, BTN_D = 84, MEDIA_TOP = 312, MEDIA_H = 128, LIGHTS_TOP = 454,
-                LIGHTS_H = 104, MARKETS_TOP = 572, MARKETS_H = 76, VOL_TOP = 662, VOL_H = 72, MAIN_H = 768, ROW_H = 66,
-                TILE_R = 30;
-        private static final int BUTTONS = 0, MEDIA = 1, LIGHTS = 2, MARKETS = 3, VOLUME = 4;
-        private static final int LIVE = 0, INPUTS = 1, WIFI = 2, SETTINGS = 3, SLEEP = 4;
+        private static final float PAD = 34, TOP = 160, BTN_D = 84, BTN_BLOCK = 152, MEDIA_H = 128, LIGHTS_H = 104,
+                MARKETS_H = 76, VOL_H = 72, GAP = 14, EDIT_H = 52, ROW_H = 66, TILE_R = 30;
+        /** Rows: the round buttons, each tile (Prefs.TILES ids), and "Edit" at the bottom. */
+        private static final String BUTTONS = "buttons", EDIT = "edit";
         /** Asked once per process: notification access (for what's playing), through the TV's own ADB. */
         private static boolean askedAccess;
 
@@ -99,11 +99,16 @@ public class ControlCenterActivity extends Activity {
         private final RectF panel = new RectF(), tmp = new RectF();
         private final Path clip = new Path();
         private final int[] onScreen = new int[2];
-        private final Spring[] pop = new Spring[9];        // 0-4 buttons, then the media, lights, markets and volume rows
+        private final Spring[] pop = new Spring[10];       // 0-4 buttons, 5-8 the tiles (as shown), 9 Edit
         private final Spring[] rowPop = new Spring[8];     // inputs page
         private final Spring[] press = new Spring[3];      // media: previous, play/pause, next (a short flash)
         private boolean inputsPage, running, okDown, okHeld;
-        private int row = BUTTONS, col, inputIndex;
+        private int row, col, inputIndex;
+        /** What shows, in order (Customize → Control Center), and each row's top in panel units. */
+        private final List<String> buttons = new ArrayList<>(), tiles = new ArrayList<>(), rows = new ArrayList<>();
+        private final List<Float> rowTops = new ArrayList<>();
+        private float mainH;
+        private int modulesVersion = -1;
         private List<HomeApps.Item> inputs = new ArrayList<>();
         private List<Wiz.Lamp> lamps;           // null: still looking
         private int brightness = -1;            // waiting to be sent
@@ -141,6 +146,12 @@ public class ControlCenterActivity extends Activity {
             } else {
                 lamps = new ArrayList<>();
             }
+            Prefs.load(c);
+            if (modulesVersion != Prefs.version) {
+                modulesVersion = Prefs.version;
+                layoutRows();
+                requestLayout();
+            }
             Stocks st = Stocks.get(c);
             st.addListener(this);
             st.refreshIfStale();
@@ -172,10 +183,55 @@ public class ControlCenterActivity extends Activity {
             Choreographer.getInstance().postFrameCallback(this);
         }
 
+        /** The rows from the chosen modules (markets only with a watchlist, lights only once lamps were found). */
+        private void layoutRows() {
+            buttons.clear();
+            tiles.clear();
+            rows.clear();
+            rowTops.clear();
+            for (Prefs.Module m : Prefs.modules(Prefs.BUTTONS)) if (m.on) buttons.add(m.id);
+            for (Prefs.Module m : Prefs.modules(Prefs.TILES)) {
+                if (!m.on) continue;
+                if (m.id.equals("markets") && Prefs.stocks().isEmpty()) continue;
+                tiles.add(m.id);
+            }
+            float y = TOP;
+            if (!buttons.isEmpty()) {
+                rows.add(BUTTONS);
+                rowTops.add(y);
+                y += BTN_BLOCK;
+            }
+            for (String t : tiles) {
+                rows.add(t);
+                rowTops.add(y);
+                y += tileHeight(t) + GAP;
+            }
+            y += 4;
+            rows.add(EDIT);
+            rowTops.add(y);
+            mainH = y + EDIT_H + 28;
+            row = Math.min(row, rows.size() - 1);
+            col = Math.min(col, Math.max(0, buttons.size() - 1));
+        }
+
+        private static float tileHeight(String id) {
+            switch (id) {
+                case "media": return MEDIA_H;
+                case "lights": return LIGHTS_H;
+                case "markets": return MARKETS_H;
+                default: return VOL_H;
+            }
+        }
+
+        private String rowId() {
+            return row < rows.size() ? rows.get(row) : EDIT;
+        }
+
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
             int width = MeasureSpec.getSize(widthSpec);
             float kk = width / W;
-            float h = inputsPage ? 168 + Math.max(1, inputs.size()) * ROW_H + 30 : MAIN_H;
+            if (rows.isEmpty()) layoutRows();
+            float h = inputsPage ? 168 + Math.max(1, inputs.size()) * ROW_H + 30 : mainH;
             setMeasuredDimension(width, Math.round(h * kk));
         }
 
@@ -204,8 +260,10 @@ public class ControlCenterActivity extends Activity {
             long now = System.nanoTime();
             float dt = lastNanos == 0 ? 1 / 60f : Math.min(0.05f, (now - lastNanos) / 1e9f);
             lastNanos = now;
+            String focused = inputsPage ? "" : rowId();
             for (int i = 0; i < pop.length; i++) {
-                boolean on = !inputsPage && (i < 5 ? row == BUTTONS && col == i : row == i - 4);
+                boolean on = i < 5 ? focused.equals(BUTTONS) && col == i
+                        : i < 9 ? i - 5 < tiles.size() && focused.equals(tiles.get(i - 5)) : focused.equals(EDIT);
                 pop[i].target = on ? 1 : 0;
                 pop[i].step(dt);
             }
@@ -222,11 +280,19 @@ public class ControlCenterActivity extends Activity {
             drawHeader(c);
             if (inputsPage) drawInputs(c);
             else {
-                drawButtons(c);
-                drawMedia(c);
-                drawLights(c);
-                drawMarkets(c);
-                drawVolume(c);
+                for (int i = 0; i < rows.size(); i++) {
+                    String id = rows.get(i);
+                    float top = rowTops.get(i) * k;
+                    float f = id.equals(BUTTONS) || id.equals(EDIT) ? 0 : Ui.clamp(pop[5 + tiles.indexOf(id)].value);
+                    switch (id) {
+                        case BUTTONS: drawButtons(c, top); break;
+                        case "media": drawMedia(c, top, f); break;
+                        case "lights": drawLights(c, top, f); break;
+                        case "markets": drawMarkets(c, top, f); break;
+                        case "volume": drawVolume(c, top, f); break;
+                        default: drawEdit(c, top);
+                    }
+                }
             }
         }
 
@@ -245,34 +311,74 @@ public class ControlCenterActivity extends Activity {
             Symbols.draw(getContext(), c, net, right - nw - 20 * k, 128 * k - Ui.halfCap(dim), 20 * k, 0xA6FFFFFF);
         }
 
-        private static final String[] BUTTON_SYMBOLS = {"live_tv", "hdmi", "wifi", "settings", "bedtime"};
-
-        private String buttonLabel(int i) {
-            switch (i) {
-                case LIVE: return Ui.tr("Canlı TV", "Live TV");
-                case INPUTS: return Ui.tr("Girişler", "Inputs");
-                case WIFI: return "Wi-Fi";
-                case SETTINGS: return Ui.tr("Ayarlar", "Settings");
-                default: return Ui.tr("Uyku", "Sleep");
+        static String moduleSymbol(String id) {
+            switch (id) {
+                case "live": return "live_tv";
+                case "inputs": return "hdmi";
+                case "wifi": return "wifi";
+                case "settings": return "settings";
+                case "sleep": return "bedtime";
+                case "media": return "music_note";
+                case "lights": return "lightbulb";
+                case "markets": return "chart";
+                default: return "speaker";
             }
         }
 
-        /** Round buttons, like Control Center's: smoked glass, white when focused. */
-        private void drawButtons(Canvas c) {
-            float step = (getWidth() - 2 * PAD * k) / 5f, d = BTN_D * k;
-            for (int i = 0; i < 5; i++) {
-                float f = Ui.clamp(pop[i].value), cx = PAD * k + step * (i + 0.5f), cy = BTN_TOP * k + d / 2, r = d / 2 * (1 + 0.08f * f);
+        static String moduleLabel(String id) {
+            switch (id) {
+                case "live": return Ui.tr("Canlı TV", "Live TV");
+                case "inputs": return Ui.tr("Girişler", "Inputs");
+                case "wifi": return "Wi-Fi";
+                case "settings": return Ui.tr("Ayarlar", "Settings");
+                case "sleep": return Ui.tr("Uyku", "Sleep");
+                case "media": return Ui.tr("Çalan Müzik", "Now Playing");
+                case "lights": return Ui.tr("Işıklar", "Lights");
+                case "markets": return Ui.tr("Piyasalar", "Markets");
+                default: return Ui.tr("Ses", "Volume");
+            }
+        }
+
+        /** Round buttons, like Control Center's: smoked glass, white when focused (fewer of them stay centered). */
+        private void drawButtons(Canvas c, float top) {
+            int n = buttons.size();
+            float step = (getWidth() - 2 * PAD * k) / 5f, d = BTN_D * k, start = PAD * k + step * (5 - n) / 2f;
+            for (int i = 0; i < n; i++) {
+                String id = buttons.get(i);
+                float f = Ui.clamp(pop[i].value), cx = start + step * (i + 0.5f), cy = top + d / 2, r = d / 2 * (1 + 0.08f * f);
                 if (f > 0.01f) {
                     shadow.setColor(Ui.alpha(0xFF000000, 0.45f * f));
                     c.drawCircle(cx, cy + 6 * k, r, shadow);
                 }
                 fill.setColor(blend(0x29FFFFFF, 0xFFF5F5F7, f));
                 c.drawCircle(cx, cy, r, fill);
-                String symbol = i == WIFI && HomeApps.network(getContext()).equals("ethernet") && !HomeApps.guestWifi() ? "ethernet" : BUTTON_SYMBOLS[i];
+                String symbol = id.equals("wifi") && HomeApps.network(getContext()).equals("ethernet") && !HomeApps.guestWifi() ? "ethernet" : moduleSymbol(id);
                 Symbols.draw(getContext(), c, symbol, cx, cy, 28 * k * (1 + 0.08f * f), blend(0xF2FFFFFF, 0xFF1C1C1E, f));
                 label.setColor(blend(0xB3FFFFFF, 0xFFFFFFFF, f));
-                c.drawText(buttonLabel(i), cx, cy + d / 2 + 36 * k, label);
+                c.drawText(moduleLabel(id), cx, cy + d / 2 + 36 * k, label);
             }
+        }
+
+        /** "Edit" at the bottom, like iOS's "Edit Controls": a small pill that opens Customize → Control Center. */
+        private void drawEdit(Canvas c, float top) {
+            float f = Ui.clamp(pop[9].value), cx = getWidth() / 2f, h = EDIT_H * k;
+            String text = Ui.tr("Düzenle", "Edit");
+            label.setColor(blend(0xD9FFFFFF, 0xFF1C1C1E, f));
+            float tw = label.measureText(text), iw = 22 * k, hw = (tw + iw + 14 * k) / 2 + 26 * k;
+            tmp.set(cx - hw, top, cx + hw, top + h);
+            if (f > 0.01f) {
+                shadow.setColor(Ui.alpha(0xFF000000, 0.4f * f));
+                tmp.offset(0, 5 * k);
+                c.drawRoundRect(tmp, h / 2, h / 2, shadow);
+                tmp.offset(0, -5 * k);
+            }
+            fill.setColor(blend(0x1FFFFFFF, 0xFFF5F5F7, f));
+            c.drawRoundRect(tmp, h / 2, h / 2, fill);
+            float left = cx - (tw + iw + 14 * k) / 2;
+            Symbols.draw(getContext(), c, "edit", left + iw / 2, top + h / 2, 20 * k, label.getColor());
+            label.setTextAlign(Paint.Align.LEFT);
+            c.drawText(text, left + iw + 14 * k, top + h / 2 + Ui.halfCap(label), label);
+            label.setTextAlign(Paint.Align.CENTER);
         }
 
         // MARK: - Now playing
@@ -281,9 +387,8 @@ public class ControlCenterActivity extends Activity {
          * What's playing, like Apple's Now Playing: the cover, the app, the song and the artist, ⏮ ⏯ ⏭. With nothing
          * playing it is YouTube Music's tile: OK opens it.
          */
-        private void drawMedia(Canvas c) {
-            float x = PAD * k, right = getWidth() - PAD * k, top = MEDIA_TOP * k, h = MEDIA_H * k;
-            float f = Ui.clamp(pop[5].value);
+        private void drawMedia(Canvas c, float top, float f) {
+            float x = PAD * k, right = getWidth() - PAD * k, h = MEDIA_H * k;
             tile(c, x, top, right, top + h, f);
             // The cover (or YouTube Music's mark on its red).
             float s = 92 * k, ax = x + 18 * k, ay = top + (h - s) / 2;
@@ -480,11 +585,10 @@ public class ControlCenterActivity extends Activity {
         // MARK: - Lights
 
         /** The lights: the bulb, on/off and the brightness bar. OK switches all, ← → dims, holding OK opens the panel. */
-        private void drawLights(Canvas c) {
-            float x = PAD * k, right = getWidth() - PAD * k, top = LIGHTS_TOP * k, h = LIGHTS_H * k;
+        private void drawLights(Canvas c, float top, float f) {
+            float x = PAD * k, right = getWidth() - PAD * k, h = LIGHTS_H * k;
             Boolean on = lamps == null ? null : Wiz.anyOn(lamps);
             boolean lit = Boolean.TRUE.equals(on);
-            float f = Ui.clamp(pop[6].value);
             tile(c, x, top, right, top + h, f);
             float icx = x + 64 * k, icy = top + h / 2;
             fill.setColor(lit ? 0xFFFFC94D : blend(0x33FFFFFF, 0x1F1C1C1E, f));
@@ -562,9 +666,8 @@ public class ControlCenterActivity extends Activity {
         // MARK: - Markets and volume
 
         /** The first three of the watchlist with the day's change; OK opens the whole list. */
-        private void drawMarkets(Canvas c) {
-            float x = PAD * k, right = getWidth() - PAD * k, top = MARKETS_TOP * k, h = MARKETS_H * k, cy = top + h / 2;
-            float f = Ui.clamp(pop[7].value);
+        private void drawMarkets(Canvas c, float top, float f) {
+            float x = PAD * k, right = getWidth() - PAD * k, h = MARKETS_H * k, cy = top + h / 2;
             tile(c, x, top, right, top + h, f);
             Symbols.draw(getContext(), c, "chart", x + 40 * k, cy, 22 * k, ink(f, 0.9f));
             Stocks st = Stocks.get(getContext());
@@ -591,9 +694,8 @@ public class ControlCenterActivity extends Activity {
         }
 
         /** The volume: ← → down and up, OK mutes. */
-        private void drawVolume(Canvas c) {
-            float x = PAD * k, right = getWidth() - PAD * k, top = VOL_TOP * k, h = VOL_H * k;
-            float f = Ui.clamp(pop[8].value);
+        private void drawVolume(Canvas c, float top, float f) {
+            float x = PAD * k, right = getWidth() - PAD * k, h = VOL_H * k;
             tile(c, x, top, right, top + h, f);
             int max = Math.max(1, audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
             int vol = audio.getStreamVolume(AudioManager.STREAM_MUSIC);
@@ -674,10 +776,10 @@ public class ControlCenterActivity extends Activity {
                             okDown = true;
                             okHeld = false;
                         } else if (okDown && !okHeld && (e.isLongPress() || e.getEventTime() - e.getDownTime() >= 380)
-                                && !inputsPage && (row == LIGHTS || row == MEDIA)) {
+                                && !inputsPage && (rowId().equals("lights") || rowId().equals("media"))) {
                             okHeld = true;
                             // Held: the full lights panel, or the music app.
-                            if (row == LIGHTS) open(new Intent().setComponent(new ComponentName(activity, LightsActivity.class)));
+                            if (rowId().equals("lights")) open(new Intent().setComponent(new ComponentName(activity, LightsActivity.class)));
                             else openMusicApp();
                         }
                     } else {
@@ -706,15 +808,16 @@ public class ControlCenterActivity extends Activity {
                 invalidate();
                 return;
             }
+            String id = rowId();
             if (dy != 0) {
-                row = Math.max(BUTTONS, Math.min(VOLUME, row + dy));
-            } else if (row == BUTTONS) {
-                col = Math.max(0, Math.min(4, col + dx));
-            } else if (row == MEDIA) {
+                row = Math.max(0, Math.min(rows.size() - 1, row + dy));
+            } else if (id.equals(BUTTONS)) {
+                col = Math.max(0, Math.min(buttons.size() - 1, col + dx));
+            } else if (id.equals("media")) {
                 mediaKey(dx > 0 ? 2 : 0);
-            } else if (row == LIGHTS) {
+            } else if (id.equals("lights")) {
                 dim(dx);
-            } else if (row == VOLUME) {
+            } else if (id.equals("volume")) {
                 audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, dx > 0 ? AudioManager.ADJUST_RAISE : AudioManager.ADJUST_LOWER, 0);
             }
             invalidate();
@@ -729,43 +832,47 @@ public class ControlCenterActivity extends Activity {
                 }
                 return;
             }
-            switch (row) {
+            switch (rowId()) {
                 case BUTTONS:
-                    switch (col) {
-                        case LIVE: {
+                    switch (buttons.get(col)) {
+                        case "live": {
                             Intent live = HomeApps.liveTv(c);
                             if (live != null) open(live);
                             break;
                         }
-                        case INPUTS:
+                        case "inputs":
                             inputs = HomeApps.allInputs(c);
                             inputIndex = 0;
                             inputsPage = true;
                             requestLayout();
                             break;
-                        case WIFI:
+                        case "wifi":
                             open(HomeApps.guestWifi()
                                     ? new Intent().setComponent(new ComponentName(activity, InfoActivity.class)).putExtra(InfoActivity.EXTRA, InfoActivity.WIFI)
                                     : new Intent(Settings.ACTION_WIFI_SETTINGS));
                             break;
-                        case SETTINGS:
+                        case "settings":
                             open(new Intent().setComponent(new ComponentName(activity, SettingsActivity.class)));
                             break;
                         default:
                             sleep();
                     }
                     break;
-                case MEDIA:
+                case "media":
                     mediaKey(1);
                     break;
-                case LIGHTS:
+                case "lights":
                     toggleLights();
                     break;
-                case MARKETS:
+                case "markets":
                     open(new Intent().setComponent(new ComponentName(activity, InfoActivity.class)).putExtra(InfoActivity.EXTRA, InfoActivity.MARKETS));
                     break;
-                default:
+                case "volume":
                     audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_TOGGLE_MUTE, 0);
+                    break;
+                default:
+                    open(new Intent().setComponent(new ComponentName(activity, CustomizeActivity.class))
+                            .putExtra(CustomizeActivity.EXTRA_PAGE, CustomizeActivity.PAGE_CONTROL));
             }
             invalidate();
         }

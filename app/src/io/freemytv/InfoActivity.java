@@ -197,7 +197,7 @@ public class InfoActivity extends Activity {
 
         private void drawWeather(Canvas c) {
             float x = PAD * k, right = getWidth() - PAD * k;
-            String city = Config.CITY.trim().isEmpty() ? Ui.tr("Hava Durumu", "Weather") : Config.CITY.trim();
+            String city = Prefs.city().isEmpty() ? Ui.tr("Hava Durumu", "Weather") : Prefs.city();
             c.drawText(city, x, 66 * k, title);
             HomeData.Weather wx = data.weather;
             if (Double.isNaN(wx.temp)) {

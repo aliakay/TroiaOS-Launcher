@@ -46,6 +46,8 @@ final class Stocks {
 
     static synchronized Stocks get(Context c) {
         if (instance == null) instance = new Stocks(c.getApplicationContext());
+        Prefs.load(c);
+        instance.follow();
         return instance;
     }
 
@@ -56,32 +58,46 @@ final class Stocks {
     private final Handler main = new Handler(Looper.getMainLooper());
     private final List<Listener> listeners = new ArrayList<>();
     private volatile boolean fetching;
+    private String list;    // the watchlist the quotes were made from
 
     private Stocks(Context c) {
         cache = c.getSharedPreferences("stocks", Context.MODE_PRIVATE);
-        for (String item : Config.STOCKS.split(",")) {
-            item = item.trim();
-            if (item.isEmpty()) continue;
-            Quote q = new Quote();
-            int colon = item.lastIndexOf(':');
-            q.symbol = colon > 0 ? item.substring(0, colon).trim() : item;
-            q.label = colon > 0 ? item.substring(colon + 1).trim() : item.toUpperCase(Locale.ROOT);
-            String saved = cache.getString(q.symbol, null);
-            if (saved != null) {
-                try {
-                    parse(q, saved);
-                } catch (Exception ignored) {
-                }
-            }
-            quotes.add(q);
-        }
         at = cache.getLong("at", 0);
+    }
+
+    /** Rebuilds the quotes when the watchlist changed (Customize); the cached prices of the ones kept stay. */
+    private void follow() {
+        String next = Prefs.stocks();
+        if (next.equals(list)) return;
+        boolean first = list == null;
+        list = next;
+        synchronized (quotes) {
+            quotes.clear();
+            for (String item : next.split(",")) {
+                item = item.trim();
+                if (item.isEmpty()) continue;
+                Quote q = new Quote();
+                int colon = item.lastIndexOf(':');
+                q.symbol = colon > 0 ? item.substring(0, colon).trim() : item;
+                q.label = colon > 0 ? item.substring(colon + 1).trim() : item.toUpperCase(Locale.ROOT);
+                String saved = cache.getString(q.symbol, null);
+                if (saved != null) {
+                    try {
+                        parse(q, saved);
+                    } catch (Exception ignored) {
+                    }
+                }
+                quotes.add(q);
+            }
+        }
+        if (!first) at = 0;     // fetch the new ones now
     }
 
     void addListener(Listener l) { if (!listeners.contains(l)) listeners.add(l); }
     void removeListener(Listener l) { listeners.remove(l); }
 
     void refreshIfStale() {
+        follow();
         long now = System.currentTimeMillis();
         if (fetching || quotes.isEmpty() || (now - at < EVERY && now >= at)) return;
         fetching = true;

@@ -72,7 +72,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private static final boolean CLEAN_DOCK = true;
     private static final float CLEAN_TOP = 836, CLEAN_H = 140, CLEAN_PAD = 14;
     /** Each shelf app's white mark (assets/symbols; see LICENSE-app-icons.txt). */
-    private static final Map<String, String> GLYPHS = new HashMap<>();
+    static final Map<String, String> GLYPHS = new HashMap<>();   // shelf key → white mark (also used by Customize)
     static {
         GLYPHS.put("netflix", "app_netflix");
         GLYPHS.put("youtube", "app_youtube");
@@ -83,6 +83,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         GLYPHS.put("tivimate", "live_tv");
         GLYPHS.put("browsehere", "app_browsehere");
         GLYPHS.put("bitdefender", "app_bitdefender");
+        GLYPHS.put("ytmusic", "app_ytmusic");
     }
     private static final float TILE_RADIUS = 22, TILE_MAX_W = 270;
     // Tile focus (Apple TV style): it grows from the center and its shadow drops (it "rises" toward the viewer).
@@ -361,7 +362,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     void resume() {
         if (running) return;
         running = true;
-        if (Ui.loadLanguage(getContext())) {   // the language was changed in the settings
+        boolean custom = Prefs.load(getContext());      // Customize changed the name, the city, the watchlist…
+        if (Ui.loadLanguage(getContext()) | custom) {   // …or the language was changed in the settings
             makeLightButtons();
             gridLabels = null;
             clockMinute = -1;
@@ -1199,7 +1201,13 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             // Symbols draws at size × (pixels / 144): pick the size that gives the target height (or the width cap).
             float scale = Math.min(targetH / mark.getHeight(), maxW / mark.getWidth());
             Symbols.draw(getContext(), c, glyph, cx, gy, scale * 144, ink);
-        } else if (it.logo != null) {
+        } else if (it.logo == null) {
+            // An app with no mark and no TV art to lift one from: its initial.
+            lDockName.setColor(ink);
+            lDockName.setTextSize(targetH * 1.05f);
+            String initial = it.label == null || it.label.isEmpty() ? "?" : it.label.substring(0, 1).toUpperCase(java.util.Locale.ROOT);
+            c.drawText(initial, cx, gy + Ui.halfCap(lDockName), lDockName);
+        } else {
             float scale = Math.min(targetH / it.logo.getHeight(), maxW / it.logo.getWidth());
             float lw = it.logo.getWidth() * scale, lh = it.logo.getHeight() * scale;
             tmp.set(cx - lw / 2, gy - lh / 2, cx + lw / 2, gy + lh / 2);
@@ -1469,7 +1477,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private void drawWeatherCard(Canvas c, RectF r) {
         drawerCard(c, r);
         float x = r.left + 34 * k;
-        c.drawText(Config.CITY.trim().isEmpty() ? Ui.tr("Hava Durumu", "Weather") : Config.CITY.trim(), x, r.top + 54 * k, cardTitle);
+        c.drawText(Prefs.city().isEmpty() ? Ui.tr("Hava Durumu", "Weather") : Prefs.city(), x, r.top + 54 * k, cardTitle);
         HomeData.Weather wx = data.weather;
         if (Double.isNaN(wx.temp)) {
             c.drawText(Ui.tr("Şu an hava durumu verisi yok.", "No weather data right now."), x, r.top + 120 * k, cardDim);
@@ -1776,6 +1784,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                         } else if (networkFocused() && HomeApps.guestWifi()) {
                             okHeld = true;      // held on the network button: the TV's network settings
                             openCornerButton();
+                        } else if (zone == Z_SHELF && !sheetOpen && !shelf.isEmpty()) {
+                            okHeld = true;      // held on a dock app: Customize → Dock, on that app (move, remove, add)
+                            click.open();
+                            activity.startActivity(new android.content.Intent(activity, CustomizeActivity.class)
+                                    .putExtra(CustomizeActivity.EXTRA_PAGE, CustomizeActivity.PAGE_DOCK)
+                                    .putExtra(CustomizeActivity.EXTRA_PKG, shelf.get(shelfIndex).pkg));
                         }
                     }
                 } else {
@@ -2109,7 +2123,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     /** "MERHABA ALİ" (the name from config.properties). */
     private static String greeting() {
-        String name = Config.NAME.trim();
+        String name = Prefs.name();
         String hello = Ui.tr("Merhaba", "Hello") + (name.isEmpty() ? "" : " " + name);
         return hello.toUpperCase(Ui.en ? java.util.Locale.UK : Ui.TR);
     }
@@ -2249,7 +2263,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     /** "Berlin · Bulutlu" (the name under the focused weather button). */
     private String weatherLabel() {
         HomeData.Weather wx = data.weather;
-        String city = Config.CITY.trim().isEmpty() ? Ui.tr("Hava durumu", "Weather") : Config.CITY.trim();
+        String city = Prefs.city().isEmpty() ? Ui.tr("Hava durumu", "Weather") : Prefs.city();
         return wx.code < 0 ? city : city + " · " + HomeData.condition(wx.code, wx.isDay);
     }
 
@@ -2352,7 +2366,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         int iconInk = Ui.alpha(dim, 0.9f);
         String feels = feelsText();
         if (!feels.isEmpty()) c.drawText(feels, x, cy - 18 * k, lWxDim);
-        String city = Config.CITY.trim();
+        String city = Prefs.city();
         float line = cy + 10 * k, mid = line - Ui.halfCap(lWxDim);
         if (!city.isEmpty()) {
             Symbols.draw(getContext(), c, "pin", x + 7 * k, mid, icon, iconInk);
@@ -2398,7 +2412,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (details) {
             float wind = Double.isNaN(wx.wind) ? 0 : 26 * k + lWxDim.measureText(windText()) + 20 * k;
             float hum = Double.isNaN(wx.humidity) ? 0 : 20 * k + lWxDim.measureText(humidityText());
-            w += 10 * k + Math.max(lWxDim.measureText(feelsText()), Math.max(22 * k + lWxDim.measureText(Config.CITY.trim()), wind + hum)) + 10 * k;
+            w += 10 * k + Math.max(lWxDim.measureText(feelsText()), Math.max(22 * k + lWxDim.measureText(Prefs.city()), wind + hum)) + 10 * k;
         }
         return w;
     }

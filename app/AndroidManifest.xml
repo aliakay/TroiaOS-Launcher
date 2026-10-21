@@ -102,6 +102,17 @@
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
             android:theme="@style/FreeMyTV.Panel" />
 
+        <!-- Customize: the dock's apps, Control Center's controls and the home screen's details. -->
+        <activity
+            android:name=".CustomizeActivity"
+            android:process=":home"
+            android:exported="false"
+            android:label="At Yazılım"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
+            android:theme="@style/FreeMyTV.Home" />
+
         <!-- Control Center: one glass panel with Live TV, inputs, Wi-Fi, settings, sleep, lights, markets and volume. -->
         <activity
             android:name=".ControlCenterActivity"

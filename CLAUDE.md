@@ -19,7 +19,8 @@ before you do it, and let them do the taps on the TV.
    - Windows: WSL, then as on Linux.
 3. **Settings:** run `./build.sh` once; it creates `config.properties`. Fill in `latitude` and `longitude` (decimal
    degrees) and `city` for their city, `name` for the greeting, `temperature`, and `stocks` if they want the markets
-   panel (Yahoo Finance symbols).
+   panel (Yahoo Finance symbols). These are only defaults: all of them, and the dock's apps (`dock`), can be changed
+   later on the TV (Settings → Customize).
 4. No keys are needed: the weather (Open-Meteo) and the markets (Yahoo Finance chart data) are keyless, and the
    WiZ lights are found on the home network.
 5. **Build:** `./build.sh` → `FreeMyTV.apk`. Keep `freemytv.keystore`: updates must be signed with the same key.
@@ -97,7 +98,13 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
   the focused app gets a pill of light, no outline.
 - **Control Center** (`ControlCenterActivity`, the one corner button next to the weather): round buttons (Live TV,
   inputs, Wi-Fi QR, settings, sleep through the TV's own ADB), Now Playing, lights (OK on/off, ← → brightness, hold
-  for the panel), markets (OK for the watchlist) and volume (← →, OK mutes).
+  for the panel), markets (OK for the watchlist), volume (← →, OK mutes) and "Edit". The rows are built from
+  `Prefs.modules`, so a new control needs an id in `Prefs.BUTTONS` or `TILES`, a symbol and label in
+  `moduleSymbol`/`moduleLabel`, and its drawing and keys.
+- **Customize** (`CustomizeActivity`, from Settings, Control Center's Edit, or holding OK on a dock app): dock apps
+  (add any installed app, move, remove), Control Center (show, hide, move), and the home screen (greeting, weather
+  city via Open-Meteo geocoding, °C/°F, watchlist, language). Saved by `Prefs` in `custom.json` (both processes read
+  it on resume); every getter falls back to `Config`, so config.properties is the default, never the only way.
 - **Now Playing** (`MediaListener`): media sessions are only visible to a notification listener, so Control Center
   grants itself that access once through the TV's ADB (`cmd notification allow_listener`). The listener reads no
   notifications. Without access, ⏯ ⏮ ⏭ fall back to media keys; with nothing playing, OK opens YouTube Music

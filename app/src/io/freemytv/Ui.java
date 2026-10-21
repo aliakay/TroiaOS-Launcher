@@ -32,6 +32,7 @@ final class Ui {
 
     static synchronized void init(Context c) {
         loadLanguage(c);
+        Prefs.load(c);
         if (loaded) return;
         loaded = true;
         AssetManager a = c.getAssets();

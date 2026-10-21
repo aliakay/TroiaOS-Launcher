@@ -26,8 +26,14 @@ a guest Wi-Fi QR code and your WiZ lights on the remote. No ads. One button to u
 - **Liquid Glass, even on Android 12.** Every glass surface shows the blurred photo behind it through a slight lens,
   with light on top and a specular rim. On TVs without Android 13 shaders it's drawn with the plain Canvas, so it
   stays smooth on weak TV chips.
-- **Your apps on a glass bar.** White brand marks with their names, the focused app on a lit pane of glass (after
-  [CleanFrame](https://github.com/nthnclrk/CleanFrame)).
+- **Your apps on a glass bar.** White brand marks with their names on a glass capsule, the focused app on a soft pill
+  of light (after [CleanFrame](https://github.com/nthnclrk/CleanFrame)). Any installed app can go there: hold OK on
+  an app to move it, remove it or add another.
+- **Control Center.** One button next to the weather opens a glass panel, like Apple's: Live TV, inputs, Wi-Fi,
+  settings and sleep; Now Playing (YouTube Music or whatever is playing: cover, song, ⏮ ⏯ ⏭); the lights with their
+  brightness; the markets; the volume. Choose which of these show, and in what order.
+- **Make it yours, on the TV.** Settings → *Customize*: the dock's apps, Control Center's controls, the greeting,
+  the weather's city (search it by name), °C or °F, your watchlist and the language. No rebuild needed.
 - **The weather at a glance.** Temperature, sky, feels-like, wind and humidity next to the clock; OK shows the next
   8 hours, sunrise and sunset. [Open-Meteo](https://open-meteo.com), no key.
 - **Markets (optional).** A button for your watchlist: price, change since the last close and today's curve.
@@ -86,13 +92,18 @@ installed, from a server in another city.
 
 ## Settings
 
-Everything lives in `config.properties`, created by the first build. It stays on your computer (it's in
-`.gitignore`); change it, run `./build.sh` and install again.
+Most of it can be changed on the TV: Settings → *Customize* (or hold OK on a dock app, or *Edit* at the bottom of
+Control Center). What you choose there is kept on the TV and wins over the file below.
+
+`config.properties`, created by the first build, holds the defaults a fresh install starts with, and the things
+that are better kept off screen (the Wi-Fi password). It stays on your computer (it's in `.gitignore`); change it,
+run `./build.sh` and install again.
 
 | Key | What it does | Default |
 |---|---|---|
 | `latitude`, `longitude`, `city` | Your city: the weather, and the sunset that turns the interface dark | New York |
 | `name` | The greeting at the top left ("Hello Ali") | empty |
+| `dock` | The dock's apps by package, in order: `com.netflix.ninja,com.google.android.youtube.tv` | the known streaming apps that are installed |
 | `language` | `auto` (follows the TV), `en` or `tr` | `auto` |
 | `temperature` | `C`, `F` or `auto` | `auto` |
 | `stocks` | Your watchlist, Yahoo Finance symbols: `^GSPC:SPX,BTC-USD:BTC,GC=F:XAU,TSLA,NVDA` (empty = no markets button) | empty |
@@ -105,12 +116,20 @@ Keep `freemytv.keystore`: updates must be signed with the same key.
 
 | Where | OK | Hold OK |
 |---|---|---|
-| An app | Opens it | |
+| An app | Opens it | Customize → Dock, on that app (move, remove, add) |
 | Weather | The next hours | |
-| Markets | Your watchlist | |
-| Network | The guest Wi-Fi QR code | The TV's network settings |
-| Bulb | All lamps on / off | The lights panel |
+| Control Center | Opens it | |
 | ↓ on the apps | Inputs, All Apps, settings | |
+
+In Control Center:
+
+| Where | OK | ← → | Hold OK |
+|---|---|---|---|
+| Now Playing | Play / pause (nothing playing: opens YouTube Music) | Previous / next song | Opens the music app |
+| Lights | All lamps on / off | Brightness | The lights panel |
+| Markets | Your watchlist | | |
+| Volume | Mute | Down / up | |
+| Edit | Customize → Control Center | | |
 
 ## Going back
 
@@ -120,9 +139,10 @@ exactly as they were. To remove it for good, switch to *Original* first, then un
 ## Any TV
 
 The apps turned off and the ones never touched are lists in
-[`HomeMode.java`](app/src/io/freemytv/HomeMode.java) (`DEBLOAT`, `PROTECTED`); the shelf is `SHELF` in
-[`HomeApps.java`](app/src/io/freemytv/HomeApps.java) and the white marks are `GLYPHS` in
-[`HomeView.java`](app/src/io/freemytv/HomeView.java). With Claude Code, say *"set it up for my Philips"*: it reads
+[`HomeMode.java`](app/src/io/freemytv/HomeMode.java) (`DEBLOAT`, `PROTECTED`). Any app can go in the dock from the
+TV; `SHELF` in [`HomeApps.java`](app/src/io/freemytv/HomeApps.java) lists the known ones (the default dock, with
+their look) and their white marks are `GLYPHS` in [`HomeView.java`](app/src/io/freemytv/HomeView.java). An app with
+no mark shows the logo lifted from its TV banner. With Claude Code, say *"set it up for my Philips"*: it reads
 your TV and updates the lists ([CLAUDE.md](CLAUDE.md) tells it how).
 
 ## How it works

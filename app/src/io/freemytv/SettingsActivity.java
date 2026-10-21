@@ -105,7 +105,7 @@ public class SettingsActivity extends Activity {
         private final SettingsActivity activity;
         private final Scene scene = new Scene();
         private final Handler handler = new Handler(Looper.getMainLooper());
-        private final Spring[] pop = new Spring[5];
+        private final Spring[] pop = new Spring[6];
         private final RectF tmp = new RectF(), rowRect = new RectF();
         private JSONObject state = new JSONObject(), recs = new JSONObject();
         private boolean hasKey;
@@ -204,7 +204,7 @@ public class SettingsActivity extends Activity {
         }
 
         private int rowCount() {
-            return screen == MAIN ? 4 : 2;
+            return screen == MAIN ? 5 : 2;
         }
 
         @Override protected void onDraw(Canvas c) {
@@ -238,10 +238,10 @@ public class SettingsActivity extends Activity {
             boolean working = busy();
             String busyText = state.optString("busy");
             String mode = freeActive() ? "At Yazılım" : Ui.tr("Orijinal", "Original");
-            String[] labels = {Ui.tr("Ana Ekran", "Home Screen"), Ui.tr("Ekran Koruyucu", "Screensaver"), "Dil / Language",
-                    Ui.tr("TV Ayarları", "TV Settings")};
-            String[] values = {working ? "" : mode, Ui.tr("Önizle", "Preview"), Ui.en ? "English" : "Türkçe", ""};
-            for (int i = 0; i < 4; i++) {
+            String[] labels = {Ui.tr("Ana Ekran", "Home Screen"), Ui.tr("Özelleştir", "Customize"), Ui.tr("Ekran Koruyucu", "Screensaver"),
+                    "Dil / Language", Ui.tr("TV Ayarları", "TV Settings")};
+            String[] values = {working ? "" : mode, "", Ui.tr("Önizle", "Preview"), Ui.en ? "English" : "Türkçe", ""};
+            for (int i = 0; i < 5; i++) {
                 float y = (LIST_TOP + i * (ROW_H + ROW_GAP)) * k;
                 rowRect.set(LIST_X * k, y, LIST_R * k, y + ROW_H * k);
                 float f = drawRowBackground(c, i);
@@ -250,7 +250,7 @@ public class SettingsActivity extends Activity {
                 float base = rowRect.centerY() + Ui.halfCap(rowLabel);
                 c.drawText(labels[i], rowRect.left + 30 * k, base, rowLabel);
                 float right = rowRect.right - 30 * k;
-                if (i >= 3) {
+                if (i == 1 || i >= 4) {
                     float cw = Symbols.width(getContext(), "chevron_right", 22 * k);
                     Symbols.draw(getContext(), c, "chevron_right", right - cw / 2, rowRect.centerY(), 22 * k, blend(0x66FFFFFF, 0x991C1C1E, f));
                 } else if (i == 0 && working) {
@@ -268,7 +268,7 @@ public class SettingsActivity extends Activity {
                 }
             }
 
-            float y = (LIST_TOP + 4 * (ROW_H + ROW_GAP) + 46) * k;
+            float y = (LIST_TOP + 5 * (ROW_H + ROW_GAP) + 46) * k;
             String error = state.optString("error");
             if (working && (busyText.contains("izin") || busyText.contains("Allow"))) {
                 c.drawText(Ui.tr("TV'de: “Her zaman izin ver”i işaretleyip OK'ye basın.", "On the TV: tick “Always allow” and press OK."),
@@ -451,9 +451,11 @@ public class SettingsActivity extends Activity {
                 screen = HOME_CHOICE;
                 focus = freeActive() ? 0 : 1;
             } else if (focus == 1) {
+                activity.startActivity(new Intent(activity, CustomizeActivity.class));
+            } else if (focus == 2) {
                 pause();
                 activity.showPreview();
-            } else if (focus == 2) {
+            } else if (focus == 3) {
                 // Türkçe ⇄ English: saved in the state file, so the home screen (another process) follows it.
                 JSONObject s = HomeMode.state(c);
                 try { s.put("language", Ui.en ? "tr" : "en"); } catch (org.json.JSONException ignored) {}

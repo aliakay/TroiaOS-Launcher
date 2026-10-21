@@ -83,7 +83,8 @@ final class HomeApps {
     }
 
     /**
-     * Apps on the home shelf, in this order, when installed (up to MAX_SHELF): key, name, package, brand color (for
+     * Known apps, with their look on the dock; the default dock is the installed ones, in this order (the dock itself
+     * is chosen on the TV, Customize → Dock, or in config.properties `dock`): key, name, package, brand color (for
      * its logo on glass) and how to lift the logo from the app's TV art: "tint" = a white logo takes the art's
      * background color (Prime Video, Globoplay); "play" = the white triangle inside the red button stays white
      * (YouTube); empty = the art's colors as they are. Last, a visual size tweak for the logo. Edit freely.
@@ -100,8 +101,11 @@ final class HomeApps {
         {"browsehere", "BrowseHere", "com.tcl.browser", "1E88E5", "", "1"},
         {"bitdefender", "Bitdefender VPN", "com.bitdefender.vpn", "ED1C24", "", "1"},
         {"spotify", "Spotify", "com.spotify.tv.android", "1DB954", "", "1"},
+        {"ytmusic", "YouTube Music", "com.google.android.youtube.tvmusic", "FF0033", "", "1"},
     };
-    private static final int MAX_SHELF = 9;
+    /** Apps in the dock by default, and at most (the names shrink to fit). */
+    private static final int DEFAULT_SHELF = 9;
+    static final int MAX_SHELF = 12;
     /** Live TV apps of some brands (the antenna's channels open through the standard Android request first). */
     static final String[] LIVE_TV_APPS = {"com.tcl.tv", "com.google.android.tv", "com.mediatek.wwtv.tvcenter", "com.sony.dtv.tvx"};
     /** Kept out of "All Apps" (only hidden, still installed). Add the ones your TV shows that you never use. */
@@ -124,22 +128,92 @@ final class HomeApps {
     static List<Item> shelf(Context c, boolean extract) {
         List<Item> items = new ArrayList<>();
         PackageManager pm = c.getPackageManager();
-        for (String[] d : SHELF) {
+        for (String pkg : dockPackages(c)) {
             if (items.size() >= MAX_SHELF) break;
-            if (launchIntent(pm, d[2]) == null) continue;
+            if (launchIntent(pm, pkg) == null) continue;
+            String[] d = known(pkg);
             Item it = new Item();
             it.kind = APP;
-            it.key = d[0];
-            it.label = d[1];
-            it.pkg = d[2];
-            it.tile = appTile(c, d[0], d[2], 0xFF000000 | Integer.parseInt(d[3], 16));
-            it.logo = shelfLogo(c, d[0], d[2], d[4], extract);
+            it.pkg = pkg;
+            if (d != null) {
+                it.key = d[0];
+                it.label = d[1];
+                it.tile = appTile(c, d[0], pkg, 0xFF000000 | Integer.parseInt(d[3], 16));
+                it.logo = shelfLogo(c, d[0], pkg, d[4], extract);
+                it.logoDark = ownLogoCached(c, d[0] + "-dark");
+                it.logoScale = Float.parseFloat(d[5]);
+            } else {
+                // Any other app: its name, and the logo lifted from its TV art like the known ones.
+                it.key = pkg;
+                it.label = label(pm, pkg);
+                it.tile = appTile(c, null, pkg, 0);
+                it.logo = shelfLogo(c, pkg, pkg, "", extract);
+            }
             if (it.logo != null) it.logoInk = ink(it.logo);
-            it.logoDark = ownLogoCached(c, d[0] + "-dark");
-            it.logoScale = Float.parseFloat(d[5]);
             items.add(it);
         }
         return items;
+    }
+
+    /**
+     * The dock's packages: the ones chosen on the TV (Customize) or in config.properties `dock`; otherwise the known
+     * apps (SHELF) that are installed, in that order.
+     */
+    static List<String> dockPackages(Context c) {
+        List<String> chosen = Prefs.dock();
+        if (chosen != null) return chosen;
+        List<String> out = new ArrayList<>();
+        PackageManager pm = c.getPackageManager();
+        Set<String> keys = new HashSet<>();
+        for (String[] d : SHELF) {
+            if (out.size() >= DEFAULT_SHELF) break;
+            if (keys.contains(d[0]) || launchIntent(pm, d[2]) == null) continue;   // one Apple TV, the first found
+            keys.add(d[0]);
+            out.add(d[2]);
+        }
+        return out;
+    }
+
+    /** Every TV app that can be opened (for Customize → Add app), by name; not ours, not the hidden ones. */
+    static List<Item> launchable(Context c) {
+        PackageManager pm = c.getPackageManager();
+        Intent query = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
+        List<Item> items = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        for (ResolveInfo ri : pm.queryIntentActivities(query, 0)) {
+            String pkg = ri.activityInfo.packageName;
+            if (pkg.equals(c.getPackageName()) || HIDDEN.contains(pkg) || !seen.add(pkg)) continue;
+            Item it = new Item();
+            it.kind = APP;
+            it.pkg = pkg;
+            String[] d = known(pkg);
+            it.key = d != null ? d[0] : pkg;
+            it.label = d != null ? d[1] : String.valueOf(ri.loadLabel(pm));
+            items.add(it);
+        }
+        Collections.sort(items, (a, b) -> a.label.toLowerCase(Locale.ROOT).compareTo(b.label.toLowerCase(Locale.ROOT)));
+        return items;
+    }
+
+    /** The known app's key (for its mark), or null. */
+    static String knownKey(String pkg) {
+        String[] d = known(pkg);
+        return d == null ? null : d[0];
+    }
+
+    private static String[] known(String pkg) {
+        for (String[] d : SHELF) if (d[2].equals(pkg)) return d;
+        return null;
+    }
+
+    static String label(PackageManager pm, String pkg) {
+        String[] d = known(pkg);
+        if (d != null) return d[1];
+        try {
+            return String.valueOf(pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)));
+        } catch (PackageManager.NameNotFoundException e) {
+            return pkg;
+        }
     }
 
     /** Live TV, the HDMI inputs with a device sending a signal, and All Apps. */
@@ -254,8 +328,7 @@ final class HomeApps {
     /** Installed, enabled TV apps that are not on the home screen (the TV's Settings is among them), plus our own. */
     static List<Item> others(Context c) {
         PackageManager pm = c.getPackageManager();
-        Set<String> skip = new HashSet<>();
-        for (String[] d : SHELF) skip.add(d[2]);
+        Set<String> skip = new HashSet<>(dockPackages(c));
         skip.addAll(java.util.Arrays.asList(LIVE_TV_APPS));
         skip.add(c.getPackageName());
         skip.addAll(HIDDEN);
