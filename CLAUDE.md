@@ -110,6 +110,9 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
   notifications. Without access, ⏯ ⏮ ⏭ fall back to media keys; with nothing playing, OK opens YouTube Music
   (`com.google.android.youtube.tvmusic`). The screensaver (`DreamView.drawNowPlaying`) shows a frosted card at the
   top left while music plays, and for a minute after it pauses.
+- **Apps layout** (`Prefs.layout`: `dock` or `list`): List draws big names with their marks on the left
+  (`HomeView.drawList`, its own layer `listLayer`, scrolled by `listScroll`, a shade from the left in `drawSky`);
+  the platter and tiles layers draw nothing then. Keys in `moveList`: ↑ ↓ along the names, → to the continue card.
 - **Continue watching** (`Continue`, `HomeView.drawContinue`): `Continue.Recorder` runs inside `MediaListener` (kept
   bound by the system once access is granted) and saves, per app, the latest session with a title: position,
   duration, media ID, picture (`files/continue.json`, `continue-<pkg>.jpg`); finished ones are dropped, idle or

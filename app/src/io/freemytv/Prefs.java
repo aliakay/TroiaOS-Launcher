@@ -122,6 +122,11 @@ final class Prefs {
         return string("longitude", Config.LONGITUDE);
     }
 
+    /** How the home screen shows the apps: "dock" (the glass bar) or "list" (big names over the photo). */
+    static String layout() {
+        return string("layout", Config.LAYOUT).equals("list") ? "list" : "dock";
+    }
+
     /** C, F or auto. */
     static String temperature() {
         return string("temperature", Config.TEMPERATURE);

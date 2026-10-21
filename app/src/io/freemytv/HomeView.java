@@ -101,7 +101,13 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private static final int SMOKE = 0xFF111113, INK = 0xFF1C1C1E, WHITE = 0xFFF5F5F7;
     private static final int UP_COLOR = 0xFF30D158, DOWN_COLOR = 0xFFFF453A;
     private static final long TOAST_MS = 6000, FADE_MS = 800;
-    private static final int SKY = 0, HERO = 1, STATUS = 2, PLATTER = 3, TILES = 4, DRAWER = 5, SHEET = 6, TOAST = 7, CONTINUE = 8;
+    private static final int SKY = 0, HERO = 1, STATUS = 2, PLATTER = 3, TILES = 4, DRAWER = 5, SHEET = 6, TOAST = 7, CONTINUE = 8, LIST = 9;
+    /**
+     * The List layout (Customize → Home Screen → Apps Layout), after CleanFrame's Photo List: big white names with
+     * their marks on the left, over the photo; the focused one brightest. Rows in 1920 units.
+     */
+    private static final float LIST_X = 88, LIST_FIRST = 330, LIST_PITCH = 120, LIST_TEXT = 88, LIST_MARK = 60,
+            LIST_VIEW_BOTTOM = 1040;
     private static final int Z_STATUS = 0, Z_HERO = 1, Z_SHELF = 2, Z_DRAWER = 3;
     private static final ExecutorService LOADER = Executors.newSingleThreadExecutor();
     // Light design (the L_ constants): title, tab bar, three recommendation cards and the shelf.
@@ -129,7 +135,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final SharedPreferences ui;
     private final TvInputManager tvInputs;
-    private final Layer sky, heroLayer, status, platter, tiles, drawerLayer, sheetLayer, toastLayer, contLayer;
+    private final Layer sky, heroLayer, status, platter, tiles, drawerLayer, sheetLayer, toastLayer, contLayer, listLayer;
+    private final Spring listScroll = new Spring(0.38f, 1f, 0);
+    private Paint lListName;
+    private final Paint listScrim = new Paint(Paint.DITHER_FLAG);
+    private int listScrimW;
+    private boolean listMode;
     // Continue watching: every app's latest (Continue), the card shown for the focused dock app and the latest from
     // another app, the crossfade between apps and the focus inside the card (0: the video, 1: the other app's row).
     private final Map<String, Continue.Entry> contByPkg = new HashMap<>();
@@ -304,6 +315,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 case DRAWER: drawDrawer(c); break;
                 case SHEET: drawSheet(c); break;
                 case CONTINUE: drawContinue(c); break;
+                case LIST: drawList(c); break;
                 default: drawToast(c); break;
             }
             scene.setOffset(0, 0);
@@ -353,9 +365,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         toastLayer = new Layer(a, TOAST);
         contLayer = new Layer(a, CONTINUE);
         contLayer.setVisibility(INVISIBLE);
+        listLayer = new Layer(a, LIST);
+        listMode = Prefs.layout().equals("list");
         // Hardware layers on the GPU: only the one that changed is redrawn; moving, fading and scaling stay cheap.
-        for (View v : new View[] {heroLayer, status, contLayer, platter, tiles, drawerLayer, sheetLayer}) v.setLayerType(LAYER_TYPE_HARDWARE, null);
-        for (View v : new View[] {sky, heroLayer, status, contLayer, platter, tiles, drawerLayer, sheetLayer, toastLayer}) addView(v);
+        for (View v : new View[] {heroLayer, status, contLayer, listLayer, platter, tiles, drawerLayer, sheetLayer}) v.setLayerType(LAYER_TYPE_HARDWARE, null);
+        for (View v : new View[] {sky, heroLayer, status, contLayer, listLayer, platter, tiles, drawerLayer, sheetLayer, toastLayer}) addView(v);
         drawerLayer.setVisibility(INVISIBLE);
         for (int i = 0; i < topFocus.length; i++) {
             topFocus[i] = new Spring(0.26f, 0.85f, 0);
@@ -384,6 +398,18 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (running) return;
         running = true;
         boolean custom = Prefs.load(getContext());      // Customize changed the name, the city, the watchlist…
+        boolean list = Prefs.layout().equals("list");
+        if (list != listMode) {     // …or Dock ⇄ List
+            listMode = list;
+            layoutShelf();
+            listScroll.snap(0);
+            motionDirty = true;
+            tilesDirty = true;
+            platter.invalidate();
+            sky.invalidate();
+            contMain = null;
+            contFade.snap(0);
+        }
         if (Ui.loadLanguage(getContext()) | custom) {   // …or the language was changed in the settings
             makeLightButtons();
             gridLabels = null;
@@ -513,7 +539,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         measure(drawerLayer, width, Math.round(600 * kk));
         measure(sheetLayer, width, height);
         measure(toastLayer, Math.round(1000 * kk), Math.round(220 * kk));
-        measure(contLayer, Math.round(740 * kk), Math.round(640 * kk));
+        measure(contLayer, Math.round(740 * kk), Math.round(880 * kk));
+        measure(listLayer, Math.round(1240 * kk), Math.round(830 * kk));
         setMeasuredDimension(width, height);
     }
 
@@ -535,6 +562,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         sheetLayer.setPivotY(height / 2f);
         place(toastLayer, (width - toastLayer.getMeasuredWidth()) / 2, 0);
         place(contLayer, width - contLayer.getMeasuredWidth(), Math.round(200 * kk));
+        place(listLayer, 0, Math.round(250 * kk));
     }
 
     private static void place(View v, int x, int y) {
@@ -598,6 +626,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         cHead = Ui.text(Ui.semibold, 16 * k, 0x8CFFFFFF);
         cHead.setLetterSpacing(0.06f);
         cRowTitle = Ui.text(Ui.semibold, 21 * k, 0xF2FFFFFF);
+        lListName = Ui.text(Ui.displaySemibold, LIST_TEXT * k, 0xFFFFFFFF);
+        lListName.setLetterSpacing(-0.01f);
+        lListName.setShadowLayer(26 * k, 0, 3 * k, 0x59000000);
         if (contMain != null) {
             layoutContinue();
             contDirty = true;
@@ -699,7 +730,13 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         // drop frames (measured: ~50 ms of GPU per frame). The app tiles have no glass; the top buttons fade out as
         // they rise; the drawer is drawn resting in place; the glass shelf is redrawn once the drawer stops, so the
         // glass shows the background where it ended up.
+        boolean listMoving = false;
+        if (listMode) {
+            aimList();
+            listMoving = listScroll.step(dt);
+        }
         if (tilesMoving || tilesDirty) tiles.invalidate();
+        if (listMode && (tilesMoving || tilesDirty || listMoving)) listLayer.invalidate();
         if (statusMoving || statusDirty || bgFading) status.invalidate();
         if (heroMoving || heroDirty || heroFading) heroLayer.invalidate();
         if (drawerItemsMoving || drawerDirty || bgFading) drawerLayer.invalidate();
@@ -720,7 +757,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
         // Busy: something is moving, or the sheet or the drawer is open.
         boolean busy = tilesMoving || statusMoving || heroMoving || drawerItemsMoving || gridMoving || drawerMoving
-                || sheetMoving || toastFading || heroFading || bgFading || nightMoving || contMoving || sheetOpen || sheet.value > 0.001f
+                || sheetMoving || toastFading || heroFading || bgFading || nightMoving || contMoving || listMoving || sheetOpen || sheet.value > 0.001f
                 || drawerOpen || drawer.value > 0.001f;
         Choreographer.getInstance().postFrameCallback(this);
     }
@@ -740,6 +777,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         show(heroLayer, top, lift);
         show(status, top, lift);
         show(platter, home, lift);
+        show(listLayer, top, lift);
+        listLayer.setVisibility(listMode && top > 0.002f ? VISIBLE : INVISIBLE);
         float ca = home * Ui.clamp(contFade.value) * (1 - smoothstep(0, 0.32f, dc));
         show(contLayer, ca, lift);
         contLayer.setVisibility(ca > 0.002f ? VISIBLE : INVISIBLE);
@@ -1035,6 +1074,15 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     private void drawSky(Canvas c) {
         drawLightSky(c);
+        if (listMode) {
+            // List layout: a soft shade from the left, so the dimmer names read on a bright photo.
+            if (listScrim.getShader() == null || listScrimW != getWidth()) {
+                listScrimW = getWidth();
+                listScrim.setShader(new LinearGradient(0, 0, 1300 * k, 0, new int[] {0x6B000000, 0x33000000, 0x00000000},
+                        new float[] {0, 0.5f, 1}, Shader.TileMode.CLAMP));
+            }
+            c.drawRect(0, 0, 1300 * k, getHeight(), listScrim);
+        }
     }
 
     /** Blends a color on top (the drawer's veil) as part of drawing the image, without another layer. */
@@ -1148,6 +1196,16 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     private void layoutShelf() {
         int n = shelf.size();
+        if (listMode) {
+            // Rows (unscrolled): the app opens from where its name is.
+            for (int i = 0; i < n; i++) {
+                float cy = (LIST_FIRST + i * LIST_PITCH) * k;
+                tileRects[i].set(LIST_X * k, cy - LIST_PITCH * k / 2, 1100 * k, cy + LIST_PITCH * k / 2);
+            }
+            platterRect.setEmpty();
+            crispLogos.clear();
+            return;
+        }
         if (CLEAN_DOCK) {
             float pad = CLEAN_PAD * k, gap = 8 * k, th = CLEAN_H * k;
             float full = (CONTENT_R - MARGIN) * k - 2 * pad;
@@ -1179,7 +1237,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     /** Shelf layer: the glass bar and its shadow (it only changes with the background). */
     private void drawPlatter(Canvas c) {
-        if (shelf.isEmpty() || !SHOW_DOCK) return;
+        if (shelf.isEmpty() || !SHOW_DOCK || listMode) return;
         // CleanFrame's bar is a capsule, with a soft rim (a bright one looked hard on the TV).
         float radius = CLEAN_DOCK ? platterRect.height() / 2 : (TILE_RADIUS + SHELF_PAD) * k;
         tmp.set(platterRect);
@@ -1195,6 +1253,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     }
 
     private void drawTiles(Canvas c) {
+        if (listMode) return;
         // The focused one last: it grows over its neighbors without being covered by them.
         int top = -1;
         float most = 0.02f;
@@ -1431,7 +1490,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         drawer.target = 0;
         zone = Z_SHELF;
         for (Spring f : drawerFocus) f.snap(0);   // the drawer goes away: its focus doesn't need to animate
-        if (!shelf.isEmpty() && drawerIndex < drawerRects.length) shelfIndex = nearest(tileRects, drawerRects[drawerIndex].centerX());
+        if (!listMode && !shelf.isEmpty() && drawerIndex < drawerRects.length) shelfIndex = nearest(tileRects, drawerRects[drawerIndex].centerX());
     }
 
     /** Color for the drawer's text and symbols: dark by day, white at night. */
@@ -1873,6 +1932,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             moveGrid(dx, dy);
             return;
         }
+        if (listMode && moveList(dx, dy)) return;
         if (moveLight(dx, dy)) return;
         switch (zone) {
             case Z_SHELF:
@@ -2042,6 +2102,116 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (!opened) showToast(Ui.tr("Açılamadı: ", "Couldn't open ") + it.label + ".");
     }
 
+    // MARK: - List layout: big names over the photo
+
+    /**
+     * ↑ ↓ along the names (past the first: the buttons at the top right; past the last: the drawer), → to the
+     * "continue watching" card and ← back. False: not ours (the top buttons handle their own keys).
+     */
+    private boolean moveList(int dx, int dy) {
+        if (zone == Z_SHELF) {
+            if (dy != 0) {
+                int next = shelfIndex + dy;
+                if (next < 0) {
+                    zone = Z_TOP;
+                    topIndex = !lightButtons.isEmpty() && lightButtons.get(0).kind == HomeApps.WEATHER ? 4 : 3;
+                } else if (next >= shelf.size()) {
+                    if (drawerItems.isEmpty()) return true;
+                    openDrawer();
+                } else {
+                    shelfIndex = next;
+                }
+            } else if (dx > 0 && contMain != null && contFade.target > 0) {
+                zone = Z_CONTINUE;
+                contIndex = 0;
+            } else {
+                return true;
+            }
+        } else if (zone == Z_CONTINUE) {
+            if (dx < 0) {
+                zone = Z_SHELF;
+            } else if (dx > 0) {
+                return true;
+            } else if (dy > 0) {
+                if (contIndex == 0 && contOther != null) contIndex = 1;
+                else return true;
+            } else if (contIndex == 1) {
+                contIndex = 0;
+            } else {
+                zone = Z_TOP;
+                topIndex = !lightButtons.isEmpty() && lightButtons.get(0).kind == HomeApps.WEATHER ? 4 : 3;
+            }
+        } else if (zone == Z_TOP && dy > 0) {
+            zone = Z_SHELF;
+        } else {
+            return false;
+        }
+        retarget(false);
+        click.move();
+        return true;
+    }
+
+    /** Keeps the focused name in view, a row of air below it; the list starts at the top while it fits. */
+    private void aimList() {
+        float pitch = LIST_PITCH * k, view = (LIST_VIEW_BOTTOM - LIST_FIRST) * k;
+        float max = Math.max(0, shelf.size() * pitch - view);
+        float y = shelfIndex * pitch, t = listScroll.target;
+        if (y + 1.5f * pitch - t > view) t = y + 1.5f * pitch - view;
+        if (y - 0.5f * pitch < t) t = Math.max(0, y - 0.5f * pitch);
+        listScroll.target = Math.max(0, Math.min(max, t));
+    }
+
+    /**
+     * The names, each with its white mark in a column of its own (so the names line up). The focused one is white
+     * and a little larger; the others fade with their distance from it, and toward the bottom of the screen.
+     */
+    private void drawList(Canvas c) {
+        if (lListName == null) return;
+        float x = LIST_X * k, nameX = x + 110 * k, cap = Ui.cap(lListName);
+        boolean onList = !sheetOpen && (zone == Z_SHELF || zone == Z_DRAWER);
+        for (int i = 0; i < shelf.size(); i++) {
+            HomeApps.Item it = shelf.get(i);
+            float cy = (LIST_FIRST + i * LIST_PITCH) * k - listScroll.value;
+            if (cy < 190 * k || cy > 1130 * k) continue;
+            float f = Ui.clamp(tileFocus[i].value);
+            int d = Math.abs(i - shelfIndex);
+            float rest = onList ? Math.max(0.3f, 0.66f - 0.07f * d) : 0.55f;
+            float edge = 1 - 0.75f * smoothstep(880 * k, 1080 * k, cy);
+            edge *= smoothstep(200 * k, 300 * k, cy);
+            float alpha = (rest + (1 - rest) * f) * edge;
+            if (alpha <= 0.01f) continue;
+            int ink = Ui.alpha(0xFFFFFFFF, alpha);
+            float s = 1 + 0.05f * f;
+            c.save();
+            c.scale(s, s, x, cy);
+            // The mark: same height for all (wide ones narrower), centered in its column.
+            float markX = x + 44 * k, targetH = LIST_MARK * k, maxW = 92 * k;
+            String glyph = GLYPHS.get(it.key);
+            Bitmap mark = glyph == null ? null : Symbols.get(getContext(), glyph);
+            if (mark != null) {
+                float scale = Math.min(targetH / mark.getHeight(), maxW / mark.getWidth());
+                Symbols.draw(getContext(), c, glyph, markX, cy, scale * 144, ink);
+            } else if (it.logo != null) {
+                float scale = Math.min(targetH / it.logo.getHeight(), maxW / it.logo.getWidth());
+                float lw = it.logo.getWidth() * scale, lh = it.logo.getHeight() * scale;
+                tmp.set(markX - lw / 2, cy - lh / 2, markX + lw / 2, cy + lh / 2);
+                bitmapPaint.setColorFilter(whiteLogo);
+                bitmapPaint.setAlpha(Math.round(255 * alpha));
+                c.drawBitmap(it.logo, null, tmp, bitmapPaint);
+                bitmapPaint.setColorFilter(null);
+                bitmapPaint.setAlpha(255);
+            }
+            lListName.setColor(ink);
+            lListName.setShadowLayer(26 * k, 0, 3 * k, Ui.alpha(0xFF000000, 0.35f * alpha));
+            // A long name gets smaller rather than running into the card at the right.
+            float room = (1150 - 40) * k - nameX, wide = lListName.measureText(it.label);
+            if (wide > room) lListName.setTextSize(LIST_TEXT * k * room / wide);
+            c.drawText(it.label, nameX, cy + cap / 2, lListName);
+            lListName.setTextSize(LIST_TEXT * k);
+            c.restore();
+        }
+    }
+
     // MARK: - Continue watching: the card above the dock for the focused app
 
     private void setContinue(List<Continue.Entry> list) {
@@ -2107,10 +2277,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         float h = contBarTop + (contMain.progress() >= 0 ? 4 * k : 0) + pad;
         contOtherTop = h + 6 * k;
         float withOther = contOtherTop + 40 * k + CONT_ROW * k + pad;
-        float room = (CONT_BOTTOM - 252) * k;      // below the photo's caption at the top right
+        float bottom = listMode ? 1000 : CONT_BOTTOM;   // no dock under it in the List layout
+        float room = (bottom - 252) * k;      // below the photo's caption at the top right
         if (contOther != null && withOther <= room) h = withOther;
         else contOther = null;
-        contRect.set(left, CONT_BOTTOM * k - h, right, CONT_BOTTOM * k);
+        contRect.set(left, bottom * k - h, right, bottom * k);
         contThumb.set(left + pad, contRect.top + pad, right - pad, contRect.top + pad + inner * 9 / 16);
     }
 

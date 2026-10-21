@@ -200,7 +200,7 @@ public class CustomizeActivity extends Activity {
             Context c = getContext();
             switch (page) {
                 case PAGE_MAIN: {
-                    Row r = item("dock", "Dock", "apps");
+                    Row r = item("dock", Ui.tr("Ana Ekrandaki Uygulamalar", "Apps on Home"), "apps");
                     r.value = Ui.tr(dock.size() + " uygulama", dock.size() + " apps");
                     r.chevron = true;
                     r = item("control", Ui.tr("Kontrol Merkezi", "Control Center"), "control");
@@ -215,7 +215,7 @@ public class CustomizeActivity extends Activity {
                     break;
                 }
                 case PAGE_DOCK: {
-                    rows.add(headerRow(Ui.tr("DOCK'TAKİ UYGULAMALAR", "APPS IN THE DOCK")));
+                    rows.add(headerRow(Ui.tr("ANA EKRANDA, SIRAYLA", "ON HOME, IN ORDER")));
                     PackageManager pm = c.getPackageManager();
                     for (String pkg : dock) {
                         item(pkg, HomeApps.label(pm, pkg), appSymbol(pkg));
@@ -224,7 +224,7 @@ public class CustomizeActivity extends Activity {
                     Row add = item("add", Ui.tr("Uygulama Ekle", "Add App"), "add");
                     add.chevron = dock.size() < HomeApps.MAX_SHELF;
                     add.dim = !add.chevron;
-                    if (add.dim) add.value = Ui.tr("Dock dolu", "The dock is full");
+                    if (add.dim) add.value = Ui.tr("Liste dolu", "Home is full");
                     item("reset", Ui.tr("Varsayılana Dön", "Reset to Default"), "restart_alt");
                     break;
                 }
@@ -246,7 +246,9 @@ public class CustomizeActivity extends Activity {
                     break;
                 }
                 case PAGE_HOME: {
-                    Row r = item("name", Ui.tr("Selamlama Adı", "Greeting Name"), "sparkles");
+                    Row r = item("layout", Ui.tr("Uygulama Görünümü", "Apps Layout"), "apps");
+                    r.value = Prefs.layout().equals("list") ? Ui.tr("Liste", "List") : "Dock";
+                    r = item("name", Ui.tr("Selamlama Adı", "Greeting Name"), "sparkles");
                     r.value = Prefs.name().isEmpty() ? Ui.tr("Yok", "None") : Prefs.name();
                     r = item("city", Ui.tr("Hava Durumu Şehri", "Weather City"), "pin");
                     r.value = Prefs.city().isEmpty() ? Prefs.latitude() + ", " + Prefs.longitude() : Prefs.city();
@@ -373,7 +375,7 @@ public class CustomizeActivity extends Activity {
 
         private String pageTitle() {
             switch (page) {
-                case PAGE_DOCK: return "Dock";
+                case PAGE_DOCK: return Ui.tr("Ana Ekrandaki Uygulamalar", "Apps on Home");
                 case PAGE_ADD: return Ui.tr("Uygulama Ekle", "Add App");
                 case PAGE_CONTROL: return Ui.tr("Kontrol Merkezi", "Control Center");
                 case PAGE_HOME: return Ui.tr("Ana Ekran", "Home Screen");
@@ -385,9 +387,9 @@ public class CustomizeActivity extends Activity {
         private String pageHint() {
             switch (page) {
                 case PAGE_DOCK: return Ui.tr("Taşımak ya da kaldırmak için OK", "OK on an app to move or remove it");
-                case PAGE_ADD: return Ui.tr("Dock'a eklemek için OK", "OK adds it to the dock");
+                case PAGE_ADD: return Ui.tr("Ana ekrana eklemek için OK", "OK adds it to Home");
                 case PAGE_CONTROL: return Ui.tr("Gizlemek ya da taşımak için OK", "OK on a control to hide or move it");
-                case PAGE_HOME: return Ui.tr("Selamlama, hava durumu ve piyasalar", "Greeting, weather and markets");
+                case PAGE_HOME: return Ui.tr("Görünüm, selamlama, hava ve piyasalar", "Layout, greeting, weather and markets");
                 case PAGE_CITY: return Ui.tr("Hava durumu bu şehir için gösterilir", "The weather follows this city");
                 default: return Ui.tr("Uygulamalar, kontroller ve ana ekran", "Your apps, controls and home screen");
             }
@@ -710,6 +712,10 @@ public class CustomizeActivity extends Activity {
         private void home(String id) {
             Context c = getContext();
             switch (id) {
+                case "layout":
+                    Prefs.put(c, "layout", Prefs.layout().equals("list") ? "dock" : "list");
+                    rebuild();
+                    break;
                 case "name":
                     ask(Ui.tr("Selamlama adı", "Greeting name"), Prefs.name(), false, text -> {
                         Prefs.put(c, "name", text.trim());

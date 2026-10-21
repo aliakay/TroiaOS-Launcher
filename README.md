@@ -33,6 +33,8 @@ a guest Wi-Fi QR code and your WiZ lights on the remote. No ads. One button to u
   settings and sleep; Now Playing (YouTube Music or whatever is playing: cover, song, ⏮ ⏯ ⏭); the lights with their
   brightness; the markets; the volume. Choose which of these show, and in what order. While music plays, the
   screensaver shows it too: a frosted card with the cover, the song and how far into it.
+- **Dock or List.** The apps on a glass dock at the bottom, or as a list of big names over the photo (after
+  CleanFrame's Photo List): Settings → Customize → Home Screen → Apps Layout.
 - **Continue watching.** Focus YouTube (or any app) in the dock and a card shows what you left half-way: its
   picture, when you watched it, the title, the channel, the time left, and the latest from another app. ↑ to the
   card and OK picks it up (a YouTube video at the second you stopped, when the app tells which video it was).
@@ -107,6 +109,7 @@ run `./build.sh` and install again.
 |---|---|---|
 | `latitude`, `longitude`, `city` | Your city: the weather, and the sunset that turns the interface dark | New York |
 | `name` | The greeting at the top left ("Hello Ali") | empty |
+| `layout` | How the apps show: `dock` (glass bar) or `list` (big names over the photo) | `dock` |
 | `dock` | The dock's apps by package, in order: `com.netflix.ninja,com.google.android.youtube.tv` | the known streaming apps that are installed |
 | `language` | `auto` (follows the TV), `en` or `tr` | `auto` |
 | `temperature` | `C`, `F` or `auto` | `auto` |
