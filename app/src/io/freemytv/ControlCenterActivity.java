@@ -35,7 +35,7 @@ import java.util.concurrent.Executors;
 
 /**
  * Control Center, like Apple's: one glass panel at the right with the time, the connection, round buttons (Live TV,
- * inputs, Wi-Fi, settings, sleep), what's playing (YouTube Music), the lights, the markets and the volume. Which of
+ * inputs, Wi-Fi, settings, sleep, free RAM), what's playing (YouTube Music), the lights, the markets and the volume. Which of
  * them show, and in what order, is chosen in Customize ("Edit" at the bottom). The corner of the home screen keeps a
  * single button that opens it.
  */
@@ -94,10 +94,14 @@ public class ControlCenterActivity extends Activity {
         private final RectF panel = new RectF(), tmp = new RectF();
         private final Path clip = new Path();
         private final int[] onScreen = new int[2];
-        private final Spring[] pop = new Spring[10];       // 0-4 buttons, 5-8 the tiles (as shown), 9 Edit
+        /** The buttons (Prefs.BUTTONS), then the tiles as shown (Prefs.TILES), then Edit. */
+        private static final int NB = Prefs.BUTTONS.length, NT = Prefs.TILES.length, POP_EDIT = NB + NT;
+        private final Spring[] pop = new Spring[POP_EDIT + 1];
         private final Spring[] rowPop = new Spring[8];     // inputs page
         private final Spring[] press = new Spring[3];      // media: previous, play/pause, next (a short flash)
-        private boolean inputsPage, running, okDown, okHeld;
+        private boolean inputsPage, running, okDown, okHeld, boosting;
+        /** Free RAM's label while it works and for a few seconds after ("Freeing…", "+312 MB"); null: its name. */
+        private String boostText;
         private int row, col, inputIndex;
         /** What shows, in order (Customize → Control Center), and each row's top in panel units. */
         private final List<String> buttons = new ArrayList<>(), tiles = new ArrayList<>(), rows = new ArrayList<>();
@@ -256,8 +260,8 @@ public class ControlCenterActivity extends Activity {
             lastNanos = now;
             String focused = inputsPage ? "" : rowId();
             for (int i = 0; i < pop.length; i++) {
-                boolean on = i < 5 ? focused.equals(BUTTONS) && col == i
-                        : i < 9 ? i - 5 < tiles.size() && focused.equals(tiles.get(i - 5)) : focused.equals(EDIT);
+                boolean on = i < NB ? focused.equals(BUTTONS) && col == i
+                        : i < POP_EDIT ? i - NB < tiles.size() && focused.equals(tiles.get(i - NB)) : focused.equals(EDIT);
                 pop[i].target = on ? 1 : 0;
                 pop[i].step(dt);
             }
@@ -277,7 +281,7 @@ public class ControlCenterActivity extends Activity {
                 for (int i = 0; i < rows.size(); i++) {
                     String id = rows.get(i);
                     float top = rowTops.get(i) * k;
-                    float f = id.equals(BUTTONS) || id.equals(EDIT) ? 0 : Ui.clamp(pop[5 + tiles.indexOf(id)].value);
+                    float f = id.equals(BUTTONS) || id.equals(EDIT) ? 0 : Ui.clamp(pop[NB + tiles.indexOf(id)].value);
                     switch (id) {
                         case BUTTONS: drawButtons(c, top); break;
                         case "media": drawMedia(c, top, f); break;
@@ -312,6 +316,7 @@ public class ControlCenterActivity extends Activity {
                 case "wifi": return "wifi";
                 case "settings": return "settings";
                 case "sleep": return "bedtime";
+                case "boost": return "memory";
                 case "media": return "music_note";
                 case "lights": return "lightbulb";
                 case "markets": return "chart";
@@ -326,6 +331,7 @@ public class ControlCenterActivity extends Activity {
                 case "wifi": return "Wi-Fi";
                 case "settings": return Ui.tr("Ayarlar", "Settings");
                 case "sleep": return Ui.tr("Uyku", "Sleep");
+                case "boost": return Ui.tr("RAM Boşalt", "Free RAM");
                 case "media": return Ui.tr("Çalan Müzik", "Now Playing");
                 case "lights": return Ui.tr("Işıklar", "Lights");
                 case "markets": return Ui.tr("Piyasalar", "Markets");
@@ -336,7 +342,9 @@ public class ControlCenterActivity extends Activity {
         /** Round buttons, like Control Center's: smoked glass, white when focused (fewer of them stay centered). */
         private void drawButtons(Canvas c, float top) {
             int n = buttons.size();
-            float step = (getWidth() - 2 * PAD * k) / 5f, d = BTN_D * k, start = PAD * k + step * (5 - n) / 2f;
+            // Up to five fill the row; six share it, a little smaller.
+            int slots = Math.max(5, n);
+            float step = (getWidth() - 2 * PAD * k) / slots, d = Math.min(BTN_D * k, step - 14 * k), start = PAD * k + step * (slots - n) / 2f;
             for (int i = 0; i < n; i++) {
                 String id = buttons.get(i);
                 float f = Ui.clamp(pop[i].value), cx = start + step * (i + 0.5f), cy = top + d / 2, r = d / 2 * (1 + 0.08f * f);
@@ -349,13 +357,14 @@ public class ControlCenterActivity extends Activity {
                 String symbol = id.equals("wifi") && HomeApps.network(getContext()).equals("ethernet") && !HomeApps.guestWifi() ? "ethernet" : moduleSymbol(id);
                 Symbols.draw(getContext(), c, symbol, cx, cy, 28 * k * (1 + 0.08f * f), blend(0xF2FFFFFF, 0xFF1C1C1E, f));
                 label.setColor(blend(0xB3FFFFFF, 0xFFFFFFFF, f));
-                c.drawText(moduleLabel(id), cx, cy + d / 2 + 36 * k, label);
+                String text = id.equals("boost") && boostText != null ? boostText : moduleLabel(id);
+                c.drawText(text, cx, cy + d / 2 + 36 * k, label);
             }
         }
 
         /** "Edit" at the bottom, like iOS's "Edit Controls": a small pill that opens Customize → Control Center. */
         private void drawEdit(Canvas c, float top) {
-            float f = Ui.clamp(pop[9].value), cx = getWidth() / 2f, h = EDIT_H * k;
+            float f = Ui.clamp(pop[POP_EDIT].value), cx = getWidth() / 2f, h = EDIT_H * k;
             String text = Ui.tr("Düzenle", "Edit");
             label.setColor(blend(0xD9FFFFFF, 0xFF1C1C1E, f));
             float tw = label.measureText(text), iw = 22 * k, hw = (tw + iw + 14 * k) / 2 + 26 * k;
@@ -771,6 +780,9 @@ public class ControlCenterActivity extends Activity {
                         case "settings":
                             open(new Intent().setComponent(new ComponentName(activity, SettingsActivity.class)));
                             break;
+                        case "boost":
+                            boost();
+                            break;
                         default:
                             sleep();
                     }
@@ -801,6 +813,38 @@ public class ControlCenterActivity extends Activity {
                 AppLog.w("control center: " + e.getMessage());
             }
             activity.finish();
+        }
+
+        /**
+         * Free RAM: closes the apps resting in the background (Ram) and shows, under the button, how much memory came
+         * back. The panel stays open.
+         */
+        private void boost() {
+            if (boosting) return;
+            boosting = true;
+            boostText = Ui.tr("Boşaltılıyor…", "Freeing…");
+            final Context c = getContext().getApplicationContext();
+            io.execute(() -> {
+                long before = Ram.available(c);
+                Ram.free(c);
+                try {
+                    Thread.sleep(1500);         // the system needs a moment to take the memory back
+                } catch (InterruptedException ignored) {
+                }
+                long after = Ram.available(c);
+                long freed = Math.max(0, after - before) >> 20;
+                AppLog.w("free ram: " + (before >> 20) + " → " + (after >> 20) + " MB available");
+                handler.post(() -> {
+                    boostText = freed >= 10 ? "+" + freed + " MB" : Ui.tr("Zaten hafif", "Already light");
+                    invalidate();
+                    handler.postDelayed(() -> {
+                        boosting = false;
+                        boostText = null;
+                        invalidate();
+                    }, 4000);
+                });
+            });
+            invalidate();
         }
 
         /** Sleep: the TV's own sleep key, through its own ADB (the panel closes first). */

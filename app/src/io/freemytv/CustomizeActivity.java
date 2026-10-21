@@ -39,7 +39,8 @@ import java.util.concurrent.Executors;
 
 /**
  * Customize, in the style of the settings: the dock's apps (add, move, remove), Control Center's controls (show, hide,
- * move) and the home screen (greeting, weather city, temperature unit, watchlist, language). Everything is saved in
+ * move), the home screen (greeting, weather city, temperature unit, watchlist, language) and the wallpaper (nature,
+ * NASA's space photos, NASA's picture of the day or soft colors; one photo or a new one every hour; darkening). Everything is saved in
  * Prefs at once; the home screen and Control Center pick it up when they come back.
  *
  * Opened from Settings, from "Edit" in Control Center (straight to its page) and by holding OK on a dock app (straight
@@ -47,7 +48,8 @@ import java.util.concurrent.Executors;
  */
 public class CustomizeActivity extends Activity {
     static final String EXTRA_PAGE = "page", EXTRA_PKG = "pkg";
-    static final int PAGE_MAIN = 0, PAGE_DOCK = 1, PAGE_ADD = 2, PAGE_CONTROL = 3, PAGE_HOME = 4, PAGE_CITY = 5;
+    static final int PAGE_MAIN = 0, PAGE_DOCK = 1, PAGE_ADD = 2, PAGE_CONTROL = 3, PAGE_HOME = 4, PAGE_CITY = 5,
+            PAGE_WALL = 6, PAGE_PICK = 7;
 
     private CustomizeView view;
 
@@ -74,7 +76,7 @@ public class CustomizeActivity extends Activity {
         return super.dispatchKeyEvent(event);
     }
 
-    static final class CustomizeView extends View implements Choreographer.FrameCallback {
+    static final class CustomizeView extends View implements Choreographer.FrameCallback, Photos.Listener {
         private static final float LIST_X = 1000, LIST_R = 1824, LIST_TOP = 186, LIST_BOTTOM = 1000, ROW_H = 74, ROW_GAP = 8,
                 HEADER_H = 58, MENU_W = 330, MENU_ROW = 64;
         private static final int INK = 0xFF1C1C1E;
@@ -140,6 +142,7 @@ public class CustomizeActivity extends Activity {
         void resume() {
             if (running) return;
             running = true;
+            Photos.get(getContext()).addListener(this);
             startedAt = SystemClock.uptimeMillis();
             lastNanos = 0;
             Choreographer.getInstance().postFrameCallback(this);
@@ -147,6 +150,9 @@ public class CustomizeActivity extends Activity {
 
         void pause() {
             running = false;
+            Photos.get(getContext()).removeListener(this);
+            handler.removeCallbacks(previewFocused);
+            if (page == PAGE_PICK) Photos.get(getContext()).refresh();     // a preview never outlives the page
             Choreographer.getInstance().removeFrameCallback(this);
         }
 
@@ -214,6 +220,9 @@ public class CustomizeActivity extends Activity {
                     r = item("home", Ui.tr("Ana Ekran", "Home Screen"), "home");
                     r.value = Prefs.city();
                     r.chevron = true;
+                    r = item("wall", Ui.tr("Duvar Kağıdı", "Wallpaper"), "wallpaper");
+                    r.value = wallpaperName(Prefs.wallpaper());
+                    r.chevron = true;
                     break;
                 }
                 case PAGE_DOCK: {
@@ -261,6 +270,43 @@ public class CustomizeActivity extends Activity {
                     r.value = watchlistSummary();
                     r = item("language", "Dil / Language", "home");
                     r.value = Ui.en ? "English" : "Türkçe";
+                    break;
+                }
+                case PAGE_WALL: {
+                    rows.add(headerRow(Ui.tr("ARKADA NE OLSUN", "BEHIND YOUR APPS")));
+                    String mode = Prefs.wallpaper();
+                    for (String m : Prefs.WALLPAPERS) {
+                        Row r = item(m, wallpaperName(m), wallpaperSymbol(m));
+                        r.value = m.equals(mode) ? Ui.tr("Seçili", "Selected") : "";
+                    }
+                    rows.add(headerRow(""));
+                    if (mode.equals("nature") || mode.equals("space")) {
+                        Row r = item("pick", Ui.tr("Fotoğraf", "Photo"), "photo_library");
+                        r.value = chosenPhotoName(mode);
+                        r.chevron = true;
+                    } else if (mode.equals("apod")) {
+                        Row r = item("today", Ui.tr("Bugün", "Today"), "sparkles");
+                        Apod.Day d = Photos.get(c).apod();
+                        r.value = d != null ? d.title : Ui.tr("NASA fotoğrafları gösteriliyor", "Showing NASA's photos");
+                        r.dim = true;
+                    }
+                    if (!mode.equals("colors")) {
+                        Row r = item("dim", Ui.tr("Karartma", "Darken"), "contrast");
+                        int d = Prefs.wallpaperDim();
+                        r.value = d == 0 ? Ui.tr("Kapalı", "Off") : "%" + d;
+                        if (Ui.en && d > 0) r.value = d + "%";
+                    }
+                    break;
+                }
+                case PAGE_PICK: {
+                    String mode = Prefs.wallpaper(), fixed = Prefs.wallpaperPhoto();
+                    Row auto = item("auto", Ui.tr("Her saat yenisi", "A new one every hour"), "sync");
+                    auto.value = fixed.isEmpty() ? Ui.tr("Seçili", "Selected") : "";
+                    rows.add(headerRow(Ui.tr("YA DA HEP AYNISI", "OR ALWAYS THE SAME ONE")));
+                    for (Photos.Photo p : Photos.get(c).choices(mode)) {
+                        Row r = item(p.file, p.place(), mode.equals("space") ? "planet" : "leaf");
+                        r.value = p.file.equals(fixed) ? Ui.tr("Seçili", "Selected") : "";
+                    }
                     break;
                 }
                 default: {   // PAGE_CITY
@@ -320,6 +366,48 @@ public class CustomizeActivity extends Activity {
             return b.length() == 0 ? Ui.tr("Boş", "Empty") : b.toString();
         }
 
+        private static String wallpaperName(String mode) {
+            switch (mode) {
+                case "space": return Ui.tr("Uzay · NASA", "Space · NASA");
+                case "apod": return Ui.tr("NASA Günün Fotoğrafı", "NASA Picture of the Day");
+                case "colors": return Ui.tr("Yumuşak Renkler", "Soft Colors");
+                default: return Ui.tr("Doğa", "Nature");
+            }
+        }
+
+        private static String wallpaperSymbol(String mode) {
+            switch (mode) {
+                case "space": return "planet";
+                case "apod": return "sparkles";
+                case "colors": return "drop";
+                default: return "leaf";
+            }
+        }
+
+        private String chosenPhotoName(String mode) {
+            String fixed = Prefs.wallpaperPhoto();
+            for (Photos.Photo p : Photos.get(getContext()).choices(mode)) if (p.file.equals(fixed)) return p.place();
+            return Ui.tr("Her saat yenisi", "Every hour");
+        }
+
+        /** Photos: the picture of the day arrived (its title is on the page). */
+        @Override public void onPhoto() {
+            if (page == PAGE_WALL && !moving && menu == null) rebuild();
+            invalidate();
+        }
+
+        /** The picker shows the focused photo behind the list, after a short pause (no decoding on every key). */
+        private final Runnable previewFocused = () -> {
+            if (page != PAGE_PICK || rows.isEmpty()) return;
+            String id = rows.get(focus).id;
+            Photos photos = Photos.get(getContext());
+            if (id.equals("auto")) {
+                photos.refresh();
+                return;
+            }
+            for (Photos.Photo p : photos.choices(Prefs.wallpaper())) if (p.file.equals(id)) photos.preview(p);
+        };
+
         /** The next focusable row from `i` in direction `d` (or `i` itself if there is none). */
         private int next(int i, int d) {
             for (int j = i + d; j >= 0 && j < rows.size(); j += d) if (!rows.get(j).header) return j;
@@ -339,6 +427,7 @@ public class CustomizeActivity extends Activity {
                 scene.advance((up - startedAt) / 1000f);
             }
             scene.drawBackground(c);
+            veil.setColor(page == PAGE_PICK ? 0x29000000 : 0x52000000);   // lighter while picking: the photo is the point
             c.drawRect(0, 0, w, h, veil);   // the white text stays readable on a bright photo
             aimScroll();
             scroll.step(dt);
@@ -372,6 +461,8 @@ public class CustomizeActivity extends Activity {
                 case PAGE_CONTROL: return "control";
                 case PAGE_HOME: return "home";
                 case PAGE_CITY: return "pin";
+                case PAGE_WALL: return "wallpaper";
+                case PAGE_PICK: return "photo_library";
                 default: return "tune";
             }
         }
@@ -383,6 +474,8 @@ public class CustomizeActivity extends Activity {
                 case PAGE_CONTROL: return Ui.tr("Kontrol Merkezi", "Control Center");
                 case PAGE_HOME: return Ui.tr("Ana Ekran", "Home Screen");
                 case PAGE_CITY: return Ui.tr("Şehir Seçin", "Pick Your City");
+                case PAGE_WALL: return Ui.tr("Duvar Kağıdı", "Wallpaper");
+                case PAGE_PICK: return Ui.tr("Fotoğraf Seçin", "Pick a Photo");
                 default: return Ui.tr("Özelleştir", "Customize");
             }
         }
@@ -394,7 +487,9 @@ public class CustomizeActivity extends Activity {
                 case PAGE_CONTROL: return Ui.tr("Gizlemek ya da taşımak için OK", "OK on a control to hide or move it");
                 case PAGE_HOME: return Ui.tr("Görünüm, selamlama, hava ve piyasalar", "Layout, greeting, weather and markets");
                 case PAGE_CITY: return Ui.tr("Hava durumu bu şehir için gösterilir", "The weather follows this city");
-                default: return Ui.tr("Uygulamalar, kontroller ve ana ekran", "Your apps, controls and home screen");
+                case PAGE_WALL: return Ui.tr("Seçtiğiniz hemen arkada görünür", "What you choose shows right behind");
+                case PAGE_PICK: return Ui.tr("Gezinirken arkada görünür, OK ile seçin", "Browse to preview, OK to choose");
+                default: return Ui.tr("Uygulamalar, kontroller, ana ekran ve duvar kağıdı", "Your apps, controls, home screen and wallpaper");
             }
         }
 
@@ -554,6 +649,10 @@ public class CustomizeActivity extends Activity {
                 moveFocused(d);
             } else {
                 focus = next(focus, d);
+                if (page == PAGE_PICK) {
+                    handler.removeCallbacks(previewFocused);
+                    handler.postDelayed(previewFocused, 350);
+                }
             }
             invalidate();
         }
@@ -564,16 +663,20 @@ public class CustomizeActivity extends Activity {
             } else if (moving) {
                 moving = false;
                 rebuild();
-            } else if (page == entryPage && page != PAGE_ADD && page != PAGE_CITY) {
+            } else if (page == entryPage && page != PAGE_ADD && page != PAGE_CITY && page != PAGE_PICK) {
                 activity.finish();
                 return;
             } else {
                 int from = page;
-                page = page == PAGE_ADD ? PAGE_DOCK : page == PAGE_CITY ? PAGE_HOME : PAGE_MAIN;
+                if (from == PAGE_PICK) {        // back without choosing: the saved wallpaper again
+                    handler.removeCallbacks(previewFocused);
+                    Photos.get(getContext()).refresh();
+                }
+                page = page == PAGE_ADD ? PAGE_DOCK : page == PAGE_CITY ? PAGE_HOME : page == PAGE_PICK ? PAGE_WALL : PAGE_MAIN;
                 rebuild();
                 focus = 0;
                 String id = from == PAGE_DOCK ? "dock" : from == PAGE_CONTROL ? "control" : from == PAGE_HOME ? "home"
-                        : from == PAGE_ADD ? "add" : "city";
+                        : from == PAGE_ADD ? "add" : from == PAGE_WALL ? "wall" : from == PAGE_PICK ? "pick" : "city";
                 for (int i = 0; i < rows.size(); i++) if (rows.get(i).id.equals(id)) focus = i;
                 snapScroll();
             }
@@ -601,7 +704,7 @@ public class CustomizeActivity extends Activity {
             Context c = getContext();
             switch (page) {
                 case PAGE_MAIN:
-                    open(r.id.equals("dock") ? PAGE_DOCK : r.id.equals("control") ? PAGE_CONTROL : PAGE_HOME);
+                    open(r.id.equals("dock") ? PAGE_DOCK : r.id.equals("control") ? PAGE_CONTROL : r.id.equals("wall") ? PAGE_WALL : PAGE_HOME);
                     break;
                 case PAGE_DOCK:
                     if (r.id.equals("add")) {
@@ -636,6 +739,18 @@ public class CustomizeActivity extends Activity {
                     break;
                 case PAGE_HOME:
                     home(r.id);
+                    break;
+                case PAGE_WALL:
+                    wallpaper(r.id);
+                    break;
+                case PAGE_PICK:
+                    handler.removeCallbacks(previewFocused);
+                    Prefs.put(c, "wallpaper_photo", r.id.equals("auto") ? null : r.id);
+                    Photos.get(c).refresh();
+                    page = PAGE_WALL;
+                    rebuild();
+                    for (int j = 0; j < rows.size(); j++) if (rows.get(j).id.equals("pick")) focus = j;
+                    snapScroll();
                     break;
                 default:
                     int i = Integer.parseInt(r.id.substring(5));
@@ -708,6 +823,37 @@ public class CustomizeActivity extends Activity {
             }
             rebuild();
             for (int i = 0; i < rows.size(); i++) if (rows.get(i).id.equals(id)) focus = i;
+        }
+
+        // MARK: - Wallpaper
+
+        private void wallpaper(String id) {
+            Context c = getContext();
+            Photos photos = Photos.get(c);
+            switch (id) {
+                case "pick": {
+                    open(PAGE_PICK);
+                    String fixed = Prefs.wallpaperPhoto();
+                    for (int i = 0; i < rows.size(); i++) if (rows.get(i).id.equals(fixed)) focus = i;
+                    snapScroll();
+                    break;
+                }
+                case "today":
+                    break;
+                case "dim": {
+                    int d = Prefs.wallpaperDim();
+                    Prefs.put(c, "wallpaper_dim", String.valueOf(d >= 45 ? 0 : d + 15));
+                    photos.refresh();
+                    rebuild();
+                    break;
+                }
+                default: {   // one of Prefs.WALLPAPERS
+                    if (!id.equals(Prefs.wallpaper())) Prefs.put(c, "wallpaper_photo", null);   // a photo of the other set
+                    Prefs.put(c, "wallpaper", id);
+                    photos.refresh();
+                    rebuild();
+                }
+            }
         }
 
         // MARK: - Home screen settings

@@ -88,16 +88,25 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
 - **Android 12 look (no AGSL).** `Scene.flat()` is true without RuntimeShader. Then the background is `Wallpaper`
   (a photo from `Photos`, or soft clouds of colour) and every glass surface is `LiquidGlass`: the pre-blurred
   wallpaper ("frost") drawn through a slight lens, a tint, light on top and a specular rim. Plain Canvas, cheap.
-- **Photos** (`Photos`, `assets/wallpapers/photos.json`): nature photos from Wikimedia Commons, day and night sets, a
-  new one every hour. Each keeps its own licence; list them in `assets/wallpapers/CREDITS.md` and keep the on-screen
-  credit (place, photographer, licence). Only add photos with a free licence and no extra conditions.
+- **Photos** (`Photos`, `assets/wallpapers/photos.json`): nature photos from Wikimedia Commons (day and night sets)
+  and public-domain NASA photos (`"set": "space"`, files `space-*.jpg`, cropped to 1920 × 1080), a new one every hour
+  or one chosen photo, darkened as chosen (`Prefs.wallpaper`, `wallpaperPhoto`, `wallpaperDim`; Customize →
+  Wallpaper, whose photo picker previews behind the list). Each keeps its own licence; list them in
+  `assets/wallpapers/CREDITS.md` and keep the on-screen credit (place, photographer, licence). Only add photos with a
+  free licence and no extra conditions. Photos only show on the Android 12 look (`Scene.flat()`).
+- **NASA's picture of the day** (`Apod`): from the official feed science.nasa.gov/feed/apod-basic/ (api.nasa.gov's
+  APOD endpoint returns only the NASA logo since APOD moved). Many APOD pictures are the photographers' own and the
+  feed's copyright field just repeats the credit, so `Apod.free` accepts a day only if every name in the credit is a
+  public agency or mission; the newest free landscape one is kept in `files/apod.img` (checked every 6 hours), else
+  the NASA set shows.
 - **Top of the home screen** (`HomeView.drawLightTop`, `drawWeatherWidget`): greeting (`name`), clock, date, the
   weather (Open-Meteo: feels-like, wind, humidity); the corner buttons are icons, with glass only on focus.
 - **Dock** (`CLEAN_DOCK`, after CleanFrame): white brand marks in `assets/symbols/app_*.png` (`GLYPHS` maps shelf
   keys to them; licences in `LICENSE-app-icons.txt`) with the app names, on a smoked glass capsule with a soft rim;
   the focused app gets a pill of light, no outline.
 - **Control Center** (`ControlCenterActivity`, the one corner button next to the weather): round buttons (Live TV,
-  inputs, Wi-Fi QR, settings, sleep through the TV's own ADB), Now Playing, lights (OK on/off, ← → brightness, hold
+  inputs, Wi-Fi QR, settings, sleep through the TV's own ADB, Free RAM: `Ram`, `am kill-all` through the TV's own ADB,
+  which only closes cached apps; the app's own `killBackgroundProcesses` freed nothing on the BRAVIA), Now Playing, lights (OK on/off, ← → brightness, hold
   for the panel), markets (OK for the watchlist), volume (← →, OK mutes) and "Edit". The rows are built from
   `Prefs.modules`, so a new control needs an id in `Prefs.BUTTONS` or `TILES`, a symbol and label in
   `moduleSymbol`/`moduleLabel`, and its drawing and keys.

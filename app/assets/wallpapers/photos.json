@@ -133,5 +133,131 @@
   "author": "RodrigoErse",
   "license": "CC BY-SA 4.0",
   "source": "https://commons.wikimedia.org/wiki/File:Aurora_amaz%C3%B4nica_no_Lago_do_Cuni%C3%A3.jpg"
+ },
+ {
+  "file": "space-m83.jpg",
+  "set": "space",
+  "tr": "Güney Fırıldak Galaksisi (M83) · Hubble",
+  "en": "Southern Pinwheel Galaxy (M83) · Hubble",
+  "author": "NASA, ESA, Hubble Heritage Team (STScI/AURA)",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Messier83_-_Heic1403a.jpg"
+ },
+ {
+  "file": "space-carina.jpg",
+  "set": "space",
+  "tr": "Karina Bulutsusu · Hubble",
+  "en": "Carina Nebula · Hubble",
+  "author": "NASA, ESA, N. Smith (UC Berkeley), Hubble Heritage Team (STScI/AURA)",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:NGC_3372a-full.jpg"
+ },
+ {
+  "file": "space-tarantula.jpg",
+  "set": "space",
+  "tr": "Tarantula Bulutsusu · Webb",
+  "en": "Tarantula Nebula · Webb",
+  "author": "NASA, ESA, CSA, STScI, Webb ERO Production Team",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Tarantula_Nebula_by_JWST.jpg"
+ },
+ {
+  "file": "space-heart-soul.jpg",
+  "set": "space",
+  "tr": "Kalp ve Ruh bulutsuları · WISE",
+  "en": "Heart and Soul nebulae · WISE",
+  "author": "NASA/JPL-Caltech/UCLA",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Heart_and_Soul_nebulae.jpg"
+ },
+ {
+  "file": "space-milky-way.jpg",
+  "set": "space",
+  "tr": "Samanyolu'nun merkezi",
+  "en": "The center of the Milky Way",
+  "author": "NASA/JPL-Caltech/ESA/CXC/STScI",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Center_of_the_Milky_Way_Galaxy_IV_%E2%80%93_Composite.jpg"
+ },
+ {
+  "file": "space-ngc2683.jpg",
+  "set": "space",
+  "tr": "NGC 2683 sarmal galaksisi · Hubble",
+  "en": "NGC 2683 spiral galaxy · Hubble",
+  "author": "NASA",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:NGC_2683_Spiral_galaxy.jpg"
+ },
+ {
+  "file": "space-saturn.jpg",
+  "set": "space",
+  "tr": "Ekinoksta Satürn · Cassini",
+  "en": "Saturn at equinox · Cassini",
+  "author": "NASA/JPL/Space Science Institute",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Saturn_during_Equinox.jpg"
+ },
+ {
+  "file": "space-earth-smiled.jpg",
+  "set": "space",
+  "tr": "Satürn'ün ardından Dünya · Cassini",
+  "en": "Earth seen past Saturn · Cassini",
+  "author": "NASA/JPL-Caltech/SSI",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:The_Day_the_Earth_Smiled_-_PIA17172.jpg"
+ },
+ {
+  "file": "space-earthset.jpg",
+  "set": "space",
+  "tr": "Dünya batışı · Artemis II",
+  "en": "Earthset · Artemis II",
+  "author": "NASA",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Earthset_(art002e009288).jpg"
+ },
+ {
+  "file": "space-two-worlds.jpg",
+  "set": "space",
+  "tr": "İki dünyanın kıyısı · Artemis II",
+  "en": "The edge of two worlds · Artemis II",
+  "author": "NASA",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:The_Edge_of_Two_Worlds_(art002e009285).jpg"
+ },
+ {
+  "file": "space-eclipse.jpg",
+  "set": "space",
+  "tr": "Artemis II'den güneş tutulması",
+  "en": "Solar eclipse from Artemis II",
+  "author": "NASA",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Solar_eclipse_taken_from_Artemis_II_-_April_2026.jpg"
+ },
+ {
+  "file": "space-moon.jpg",
+  "set": "space",
+  "tr": "Ay'a yeni bir bakış",
+  "en": "A new view of the Moon",
+  "author": "NASA",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:A_New_View_of_the_Moon.jpg"
+ },
+ {
+  "file": "space-iss-trails.jpg",
+  "set": "space",
+  "tr": "Uzay İstasyonu'ndan yıldız izleri",
+  "en": "Star trails from the Space Station",
+  "author": "NASA/Don Pettit",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:International_Space_Station_star_trails_-_JSC2012E039800.jpg"
+ },
+ {
+  "file": "space-bhutan.jpg",
+  "set": "space",
+  "tr": "Butan'ın buzul gölleri, yörüngeden",
+  "en": "Glacial lakes of Bhutan, from orbit",
+  "author": "NASA",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Glacial_lakes,_Bhutan.jpg"
  }
 ]

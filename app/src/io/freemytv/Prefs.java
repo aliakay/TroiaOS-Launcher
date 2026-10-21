@@ -17,7 +17,7 @@ import java.util.List;
 
 /**
  * What the person changed on the TV (Customize): the dock's apps, Control Center's modules, the greeting, the weather's
- * city, the temperature unit and the watchlist. Anything not set falls back to config.properties, so a fresh build
+ * city, the temperature unit, the watchlist and the wallpaper. Anything not set falls back to config.properties, so a fresh build
  * works as configured. Kept in its own file (custom.json), read by both processes: `load` re-reads it only when it
  * changed, so calling it on every resume is enough.
  */
@@ -25,7 +25,7 @@ final class Prefs {
     private Prefs() {}
 
     /** Control Center's modules: the round buttons, then the tiles (each group keeps its own order). */
-    static final String[] BUTTONS = {"live", "inputs", "wifi", "settings", "sleep"};
+    static final String[] BUTTONS = {"live", "inputs", "wifi", "settings", "sleep", "boost"};
     static final String[] TILES = {"media", "lights", "markets", "volume"};
 
     private static final Object LOCK = new Object();
@@ -135,6 +135,30 @@ final class Prefs {
     /** Yahoo symbols with optional labels: "^GSPC:SPX,BTC-USD:BTC". */
     static String stocks() {
         return string("stocks", Config.STOCKS);
+    }
+
+    // MARK: - Wallpaper
+
+    /** What's behind the home screen: nature photos, NASA's space photos, NASA's picture of the day, or soft colors. */
+    static final String[] WALLPAPERS = {"nature", "space", "apod", "colors"};
+
+    static String wallpaper() {
+        String w = string("wallpaper", "nature");
+        return Arrays.asList(WALLPAPERS).contains(w) ? w : "nature";
+    }
+
+    /** The one photo (its file) kept on screen, or "" for a new one every hour. */
+    static String wallpaperPhoto() {
+        return string("wallpaper_photo", "");
+    }
+
+    /** How much the photo is darkened, in percent: 0, 15, 30 or 45. */
+    static int wallpaperDim() {
+        try {
+            return Math.max(0, Math.min(60, Integer.parseInt(string("wallpaper_dim", "0"))));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     static void setPlace(Context c, String city, double lat, double lon) {

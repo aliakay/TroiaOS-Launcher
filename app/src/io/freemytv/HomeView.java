@@ -103,10 +103,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private static final long TOAST_MS = 6000, FADE_MS = 800;
     private static final int SKY = 0, HERO = 1, STATUS = 2, PLATTER = 3, TILES = 4, DRAWER = 5, SHEET = 6, TOAST = 7, CONTINUE = 8, LIST = 9;
     /**
-     * The List layout (Customize → Home Screen → Apps Layout), after CleanFrame's Photo List: big white names with
+     * The List layout (Customize → Home Screen → Apps Layout), after CleanFrame's Photo List: white names with
      * their marks on the left, over the photo; the focused one brightest. Rows in 1920 units.
      */
-    private static final float LIST_X = 88, LIST_FIRST = 330, LIST_PITCH = 120, LIST_TEXT = 88, LIST_MARK = 60,
+    private static final float LIST_X = 88, LIST_FIRST = 330, LIST_PITCH = 86, LIST_TEXT = 60, LIST_MARK = 42,
             LIST_VIEW_BOTTOM = 1040;
     private static final int Z_STATUS = 0, Z_HERO = 1, Z_SHELF = 2, Z_DRAWER = 3;
     private static final ExecutorService LOADER = Executors.newSingleThreadExecutor();
@@ -2167,7 +2167,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
      */
     private void drawList(Canvas c) {
         if (lListName == null) return;
-        float x = LIST_X * k, nameX = x + 110 * k, cap = Ui.cap(lListName);
+        float x = LIST_X * k, nameX = x + 80 * k, cap = Ui.cap(lListName);
         boolean onList = !sheetOpen && (zone == Z_SHELF || zone == Z_DRAWER);
         for (int i = 0; i < shelf.size(); i++) {
             HomeApps.Item it = shelf.get(i);
@@ -2185,7 +2185,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             c.save();
             c.scale(s, s, x, cy);
             // The mark: same height for all (wide ones narrower), centered in its column.
-            float markX = x + 44 * k, targetH = LIST_MARK * k, maxW = 92 * k;
+            float markX = x + 31 * k, targetH = LIST_MARK * k, maxW = 64 * k;
             String glyph = GLYPHS.get(it.key);
             Bitmap mark = glyph == null ? null : Symbols.get(getContext(), glyph);
             if (mark != null) {
