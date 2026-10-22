@@ -16,7 +16,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * What the person changed on the TV (Customize): the dock's apps, Control Center's modules, the greeting, the weather's
+ * What the person changed on the TV (Customize, Set Up): the dock's apps, Control Center's modules, the greeting, the weather's
  * city, the temperature unit, the watchlist and the wallpaper. Anything not set falls back to config.properties, so a fresh build
  * works as configured. Kept in its own file (custom.json), read by both processes: `load` re-reads it only when it
  * changed, so calling it on every resume is enough.
@@ -265,6 +265,36 @@ final class Prefs {
 
     static String haToken() {
         return secret("ha_token", "");
+    }
+
+    // MARK: - Set Up (the first-run wizard, SetupActivity)
+
+    /**
+     * True once Set Up was finished or put off ("Later"): nothing opens it by itself then. A TV that already had
+     * Toria set up before Set Up existed counts as done (checked once: any of its choices, or Toria as the home screen).
+     */
+    static boolean setupDone(Context c) {
+        synchronized (LOCK) {
+            if (data.optBoolean("setup_done") || data.optBoolean("setup_skipped")) return true;
+            if (data.has("setup_checked")) return false;
+            boolean before = false;
+            for (String key : new String[] {"welcomed", "dock", "wallpaper", "name", "layout"}) before |= data.has(key);
+            before |= HomeMode.FREE.equals(HomeMode.state(c).optString("mode"));
+            try {
+                data.put("setup_checked", true);
+                if (before) data.put("setup_done", true);
+            } catch (JSONException ignored) {
+            }
+            save(c);
+            return before;
+        }
+    }
+
+    /** The step Set Up was left on (0: its Hello screen). */
+    static int setupStep() {
+        synchronized (LOCK) {
+            return Math.max(0, data.optInt("setup_step", 0));
+        }
     }
 
     static boolean has(String key) {

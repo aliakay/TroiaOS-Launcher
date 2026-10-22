@@ -249,6 +249,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     // Frames
     private boolean running, tilesDirty, statusDirty, heroDirty, drawerDirty, gridDirty, motionDirty = true;
+    private boolean setupAsked;     // Set Up was opened by this home screen already (Home in Set Up leaves it be)
     private boolean drawerWasMoving;
     private long lastNanos, resumedAt, lastStep;
     private int w, h;
@@ -399,10 +400,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (running) return;
         running = true;
         boolean custom = Prefs.load(getContext());      // Customize changed the name, the city, the watchlist…
-        if (!Prefs.has("welcomed")) {       // the first time: where everything is set
-            Prefs.put(getContext(), "welcomed", true);
-            handler.postDelayed(() -> showToast(Ui.tr("Hoş geldiniz! Şehir, uygulamalar, ışıklar, Wi-Fi: Kontrol Merkezi → Düzenle.",
-                    "Welcome! Your city, apps, lights and Wi-Fi: Control Center → Edit.")), 1500);
+        // Toria became the home screen without Set Up (switched from Settings): Set Up, once per start. Not while a
+        // switch runs (it opens the home screen to measure it).
+        if (!setupAsked && !Prefs.setupDone(getContext()) && HomeMode.state(getContext()).optString("busy").isEmpty()) {
+            setupAsked = true;
+            handler.postDelayed(() -> { if (running) SetupActivity.resume(getContext(), false); }, 400);
         }
         boolean list = Prefs.layout().equals("list");
         if (list != listMode) {     // …or Dock ⇄ List

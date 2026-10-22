@@ -1,5 +1,7 @@
 # Plan: Set Up mode (first-run wizard)
 
+*Status: implemented (`SetupActivity`, `Hello`, `Dialogs`, `Geocode`, `tools/make_hello.py`). Not yet tried on a TV.*
+
 The goal: the first time someone opens Toria, it greets them like a new iPhone ("hello" written by hand on black,
 then the word in other languages, with Toria's Trojan horse at the bottom), then walks them, one step at a time
 with the remote, through setting up their TV and the launcher. Read [CLAUDE.md](../CLAUDE.md) first: its rules apply

@@ -115,6 +115,20 @@
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
             android:theme="@style/FreeMyTV.Home" />
 
+        <!-- Set Up: the first-run wizard ("hello", then the person's language, name, city, apps, wallpaper and the rest).
+             Its own task, so the home screen and the settings can bring it back where it was. -->
+        <activity
+            android:name=".SetupActivity"
+            android:process=":home"
+            android:exported="false"
+            android:label="Toria"
+            android:launchMode="singleTask"
+            android:taskAffinity="io.freemytv.setup"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
+            android:theme="@style/FreeMyTV.Home" />
+
         <!-- Control Center: one glass panel with Live TV, inputs, Wi-Fi, settings, sleep, lights, markets and volume. -->
         <activity
             android:name=".ControlCenterActivity"

@@ -104,8 +104,15 @@ installed, from a server in another city.
 
 ## Set it up on the TV
 
-Everything is set on the TV with the remote: Settings → *Customize* (or hold OK on a dock app, or *Edit* at the
-bottom of Control Center).
+The first time you open Toria from the TV's apps, **Set Up** greets you: "hello" is written by hand, then the word
+in other languages. Press OK and the remote walks you through it, one step at a time: the language, your name, your
+city (for the weather), your apps, the wallpaper, lights, a guest Wi-Fi QR code, the music app, a watchlist, what
+Toria does with data, and making Toria the home screen. Every choice is saved at once; leave half-way and it opens
+where you left it. *Later* on the first screen puts it off for good, and Settings → *Set Up Again* runs it any time
+with what you already chose.
+
+After that, everything is set on the TV with the remote: Settings → *Customize* (or hold OK on a dock app, or *Edit*
+at the bottom of Control Center).
 
 | Page | What you set |
 |---|---|
@@ -240,6 +247,10 @@ your TV and updates the lists ([CLAUDE.md](CLAUDE.md) tells it how).
   public agencies alone (many APOD pictures belong to their photographers). NASA doesn't endorse Toria.
 - **Fonts and symbols:** [Inter](https://rsms.me/inter/) (SIL OFL 1.1), [Material Symbols](https://fonts.google.com/icons)
   (Apache 2.0).
+- **Set Up's handwritten "hello":** from the Hershey Script font (`tools/make_hello.py`). The Hershey Fonts were
+  originally created by Dr. A. V. Hershey while working at the U. S. National Bureau of Standards; the format of the
+  font data it was read from was originally created by James Hurt, Cognition, Inc. See
+  [`CREDITS.md`](app/assets/setup/CREDITS.md).
 - **Data:** weather by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0). Markets use Yahoo Finance's public
   chart data, which is unofficial and may be delayed: it's meant for personal use, and an empty `stocks` turns it off.
 - **QR encoder** after the algorithm of [Project Nayuki's QR Code generator](https://www.nayuki.io/page/qr-code-generator-library).

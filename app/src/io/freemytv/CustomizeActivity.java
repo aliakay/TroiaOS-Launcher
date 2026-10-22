@@ -1,7 +1,6 @@
 package io.freemytv;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.BlurMaskFilter;
@@ -12,25 +11,14 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
-import android.text.InputType;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.view.Choreographer;
 import android.view.KeyEvent;
 import android.view.View;
-import android.view.WindowManager;
-import android.view.inputmethod.EditorInfo;
-import android.widget.EditText;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -239,6 +227,8 @@ public class CustomizeActivity extends Activity {
                     rows.add(headerRow(""));
                     r = item("privacy", Ui.tr("Gizlilik", "Privacy"), "check");
                     r.value = Ui.tr("Hiçbir veri toplanmaz", "Nothing is collected");
+                    r.chevron = true;
+                    r = item("setup", Ui.tr("Kurulumu Yeniden Başlat", "Set Up Again"), "restart_alt");
                     r.chevron = true;
                     break;
                 }
@@ -459,7 +449,7 @@ public class CustomizeActivity extends Activity {
         }
 
         /** Installed apps for Music App: the known music apps first, then the rest. */
-        private static List<HomeApps.Item> musicApps(Context c) {
+        static List<HomeApps.Item> musicApps(Context c) {
             List<HomeApps.Item> all = HomeApps.launchable(c), out = new ArrayList<>();
             for (HomeApps.Item it : all) if (it.pkg.equals(MediaListener.YT_MUSIC) || it.pkg.equals("com.spotify.tv.android")) out.add(it);
             for (HomeApps.Item it : all) if (!out.contains(it)) out.add(it);
@@ -827,6 +817,7 @@ public class CustomizeActivity extends Activity {
                         case "wifi": open(PAGE_WIFI); break;
                         case "music": openMusic(); break;
                         case "privacy": open(PAGE_PRIVACY); break;
+                        case "setup": SetupActivity.again(activity); break;
                         default: open(PAGE_HOME);
                     }
                     break;
@@ -1230,17 +1221,7 @@ public class CustomizeActivity extends Activity {
 
         /** A message with one action (or just OK when `action` is null). */
         private void dialog(String title, String message, String action, final Runnable then) {
-            AlertDialog.Builder b = new AlertDialog.Builder(activity, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                    .setTitle(title)
-                    .setMessage(message);
-            if (action != null) {
-                b.setPositiveButton(action, (d, w) -> then.run()).setNegativeButton(Ui.tr("Vazgeç", "Cancel"), null);
-            } else {
-                b.setPositiveButton("OK", null);
-            }
-            AlertDialog d = b.create();
-            d.setOnDismissListener(x -> invalidate());
-            d.show();
+            Dialogs.message(activity, title, message, action, then, this::invalidate);
         }
 
         // MARK: - Guest Wi-Fi and the music app
@@ -1292,52 +1273,17 @@ public class CustomizeActivity extends Activity {
             snapScroll();
         }
 
-        interface Answer { void text(String value); }
-
-        private void ask(String question, String current, boolean code, final Answer answer) {
+        private void ask(String question, String current, boolean code, final Dialogs.Answer answer) {
             ask(question, null, current, code ? FIELD_CODE : FIELD_WORDS, answer);
         }
 
-        private static final int FIELD_WORDS = 0, FIELD_CODE = 1, FIELD_SECRET = 2;
+        private static final int FIELD_WORDS = Dialogs.FIELD_WORDS, FIELD_CODE = Dialogs.FIELD_CODE, FIELD_SECRET = Dialogs.FIELD_SECRET;
 
-        /**
-         * A text field in a dialog: the TV's keyboard comes up with it. `note` (optional) under the title. A secret is
-         * typed as a visible password: keyboards don't learn or suggest it.
-         */
-        private void ask(String question, String note, String current, int kind, final Answer answer) {
-            final EditText field = new EditText(activity);
-            field.setSingleLine(true);
-            field.setText(current);
-            field.setSelection(field.getText().length());
-            field.setInputType(kind == FIELD_SECRET
-                    ? InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
-                    : kind == FIELD_CODE ? InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
-                    : InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
-            if (kind == FIELD_SECRET) field.setImeOptions(EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING);
-            field.setImeOptions(field.getImeOptions() | EditorInfo.IME_ACTION_DONE);
-            int pad = Math.round(28 * k);
-            field.setPadding(pad, pad / 2, pad, pad / 2);
-            final AlertDialog dialog = new AlertDialog.Builder(activity, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                    .setTitle(question)
-                    .setMessage(note)
-                    .setView(field)
-                    .setPositiveButton(Ui.tr("Kaydet", "Save"), (d, which) -> answer.text(field.getText().toString()))
-                    .setNegativeButton(Ui.tr("Vazgeç", "Cancel"), null)
-                    .create();
-            field.setOnEditorActionListener((v, action, event) -> {
-                if (action == EditorInfo.IME_ACTION_DONE) {
-                    answer.text(field.getText().toString());
-                    dialog.dismiss();
-                    return true;
-                }
-                return false;
-            });
-            dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
-            dialog.setOnDismissListener(d -> invalidate());
-            dialog.show();
+        private void ask(String question, String note, String current, int kind, final Dialogs.Answer answer) {
+            Dialogs.ask(activity, question, note, current, kind, answer, this::invalidate);
         }
 
-        /** Open-Meteo's geocoding (no key): up to 8 places with that name, then the list to pick from. */
+        /** Open-Meteo's geocoding (Geocode): up to 8 places with that name, then the list to pick from. */
         private void searchCity(final String query) {
             if (query.trim().isEmpty()) return;
             places.clear();
@@ -1346,29 +1292,20 @@ public class CustomizeActivity extends Activity {
             invalidate();
             final String lang = Ui.en ? "en" : "tr";
             io.execute(() -> {
-                final List<String[]> found = new ArrayList<>();
+                List<String[]> found = new ArrayList<>();
                 String state;
                 try {
-                    String body = get("https://geocoding-api.open-meteo.com/v1/search?count=8&format=json&language=" + lang
-                            + "&name=" + URLEncoder.encode(query.trim(), "UTF-8"));
-                    JSONArray results = new JSONObject(body).optJSONArray("results");
-                    for (int i = 0; results != null && i < results.length(); i++) {
-                        JSONObject o = results.getJSONObject(i);
-                        String detail = o.optString("admin1", "");
-                        String country = o.optString("country", "");
-                        if (!country.isEmpty()) detail = detail.isEmpty() ? country : detail + ", " + country;
-                        found.add(new String[] {o.optString("name"), detail, String.valueOf(o.getDouble("latitude")),
-                                String.valueOf(o.getDouble("longitude"))});
-                    }
+                    found = Geocode.search(query, lang);
                     state = found.isEmpty() ? "none" : "";
                 } catch (Exception e) {
                     AppLog.w("geocoding: " + e.getMessage());
                     state = "error";
                 }
+                final List<String[]> result = found;
                 final String s = state;
                 handler.post(() -> {
                     places.clear();
-                    places.addAll(found);
+                    places.addAll(result);
                     placesState = s;
                     if (page == PAGE_CITY) {
                         focus = 0;
@@ -1378,20 +1315,6 @@ public class CustomizeActivity extends Activity {
                     invalidate();
                 });
             });
-        }
-
-        private static String get(String url) throws Exception {
-            HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
-            c.setConnectTimeout(8000);
-            c.setReadTimeout(8000);
-            try (InputStream in = c.getInputStream(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-                byte[] buf = new byte[8192];
-                int n;
-                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
-                return new String(out.toByteArray(), StandardCharsets.UTF_8);
-            } finally {
-                c.disconnect();
-            }
         }
     }
 }

@@ -111,18 +111,29 @@ final class Photos {
     /** Shows what Customize → Wallpaper says, if it isn't on screen already. Call from the main thread. */
     void refresh() {
         Prefs.load(context);
-        String mode = Prefs.wallpaper();
+        showMode(Prefs.wallpaper(), Prefs.wallpaperPhoto(), false);
+    }
+
+    /**
+     * Set Up's preview: what this wallpaper choice would show now, whatever is saved (refresh goes back). The picture
+     * of the day only if one is already kept: browsing past it asks NASA nothing.
+     */
+    void previewMode(String mode) {
+        showMode(mode, "", true);
+    }
+
+    private void showMode(String mode, String fixed, boolean preview) {
         if (mode.equals("colors")) {
             clear();
             return;
         }
         Photo p = null;
         if (mode.equals("apod")) {
-            checkApod();
+            if (!preview) checkApod();
             p = apodPhoto();
         }
         if (p == null) {
-            String set = mode.equals("apod") ? "space" : mode, fixed = Prefs.wallpaperPhoto();
+            String set = mode.equals("apod") ? "space" : mode;
             if (!fixed.isEmpty() && !mode.equals("apod")) {
                 for (Photo q : choices(set)) if (q.file.equals(fixed)) p = q;
             }

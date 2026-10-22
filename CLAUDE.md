@@ -113,6 +113,13 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
   for the panel), markets (OK for the watchlist), volume (← →, OK mutes) and "Edit". The rows are built from
   `Prefs.modules`, so a new control needs an id in `Prefs.BUTTONS` or `TILES`, a symbol and label in
   `moduleSymbol`/`moduleLabel`, and its drawing and keys.
+- **Set Up** (`SetupActivity`, `Hello`): the first-run wizard. Settings (the app's icon) and the home screen open it
+  while `Prefs.setupDone` is false (not while a switch runs: `HomeMode` opens Settings and Home to measure). `Hello`
+  writes "hello" along `assets/setup/hello.txt` (SVG path data from the Hershey Script font, `tools/make_hello.py`;
+  keep the acknowledgement in `assets/setup/CREDITS.md`), then other languages. The steps save with Customize's
+  `Prefs` keys at once, plus `setup_step` (resumed there), `setup_done` and `setup_skipped` ("Later"). A TV that had
+  Toria set up before counts as done (`setup_checked`, once). "Set Up Again" in Settings and Customize. Shared with
+  Customize: `Dialogs` (keyboard field, messages), `Geocode` (city search).
 - **Customize** (`CustomizeActivity`, from Settings, Control Center's Edit, or holding OK on a dock app): dock apps
   (add any installed app, move, remove), Control Center (show, hide, move), and the home screen (greeting, weather
   city via Open-Meteo geocoding, °C/°F, watchlist, language). Saved by `Prefs` in `custom.json` (both processes read

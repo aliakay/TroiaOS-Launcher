@@ -36,12 +36,19 @@ public class SettingsActivity extends Activity {
         super.onCreate(savedInstanceState);
         Watchdog.install(this);
         Ui.init(this);
+        // The first open: Set Up instead (not while a switch runs: it opens this screen to measure the home button).
+        if (!Prefs.setupDone(this) && HomeMode.state(this).optString("busy").isEmpty()) {
+            SetupActivity.resume(this, true);
+            finish();
+            return;
+        }
         view = new SettingsView(this);
         setContentView(view);
     }
 
     @Override protected void onResume() {
         super.onResume();
+        if (view == null) return;    // went to Set Up
         view.resume();
         // From ADB: am start -n io.freemytv/.SettingsActivity --ez screensaver true (straight to the preview).
         if (preview == null && getIntent().getBooleanExtra("screensaver", false)) {
@@ -57,6 +64,10 @@ public class SettingsActivity extends Activity {
     }
 
     @Override protected void onPause() {
+        if (view == null) {
+            super.onPause();
+            return;
+        }
         closePreview();     // before pausing the view: closing the preview resumes it (view.resume)
         view.pause();
         super.onPause();
@@ -79,7 +90,7 @@ public class SettingsActivity extends Activity {
                     return super.dispatchKeyEvent(event);
             }
         }
-        if (view.onKey(event)) return true;
+        if (view != null && view.onKey(event)) return true;
         return super.dispatchKeyEvent(event);
     }
 
@@ -204,7 +215,7 @@ public class SettingsActivity extends Activity {
         }
 
         private int rowCount() {
-            return screen == MAIN ? 5 : 2;
+            return screen == MAIN ? 6 : 2;
         }
 
         @Override protected void onDraw(Canvas c) {
@@ -239,9 +250,9 @@ public class SettingsActivity extends Activity {
             String busyText = state.optString("busy");
             String mode = freeActive() ? "Toria" : Ui.tr("Orijinal", "Original");
             String[] labels = {Ui.tr("Ana Ekran", "Home Screen"), Ui.tr("Özelleştir", "Customize"), Ui.tr("Ekran Koruyucu", "Screensaver"),
-                    "Dil / Language", Ui.tr("TV Ayarları", "TV Settings")};
-            String[] values = {working ? "" : mode, "", Ui.tr("Önizle", "Preview"), Ui.en ? "English" : "Türkçe", ""};
-            for (int i = 0; i < 5; i++) {
+                    "Dil / Language", Ui.tr("TV Ayarları", "TV Settings"), Ui.tr("Kurulumu Yeniden Başlat", "Set Up Again")};
+            String[] values = {working ? "" : mode, "", Ui.tr("Önizle", "Preview"), Ui.en ? "English" : "Türkçe", "", ""};
+            for (int i = 0; i < labels.length; i++) {
                 float y = (LIST_TOP + i * (ROW_H + ROW_GAP)) * k;
                 rowRect.set(LIST_X * k, y, LIST_R * k, y + ROW_H * k);
                 float f = drawRowBackground(c, i);
@@ -268,7 +279,7 @@ public class SettingsActivity extends Activity {
                 }
             }
 
-            float y = (LIST_TOP + 5 * (ROW_H + ROW_GAP) + 46) * k;
+            float y = (LIST_TOP + labels.length * (ROW_H + ROW_GAP) + 46) * k;
             String error = state.optString("error");
             if (working && (busyText.contains("izin") || busyText.contains("Allow"))) {
                 c.drawText(Ui.tr("TV'de: “Her zaman izin ver”i işaretleyip OK'ye basın.", "On the TV: tick “Always allow” and press OK."),
@@ -461,8 +472,10 @@ public class SettingsActivity extends Activity {
                 try { s.put("language", Ui.en ? "tr" : "en"); } catch (org.json.JSONException ignored) {}
                 HomeMode.save(c, s);
                 Ui.loadLanguage(c);
-            } else {
+            } else if (focus == 4) {
                 activity.startActivity(new Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            } else {
+                SetupActivity.again(activity);
             }
             for (Spring s : pop) s.snap(0);
             invalidate();
