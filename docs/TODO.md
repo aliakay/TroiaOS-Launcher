@@ -8,6 +8,14 @@ The TV was off on 2026-10-22 when TroiaOS got its name, so these wait for it.
       12 disabled ones are Sony's factory-disabled regional apps), the old app was uninstalled, Set Up ran on the TV
       and switched to TroiaOS (HOME = io.troiaos, screensaver io.troiaos/.Screensaver), notification access granted.
 
+## Google TV Streamer ("alps-google-tv", Tailscale 100.87.251.64, Android 14, tr-TR)
+
+- [x] 2026-10-22: the clean release build installed (`io.troiaos`). Only Play Games of `DEBLOAT` exists there.
+- [ ] Open TroiaOS there: Set Up (in Turkish), then the switch to TroiaOS mode. Check the photo look on Android 14
+      (`Scene.AGSL` off), the screensaver replacing Google's Backdrop, and `adb logcat -s TroiaOS`.
+- [ ] Its Turkish apps (tabii, TOD, S Sport, DAZN, Digiturk, Kick) aren't in `HomeApps.SHELF`: they can be added in
+      Customize (TV banner logo); consider white marks for them.
+
 ## New screenshots for the README
 
 Take them with the greeting name left empty, at 1920 × 1080, and save them as JPEG in `.github/screenshots/`:

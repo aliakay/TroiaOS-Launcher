@@ -44,19 +44,27 @@ final class Scene {
     private Bitmap frostImage, glassA, glassB;
     private BitmapShader glassShaderA;
 
+    /**
+     * The AGSL aurora look (Android 13+). Off: every TV gets the photo look (Wallpaper + LiquidGlass), which is the
+     * one designed, tested and set up in Customize; the aurora doesn't show the photos.
+     */
+    static final boolean AGSL = false;
+
     Scene() {
-        try {
-            aurora = new RuntimeShader(Shaders.AURORA);
-            glass = new RuntimeShader(Shaders.GLASS);
-            liquid = new RuntimeShader(Shaders.LIQUID);
-            auroraPaint.setShader(aurora);
-            glassPaint.setShader(glass);
-            liquidPaint.setShader(liquid);
-        } catch (RuntimeException | LinkageError e) {   // Android 12: no AGSL, flat look instead
-            AppLog.w("shader unavailable, using gradient: " + e.getMessage());
-            aurora = null;
-            glass = null;
-            liquid = null;
+        if (AGSL) {
+            try {
+                aurora = new RuntimeShader(Shaders.AURORA);
+                glass = new RuntimeShader(Shaders.GLASS);
+                liquid = new RuntimeShader(Shaders.LIQUID);
+                auroraPaint.setShader(aurora);
+                glassPaint.setShader(glass);
+                liquidPaint.setShader(liquid);
+            } catch (RuntimeException | LinkageError e) {   // Android 12: no AGSL, flat look instead
+                AppLog.w("shader unavailable, using gradient: " + e.getMessage());
+                aurora = null;
+                glass = null;
+                liquid = null;
+            }
         }
         auroraNode.setUseCompositingLayer(true, null);
     }

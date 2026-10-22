@@ -88,7 +88,8 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
 
 ## TroiaOS's additions
 
-- **Android 12 look (no AGSL).** `Scene.flat()` is true without RuntimeShader. Then the background is `Wallpaper`
+- **The photo look, on every TV.** `Scene.AGSL` is false, so `Scene.flat()` is true on Android 13+ too (the AGSL
+  aurora stays in the code, off: it can't show the photos). Then the background is `Wallpaper`
   (a photo from `Photos`, or soft clouds of colour) and every glass surface is `LiquidGlass`: the pre-blurred
   wallpaper ("frost") drawn through a slight lens, a tint, light on top and a specular rim. Plain Canvas, cheap.
 - **Photos** (`Photos`, `assets/wallpapers/photos.json`): nature photos from Wikimedia Commons (day and night sets)
@@ -96,7 +97,7 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
   or one chosen photo, darkened as chosen (`Prefs.wallpaper`, `wallpaperPhoto`, `wallpaperDim`; Customize →
   Wallpaper, whose photo picker previews behind the list). Each keeps its own licence; list them in
   `assets/wallpapers/CREDITS.md` and keep the on-screen credit (place, photographer, licence). Only add photos with a
-  free licence and no extra conditions. Photos only show on the Android 12 look (`Scene.flat()`).
+  free licence and no extra conditions. Photos show on the flat look (`Scene.flat()`), which is every TV now.
 - **NASA's picture of the day** (`Apod`): from the official feed science.nasa.gov/feed/apod-basic/ (api.nasa.gov's
   APOD endpoint returns only the NASA logo since APOD moved). Many APOD pictures are the photographers' own and the
   feed's copyright field just repeats the credit, so `Apod.free` accepts a day only if every name in the credit is a

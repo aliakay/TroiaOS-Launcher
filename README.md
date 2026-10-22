@@ -26,8 +26,8 @@ One button to undo.
   Astronomy Picture of the Day, or soft colours. A new one every hour or one you pick (previewed as you browse), and
   darker if you like. Each is credited on screen.
 - **Liquid Glass, even on Android 12.** Every glass surface shows the blurred photo behind it through a slight lens,
-  with light on top and a specular rim. On TVs without Android 13 shaders it's drawn with the plain Canvas, so it
-  stays smooth on weak TV chips.
+  with light on top and a specular rim. It's drawn with the plain Canvas on every TV, so it stays smooth on weak
+  TV chips.
 - **Your apps on a glass bar.** White brand marks with their names on a glass capsule, the focused app on a soft pill
   of light (after [CleanFrame](https://github.com/nthnclrk/CleanFrame)). Any installed app can go there: hold OK on
   an app to move it, remove it or add another.
@@ -81,6 +81,7 @@ Control Center · the List layout · Wallpaper · the photo picker · Customize 
 ## Tested on
 
 - **Sony BRAVIA 4K VH21** (Google TV, Android 12): TroiaOS's own TV.
+- **Google TV Streamer** (Android 14): installed, Set Up not yet run.
 - A **TCL** Google TV (Android 14): the original project was built on one, and its lists are still here.
 
 Other Google TV and Android TV sets (Android 12 or newer) and Google TV streamers should work; another brand's promo
