@@ -72,9 +72,10 @@ One button to undo.
 </p>
 <p align="center">
 <img src=".github/screenshots/customize.jpg" width="49%" alt="Customize → Control Center: show, hide and move each control">
+<img src=".github/screenshots/space.jpg" width="49%" alt="The home screen with the Space · NASA wallpaper: the center of the Milky Way">
 </p>
 
-Control Center · the List layout · Wallpaper · the photo picker · Customize. All taken on a Sony BRAVIA (October
+Control Center · the List layout · Wallpaper · the photo picker · Customize · the Space wallpaper. All taken on a Sony BRAVIA (October
 2026).
 
 ## Tested on
@@ -87,9 +88,9 @@ apps may need adding to the lists (see [Any TV](#any-tv)). Samsung or LG: plug a
 
 **Checked on the BRAVIA:** the dock and the List layout, Control Center (Now Playing, lights, markets, volume, Free
 RAM), Customize (dock, Control Center, home screen, wallpaper), the photo and NASA wallpapers, Continue watching with
-YouTube, WiZ lights, the guest Wi-Fi QR panel and the screensaver.
+YouTube, WiZ lights, the guest Wi-Fi QR panel, the screensaver, and Set Up switching the TV to TroiaOS.
 
-**Not yet checked on a real TV:** installing the release APK with Downloader, Set Up and its handwritten "hello", the ⚙ button next to Control Center, the
+**Not yet checked on a real TV:** installing the release APK with Downloader, the handwritten "hello", the ⚙ button next to Control Center, the
 Customize pages for Lights, Guest Wi-Fi, Music App and Privacy, the screensaver's Now Playing card, and YouTube
 resuming at the exact second. LIFX, Govee, Philips Hue and Home Assistant follow their published protocols but
 haven't met a real lamp yet: reports welcome.
