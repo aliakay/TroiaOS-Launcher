@@ -385,8 +385,8 @@ public class SetupActivity extends Activity {
             Context c = getContext();
             switch (step) {
                 case LANGUAGE: {
-                    item("tr", "Türkçe", "home").checked = !Ui.en;
-                    item("en", "English", "home").checked = Ui.en;
+                    item("tr", "Türkçe", "translate").checked = !Ui.en;
+                    item("en", "English", "translate").checked = Ui.en;
                     nextRow(false);
                     break;
                 }
@@ -758,6 +758,7 @@ public class SetupActivity extends Activity {
 
         private String stepSymbol() {
             switch (step) {
+                case LANGUAGE: return "translate";
                 case NAME: return "sparkles";
                 case CITY: return "pin";
                 case APPS: return "apps";

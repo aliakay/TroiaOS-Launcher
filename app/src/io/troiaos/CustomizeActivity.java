@@ -275,7 +275,7 @@ public class CustomizeActivity extends Activity {
                     r.value = t.startsWith("F") ? "°F" : t.startsWith("C") ? "°C" : Ui.tr("Otomatik", "Automatic");
                     r = item("stocks", Ui.tr("Piyasa Listesi", "Watchlist"), "chart");
                     r.value = watchlistSummary();
-                    r = item("language", "Dil / Language", "home");
+                    r = item("language", "Dil / Language", "translate");
                     r.value = Ui.en ? "English" : "Türkçe";
                     break;
                 }

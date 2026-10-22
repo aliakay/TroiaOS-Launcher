@@ -27,7 +27,8 @@ Then add them to the README's Screenshots section.
 
 - [x] Set Up ran start to finish on 2026-10-22 and its switch made TroiaOS the home screen. Still to look at: the Hello
       animation itself.
-- [ ] Set Up's Language step shows a house icon next to Türkçe / English: give it a language symbol.
+- [x] Set Up's Language step (and Customize → Dil / Language) use a translate symbol instead of the house (installed
+      2026-10-22; have a look via Settings → Set Up Again).
 - [ ] The ⚙ button shows right of Control Center (seen 2026-10-22); check that it opens Settings, and ↑ from the apps still lands on Control Center.
 - [ ] Customize → Lights, Guest Wi-Fi QR, Music App and Privacy pages; the welcome toast; notices in English.
 - [ ] The screensaver starts while YouTube Music plays, and shows the Now Playing card.
