@@ -2,7 +2,7 @@
 
 <img src="app/res/drawable-nodpi/icon.png" width="96" alt="">
 
-# Toria
+# TroiaOS Launcher
 
 **A calm, customizable launcher for Google TV and Android TV.**
 
@@ -10,11 +10,11 @@ Nature photos behind everything, Liquid Glass (even on Android 12), an Apple-sty
 watching" for any app, and your apps as a glass dock or a big list. Set it all up on the TV itself. No ads, no root.
 One button to undo.
 
-<img src=".github/screenshots/home.jpg" width="880" alt="The Toria home screen: a Himalayan landscape, the time and weather at the top, and the apps on a glass bar">
+<img src=".github/screenshots/home.jpg" width="880" alt="The TroiaOS home screen: a sunset over the Bavarian Alps, the time and weather at the top, and the apps on a glass dock">
 
 </div>
 
-> Toria ("at" is Turkish for *horse*: hence the Trojan horse icon 🐴) is a fork of
+> TroiaOS is named after Troia (Troy, *Truva* in Turkish), hence the Trojan horse icon 🐴. It is a fork of
 > [Free My TV](https://github.com/simbasjungles/free-my-tv) by simbasjungles and contributors, reworked into a
 > photo-first, Apple TV-like look and extended with smart-home and everyday features. Built with
 > [Claude Code](https://claude.com/claude-code).
@@ -52,7 +52,7 @@ One button to undo.
 - **Guest Wi-Fi QR code.** Type your guest network on the TV (Customize → Guest Wi-Fi QR); guests scan the code
   with their phone's camera and join without typing the password.
 - **Free RAM.** One button in Control Center closes the apps resting in the background and shows what came back.
-- **Private by design.** No account, no ads, no tracking, no Toria servers: see [Privacy](#privacy).
+- **Private by design.** No account, no ads, no tracking, no TroiaOS servers: see [Privacy](#privacy).
 - **Turkish and English**, following the TV's language or switched in the settings.
 - **No ads, a lighter TV.** The stock launcher and the promo and tracking apps are turned off, never uninstalled
   (on Sony: Samba TV's viewing tracker, Sony Select, promos, the store demo). On our Sony BRAVIA the Home button went
@@ -60,18 +60,39 @@ One button to undo.
 - **Safe.** No root. One button brings back the TV's original home screen, and a watchdog does it by itself if the
   new one ever crashes three times in five minutes.
 
+## Screenshots
+
 <p align="center">
-<img src=".github/screenshots/lights.jpg" width="49%" alt="The lights panel: all lamps or one, scenes, brightness and colour">
-<img src=".github/screenshots/markets.jpg" width="49%" alt="The markets panel: price, change and today's curve">
+<img src=".github/screenshots/control-center.jpg" width="49%" alt="Control Center: Live TV, inputs, Wi-Fi, settings and sleep; Now Playing, the lights, the markets and the volume">
+<img src=".github/screenshots/list.jpg" width="49%" alt="The List layout: the apps as big names over a photo of the Flatirons">
 </p>
+<p align="center">
+<img src=".github/screenshots/wallpaper.jpg" width="49%" alt="Customize → Wallpaper: Nature, Space · NASA, NASA Picture of the Day or Soft Colors">
+<img src=".github/screenshots/photo-picker.jpg" width="49%" alt="The photo picker: each photo previews behind the list as you browse">
+</p>
+<p align="center">
+<img src=".github/screenshots/customize.jpg" width="49%" alt="Customize → Control Center: show, hide and move each control">
+</p>
+
+Control Center · the List layout · Wallpaper · the photo picker · Customize. All taken on a Sony BRAVIA (October
+2026).
 
 ## Tested on
 
-- **Sony BRAVIA 4K VH21** (Google TV, Android 12): Toria's own TV.
+- **Sony BRAVIA 4K VH21** (Google TV, Android 12): TroiaOS's own TV.
 - Free My TV was built on a **TCL** Google TV (Android 14), whose lists are still here.
 
 Other Google TV and Android TV sets (Android 12 or newer) and Google TV streamers should work; another brand's promo
 apps may need adding to the lists (see [Any TV](#any-tv)). Samsung or LG: plug a Google TV streamer into HDMI.
+
+**Checked on the BRAVIA:** the dock and the List layout, Control Center (Now Playing, lights, markets, volume, Free
+RAM), Customize (dock, Control Center, home screen, wallpaper), the photo and NASA wallpapers, Continue watching with
+YouTube, WiZ lights, the guest Wi-Fi QR panel and the screensaver.
+
+**Not yet checked on a real TV:** Set Up and its handwritten "hello", the ⚙ button next to Control Center, the
+Customize pages for Lights, Guest Wi-Fi, Music App and Privacy, the screensaver's Now Playing card, and YouTube
+resuming at the exact second. LIFX, Govee, Philips Hue and Home Assistant follow their published protocols but
+haven't met a real lamp yet: reports welcome.
 
 ## Install
 
@@ -82,10 +103,10 @@ About fifteen minutes. You need a Google TV or Android TV (Android 12+) and a co
    the TV's IP address (Settings → Network & Internet).
 2. **On your computer**, get the code:
    ```bash
-   git clone https://github.com/aliakay/glass-tv-launcher && cd glass-tv-launcher
+   git clone https://github.com/aliakay/TroiaOS-Launcher && cd TroiaOS-Launcher
    ```
 3. **The easy way:** open [Claude Code](https://claude.com/claude-code) in that folder and say
-   > Install Toria on my TV at 192.168.1.50. I live in Berlin.
+   > Install TroiaOS on my TV at 192.168.1.50. I live in Berlin.
 
    **The manual way:** install a JDK 17+, the Android SDK command-line tools (`build-tools;34.0.0`,
    `platforms;android-34`) and adb, then:
@@ -95,19 +116,19 @@ About fifteen minutes. You need a Google TV or Android TV (Android 12+) and a co
    adb connect 192.168.1.50:5555    # accept "Allow USB debugging?" on the TV (tick "Always allow")
    adb install -r FreeMyTV.apk
    ```
-4. **On the TV**, open *Toria* → *Home Screen* → *Toria*, and accept the debugging prompt once more (the
+4. **On the TV**, open *TroiaOS* → *Home Screen* → *TroiaOS*, and accept the debugging prompt once more (the
    app uses the TV's own ADB to switch the home screen).
 
 **Computer and TV on different networks?** Install [Tailscale](https://tailscale.com) on both (it's in the TV's
-Play Store) and use the TV's Tailscale address: `adb connect 100.x.y.z:5555`. That's how Toria was built and
+Play Store) and use the TV's Tailscale address: `adb connect 100.x.y.z:5555`. That's how TroiaOS was built and
 installed, from a server in another city.
 
 ## Set it up on the TV
 
-The first time you open Toria from the TV's apps, **Set Up** greets you: "hello" is written by hand, then the word
+The first time you open TroiaOS from the TV's apps, **Set Up** greets you: "hello" is written by hand, then the word
 in other languages. Press OK and the remote walks you through it, one step at a time: the language, your name, your
 city (for the weather), your apps, the wallpaper, lights, a guest Wi-Fi QR code, the music app, a watchlist, what
-Toria does with data, and making Toria the home screen. Every choice is saved at once; leave half-way and it opens
+TroiaOS does with data, and making TroiaOS the home screen. Every choice is saved at once; leave half-way and it opens
 where you left it. *Later* on the first screen puts it off for good, and Settings → *Set Up Again* runs it any time
 with what you already chose.
 
@@ -123,7 +144,7 @@ at the bottom of Control Center).
 | Lights | Search, rename, hide or blink lamps; pair a Philips Hue Bridge; connect Home Assistant |
 | Guest Wi-Fi QR | The network name, password and security for the QR code |
 | Music App | What Now Playing opens when nothing plays (Spotify, YouTube Music, any app) |
-| Privacy | What Toria sends where (below) |
+| Privacy | What TroiaOS sends where (below) |
 
 **Lights, by brand:**
 
@@ -139,7 +160,7 @@ at the bottom of Control Center).
 
 ## Privacy
 
-Toria has no servers and no account, shows no ads and collects nothing: nothing about you or your TV is ever sent
+TroiaOS has no servers and no account, shows no ads and collects nothing: nothing about you or your TV is ever sent
 to us. What goes out, and to whom, is all on Customize → Privacy:
 
 | What | Goes to | What they see |
@@ -190,7 +211,7 @@ Keep `freemytv.keystore`: updates must be signed with the same key.
 | An app | Opens it | Customize → Dock, on that app (move, remove, add) |
 | Weather | The next hours | |
 | Control Center | Opens it | |
-| ⚙ (right of Control Center) | Toria's Settings: home screen, Customize, Set Up Again | |
+| ⚙ (right of Control Center) | TroiaOS's Settings: home screen, Customize, Set Up Again | |
 | ↑ from an app with a card | The card: OK continues it (↓ to the other app's row) | |
 | ↓ on the apps | Inputs, All Apps, settings | |
 
@@ -207,7 +228,7 @@ In Control Center:
 
 ## Going back
 
-On the TV: *Toria* → *Home Screen* → *Original*. The factory home screen, screensaver and every app come back
+On the TV: *TroiaOS* → *Home Screen* → *Original*. The factory home screen, screensaver and every app come back
 exactly as they were. To remove it for good, switch to *Original* first, then uninstall it (Settings → Apps).
 
 ## Any TV
@@ -245,7 +266,7 @@ your TV and updates the lists ([CLAUDE.md](CLAUDE.md) tells it how).
 - **Photos:** Wikimedia Commons featured pictures under CC BY, CC BY-SA and the Free Art License, and public-domain
   NASA pictures, each with its own terms: see [`CREDITS.md`](app/assets/wallpapers/CREDITS.md). They are not covered
   by the MIT licence. NASA's Astronomy Picture of the Day is downloaded on the TV, and only on days whose credit is
-  public agencies alone (many APOD pictures belong to their photographers). NASA doesn't endorse Toria.
+  public agencies alone (many APOD pictures belong to their photographers). NASA doesn't endorse TroiaOS.
 - **Fonts and symbols:** [Inter](https://rsms.me/inter/) (SIL OFL 1.1), [Material Symbols](https://fonts.google.com/icons)
   (Apache 2.0).
 - **Set Up's handwritten "hello":** from the Hershey Script font (`tools/make_hello.py`). The Hershey Fonts were

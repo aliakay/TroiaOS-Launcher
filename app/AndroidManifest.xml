@@ -45,7 +45,7 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
     <application
-        android:label="Toria"
+        android:label="TroiaOS"
         android:icon="@drawable/icon"
         android:banner="@drawable/banner"
         android:allowBackup="false"
@@ -56,7 +56,7 @@
             android:name=".SettingsActivity"
             android:process=":home"
             android:exported="true"
-            android:label="Toria"
+            android:label="TroiaOS"
             android:launchMode="singleTask"
             android:taskAffinity="io.freemytv.settings"
             android:excludeFromRecents="true"
@@ -76,7 +76,7 @@
             android:name=".HomeActivity"
             android:process=":home"
             android:exported="true"
-            android:label="Toria"
+            android:label="TroiaOS"
             android:launchMode="singleTask"
             android:taskAffinity=""
             android:stateNotNeeded="true"
@@ -98,7 +98,7 @@
             android:name=".LightsActivity"
             android:process=":home"
             android:exported="false"
-            android:label="Toria"
+            android:label="TroiaOS"
             android:excludeFromRecents="true"
             android:screenOrientation="landscape"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
@@ -109,7 +109,7 @@
             android:name=".CustomizeActivity"
             android:process=":home"
             android:exported="false"
-            android:label="Toria"
+            android:label="TroiaOS"
             android:excludeFromRecents="true"
             android:screenOrientation="landscape"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
@@ -121,7 +121,7 @@
             android:name=".SetupActivity"
             android:process=":home"
             android:exported="false"
-            android:label="Toria"
+            android:label="TroiaOS"
             android:launchMode="singleTask"
             android:taskAffinity="io.freemytv.setup"
             android:excludeFromRecents="true"
@@ -134,7 +134,7 @@
             android:name=".ControlCenterActivity"
             android:process=":home"
             android:exported="false"
-            android:label="Toria"
+            android:label="TroiaOS"
             android:excludeFromRecents="true"
             android:screenOrientation="landscape"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
@@ -145,7 +145,7 @@
             android:name=".InfoActivity"
             android:process=":home"
             android:exported="false"
-            android:label="Toria"
+            android:label="TroiaOS"
             android:excludeFromRecents="true"
             android:screenOrientation="landscape"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
@@ -156,7 +156,7 @@
         <service
             android:name=".Screensaver"
             android:exported="true"
-            android:label="Toria"
+            android:label="TroiaOS"
             android:permission="android.permission.BIND_DREAM_SERVICE">
             <intent-filter>
                 <action android:name="android.service.dreams.DreamService" />
@@ -169,7 +169,7 @@
         <service
             android:name=".MediaListener"
             android:exported="true"
-            android:label="Toria"
+            android:label="TroiaOS"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />

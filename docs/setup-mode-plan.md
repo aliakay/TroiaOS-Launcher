@@ -2,15 +2,15 @@
 
 *Status: implemented (`SetupActivity`, `Hello`, `Dialogs`, `Geocode`, `tools/make_hello.py`). Not yet tried on a TV.*
 
-The goal: the first time someone opens Toria, it greets them like a new iPhone ("hello" written by hand on black,
-then the word in other languages, with Toria's Trojan horse at the bottom), then walks them, one step at a time
+The goal: the first time someone opens TroiaOS, it greets them like a new iPhone ("hello" written by hand on black,
+then the word in other languages, with TroiaOS's Trojan horse at the bottom), then walks them, one step at a time
 with the remote, through setting up their TV and the launcher. Read [CLAUDE.md](../CLAUDE.md) first: its rules apply
 (Java 8, no libraries, one Canvas per view, 60 fps with no allocations in `onDraw`, every visible string as
 `Ui.tr("tr", "en")`, `./build.sh` must end with `Built FreeMyTV.apk`).
 
 ## 1. When it shows
 
-- **First open.** The person opens Toria from the TV's app list (`SettingsActivity`, the launcher entry) before
+- **First open.** The person opens TroiaOS from the TV's app list (`SettingsActivity`, the launcher entry) before
   anything else exists. In `SettingsActivity.onCreate`: if `!Prefs.setupDone()`, start `SetupActivity` and `finish()`.
   Also in `HomeActivity`/`HomeView.resume()`, same check (for a TV switched without the wizard).
 - **Existing installs are not forced into it.** Migration, once: if `custom.json` already has any of `welcomed`,
@@ -29,7 +29,7 @@ Pure black, full screen. Timeline (all times from the activity's start; use `Sys
 | Time | What |
 |---|---|
 | 0–0.6 s | black |
-| 0.6–3.0 s | a cursive "hello" is **written**: the stroke grows along its path (`PathMeasure.getSegment`), eased (ease-in-out), round caps and joins, stroke ~16 px at 1920 wide, white with a soft warm gradient across it (cream `#FFF4E6` → peach `#FFC9A8`, Toria's palette; no blue) |
+| 0.6–3.0 s | a cursive "hello" is **written**: the stroke grows along its path (`PathMeasure.getSegment`), eased (ease-in-out), round caps and joins, stroke ~16 px at 1920 wide, white with a soft warm gradient across it (cream `#FFF4E6` → peach `#FFC9A8`, TroiaOS's palette; no blue) |
 | 3.0–4.2 s | hold |
 | 4.2 s on | the word fades (0.5 s) and other languages follow, typed in Inter (`Ui.displaySemibold`, ~150 px), each 1.6 s with a 0.4 s crossfade and a 12 px rise: Merhaba, Hola, Bonjour, Hallo, Ciao, Olá, Hej, Привет, こんにちは, 안녕하세요, 你好, مرحبا, then "hello" written again (loop). Put the TV's own language first if it's in the list. |
 | 1.2 s on | the **Trojan horse** at the bottom center (`assets/symbols/horse.png` through `Symbols.draw`, ~110 px tall, centered at y≈900 of 1080), fading in over 1 s, white at 85% |
@@ -69,7 +69,7 @@ Customize shows the same values.
 | # | Step | Content | Saves |
 |---|---|---|---|
 | 1 | **Language** | English · Türkçe (the TV's language preselected). Changing it redraws everything in that language at once (`HomeMode.state` `language` + `Ui.loadLanguage`, as Customize's language row does). | state `language` |
-| 2 | **Your name** | "What should Toria call you?" A row that opens the keyboard dialog; "Skip" leaves just "Hello". | `name` |
+| 2 | **Your name** | "What should TroiaOS call you?" A row that opens the keyboard dialog; "Skip" leaves just "Hello". | `name` |
 | 3 | **Your city** | Search by name (keyboard dialog) → the list of places (Open-Meteo geocoding), pick one; then °C / °F / Automatic. Offline: say so and offer Skip. | `city`, `latitude`, `longitude`, `temperature` |
 | 4 | **Your apps** | The installed launchable apps, the known streaming apps first and already ticked (as the default dock is built: `HomeApps.dockPackages`). OK ticks/unticks, max `HomeApps.MAX_SHELF`. Then "Dock" or "List" with a one-line description of each. | `dock`, `layout` |
 | 5 | **Wallpaper** | Nature · Space · NASA · NASA Picture of the Day · Soft Colors, shown live behind as the focus moves (`Photos.preview` / `refresh`, as Customize's picker does). | `wallpaper` |
@@ -78,7 +78,7 @@ Customize shows the same values.
 | 8 | **Music** | Installed apps, known music apps first (Spotify, YouTube Music). | `music_app` |
 | 9 | **Markets** (optional) | None · "S&P 500, Bitcoin, Gold" (`^GSPC:S&P,BTC-USD:BTC,GC=F:XAU`) · "Type my own" (keyboard dialog). | `stocks` |
 | 10 | **Privacy** | The same facts as Customize → Privacy, as a short list, and one row "Got it". Not skippable (one press). | — |
-| 11 | **Make Toria your home screen** | Explain before doing it (CLAUDE.md, *Installing* step 7): the home screen and screensaver change; a short list of promo apps is turned **off, never uninstalled**; *Original* brings it all back. Then: "Switch now" runs `HomeMode.request(c, HomeMode.FREE)` and shows the progress from `HomeMode.state` (`busy`, `error`) exactly as `SettingsActivity` does (see its `busy()` and the "Allow" handling around line 273: the TV asks *Allow USB debugging?* — tell them to tick *Always allow* and press OK). If ADB is off: explain how to turn on Developer options → USB / network debugging on Android TV, and "Try again". "Later" skips (they can switch in Settings). Skip this step when Toria is already the home screen. | (HomeMode's own state) |
+| 11 | **Make TroiaOS your home screen** | Explain before doing it (CLAUDE.md, *Installing* step 7): the home screen and screensaver change; a short list of promo apps is turned **off, never uninstalled**; *Original* brings it all back. Then: "Switch now" runs `HomeMode.request(c, HomeMode.FREE)` and shows the progress from `HomeMode.state` (`busy`, `error`) exactly as `SettingsActivity` does (see its `busy()` and the "Allow" handling around line 273: the TV asks *Allow USB debugging?* — tell them to tick *Always allow* and press OK). If ADB is off: explain how to turn on Developer options → USB / network debugging on Android TV, and "Try again". "Later" skips (they can switch in Settings). Skip this step when TroiaOS is already the home screen. | (HomeMode's own state) |
 | 12 | **All set** | "You're all set" + three tips: hold OK on an app to move it; the button next to the weather is Control Center; Edit in Control Center changes all this. Small horse at the bottom again. OK: `setup_done=true`, go Home (`Intent.ACTION_MAIN` + `CATEGORY_HOME`). | `setup_done` |
 
 ## 4. Code structure
@@ -122,7 +122,7 @@ Changed:
 1. `./build.sh` ends with `Built FreeMyTV.apk`.
 2. On the TV: Settings → "Set Up Again" (the activity isn't exported, so `adb shell am start` can't open it).
 3. Walk every step with the remote; at each step, leave with Back and open Customize to see the value saved.
-4. Leave half-way, open Toria again: it resumes at the same step.
+4. Leave half-way, open TroiaOS again: it resumes at the same step.
 5. Hello: the stroke is smooth (no jumps between letters), the languages crossfade, the horse and the hint appear,
    OK works during the animation.
 6. Turn the network off: the city step says so and Skip works.

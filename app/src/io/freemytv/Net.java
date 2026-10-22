@@ -60,7 +60,7 @@ final class Net {
             StringBuilder head = new StringBuilder();
             head.append(method).append(' ').append(path).append(" HTTP/1.1\r\n")
                     .append("Host: ").append(u.getHost()).append(u.getPort() > 0 ? ":" + u.getPort() : "").append("\r\n")
-                    .append("User-Agent: Toria\r\nAccept: application/json\r\nConnection: close\r\n");
+                    .append("User-Agent: TroiaOS\r\nAccept: application/json\r\nConnection: close\r\n");
             if (token != null && !token.isEmpty()) head.append("Authorization: Bearer ").append(token).append("\r\n");
             if (json != null) head.append("Content-Type: application/json\r\nContent-Length: ").append(body.length).append("\r\n");
             head.append("\r\n");
@@ -86,7 +86,7 @@ final class Net {
             c.setConnectTimeout(timeoutMs);
             c.setReadTimeout(timeoutMs);
             c.setRequestMethod(method);
-            c.setRequestProperty("User-Agent", "Toria");
+            c.setRequestProperty("User-Agent", "TroiaOS");
             c.setRequestProperty("Accept", "application/json");
             if (token != null && !token.isEmpty()) c.setRequestProperty("Authorization", "Bearer " + token);
             if (json != null) {

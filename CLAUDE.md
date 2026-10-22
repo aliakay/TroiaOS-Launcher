@@ -1,9 +1,9 @@
-# Toria: notes for Claude
+# TroiaOS: notes for Claude
 
 A home screen for Google TV and Android TV that replaces the stock one, plus a settings app that switches between
-Toria and the TV's original home screen. A plain Android app in Java, built without Gradle by `build.sh`.
+TroiaOS and the TV's original home screen. A plain Android app in Java, built without Gradle by `build.sh`.
 It is a fork of [Free My TV](https://github.com/simbasjungles/free-my-tv) (MIT): the package is still `io.freemytv`
-and many comments still say "Free My TV"; the app's visible name is Toria.
+and many comments still say "Free My TV"; the app's visible name is TroiaOS.
 
 The person you're helping may not be technical. Keep it short and friendly, say what you're about to do on their TV
 before you do it, and let them do the taps on the TV.
@@ -28,9 +28,9 @@ before you do it, and let them do the taps on the TV.
    allow*. Then `adb install -r FreeMyTV.apk`.
 7. **Tell them what the switch does** before they make it: the home screen and screensaver change, a short list of
    promo apps is turned off (never uninstalled), and *Original* brings it all back. On some TVs the remote's
-   shortcut buttons belong to the stock home screen (TCL: Netflix, YouTube, Prime), so they rest while Toria
+   shortcut buttons belong to the stock home screen (TCL: Netflix, YouTube, Prime), so they rest while TroiaOS
    is on.
-8. **They switch on the TV:** *Toria* → *Home Screen* → *Toria*. The app uses the TV's own ADB on
+8. **They switch on the TV:** *TroiaOS* → *Home Screen* → *TroiaOS*. The app uses the TV's own ADB on
    127.0.0.1 with its own key, so the TV asks once more to allow debugging. Don't switch modes from the computer.
 9. **Check:** `adb logcat -s FreeMyTV` shows what the switch did.
 
@@ -86,7 +86,7 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
   to the internet goes on both lists, over HTTPS. Secrets typed on the TV go through `Prefs.putSecret` (encrypted with
   the Android Keystore, `Secrets`); plain HTTP only through `Net`, which allows home-network addresses only.
 
-## Toria's additions
+## TroiaOS's additions
 
 - **Android 12 look (no AGSL).** `Scene.flat()` is true without RuntimeShader. Then the background is `Wallpaper`
   (a photo from `Photos`, or soft clouds of colour) and every glass surface is `LiquidGlass`: the pre-blurred
@@ -107,7 +107,7 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
 - **Dock** (`CLEAN_DOCK`, after CleanFrame): white brand marks in `assets/symbols/app_*.png` (`GLYPHS` maps shelf
   keys to them; licences in `LICENSE-app-icons.txt`) with the app names, on a smoked glass capsule with a soft rim;
   the focused app gets a pill of light, no outline.
-- **Control Center** (`ControlCenterActivity`, the corner button next to the weather; the gear right of it opens Toria's Settings): round buttons (Live TV,
+- **Control Center** (`ControlCenterActivity`, the corner button next to the weather; the gear right of it opens TroiaOS's Settings): round buttons (Live TV,
   inputs, Wi-Fi QR, settings, sleep through the TV's own ADB, Free RAM: `Ram`, `am kill-all` through the TV's own ADB,
   which only closes cached apps; the app's own `killBackgroundProcesses` freed nothing on the BRAVIA), Now Playing, lights (OK on/off, ← → brightness, hold
   for the panel), markets (OK for the watchlist), volume (← →, OK mutes) and "Edit". The rows are built from
@@ -118,7 +118,7 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
   writes "hello" along `assets/setup/hello.txt` (SVG path data from the Hershey Script font, `tools/make_hello.py`;
   keep the acknowledgement in `assets/setup/CREDITS.md`), then other languages. The steps save with Customize's
   `Prefs` keys at once, plus `setup_step` (resumed there), `setup_done` and `setup_skipped` ("Later"). A TV that had
-  Toria set up before counts as done (`setup_checked`, once). "Set Up Again" in Settings and Customize. Shared with
+  TroiaOS set up before counts as done (`setup_checked`, once). "Set Up Again" in Settings and Customize. Shared with
   Customize: `Dialogs` (keyboard field, messages), `Geocode` (city search).
 - **Customize** (`CustomizeActivity`, from Settings, Control Center's Edit, or holding OK on a dock app): dock apps
   (add any installed app, move, remove), Control Center (show, hide, move), and the home screen (greeting, weather

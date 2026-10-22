@@ -22,7 +22,7 @@ import java.util.Locale;
 
 /**
  * Set Up's first screen: on black, "hello" is written by hand (assets/setup/hello.txt, from the Hershey Script font:
- * tools/make_hello.py), then the word in other languages follows, and "hello" is written again. Toria's horse rests at
+ * tools/make_hello.py), then the word in other languages follows, and "hello" is written again. TroiaOS's horse rests at
  * the bottom with "Press OK to set up" under it. The keys are SetupActivity's.
  */
 final class Hello extends View implements Choreographer.FrameCallback {

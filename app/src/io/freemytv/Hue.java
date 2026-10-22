@@ -26,7 +26,7 @@ final class Hue {
 
     /** Asks the bridge for a key. The bridge only says yes for 30 seconds after its button was pressed. */
     static String pair(String ip) throws IOException {
-        Net.Response r = Net.request("POST", "http://" + ip + "/api", null, "{\"devicetype\":\"toria#tv\"}", 6000);
+        Net.Response r = Net.request("POST", "http://" + ip + "/api", null, "{\"devicetype\":\"troiaos#tv\"}", 6000);
         try {
             JSONObject first = new JSONArray(r.body).getJSONObject(0);
             if (first.has("success")) return first.getJSONObject("success").getString("username");

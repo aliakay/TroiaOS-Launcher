@@ -22,7 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Toria's photos behind the home screen (Customize → Wallpaper): nature photos from Wikimedia Commons (daytime ones by
+ * TroiaOS's photos behind the home screen (Customize → Wallpaper): nature photos from Wikimedia Commons (daytime ones by
  * day, night ones at night), NASA's public-domain space photos, or NASA's Astronomy Picture of the Day (Apod), each
  * credited on screen; a new one every hour, or one chosen photo. "colors" shows Wallpaper's soft clouds instead. The
  * bundled photos are in assets/wallpapers (photos.json: place, author, license). Loaded in the background into

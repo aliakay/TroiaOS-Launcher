@@ -29,7 +29,7 @@ import java.util.concurrent.Executors;
  * Customize, in the style of the settings: the dock's apps (add, move, remove), Control Center's controls (show, hide,
  * move), the home screen (greeting, weather city, temperature unit, watchlist, language), the wallpaper (nature,
  * NASA's space photos, NASA's picture of the day or soft colors; one photo or a new one every hour; darkening), the
- * lights (any brand: Lights), the guest Wi-Fi QR code, the music app, and what Toria does with data (Privacy). Everything is saved in
+ * lights (any brand: Lights), the guest Wi-Fi QR code, the music app, and what TroiaOS does with data (Privacy). Everything is saved in
  * Prefs at once; the home screen and Control Center pick it up when they come back.
  *
  * Opened from Settings, from "Edit" in Control Center (straight to its page) and by holding OK on a dock app (straight
@@ -369,9 +369,9 @@ public class CustomizeActivity extends Activity {
                     break;
                 }
                 case PAGE_PRIVACY: {
-                    rows.add(headerRow(Ui.tr("TORIA HİÇBİR VERİ TOPLAMAZ", "TORIA COLLECTS NOTHING")));
+                    rows.add(headerRow(Ui.tr("TROIAOS HİÇBİR VERİ TOPLAMAZ", "TROIAOS COLLECTS NOTHING")));
                     info(Ui.tr("Hesap, reklam, takip yok", "No account, no ads, no tracking"), "", "check");
-                    info(Ui.tr("Toria'nın sunucusu yok", "Toria has no servers"), Ui.tr("Bize hiçbir şey gelmez", "Nothing is sent to us"), "check");
+                    info(Ui.tr("TroiaOS'un sunucusu yok", "TroiaOS has no servers"), Ui.tr("Bize hiçbir şey gelmez", "Nothing is sent to us"), "check");
                     rows.add(headerRow(Ui.tr("İNTERNETE GİDENLER (YALNIZCA HTTPS)", "WHAT GOES TO THE INTERNET (HTTPS ONLY)")));
                     info(Ui.tr("Hava durumu", "Weather"), Ui.tr("Open-Meteo: şehrinizin konumu", "Open-Meteo: your city's location"), "sunny");
                     info(Ui.tr("Şehir arama", "City search"), Ui.tr("Open-Meteo: yazdığınız ad", "Open-Meteo: the name you type"), "pin");

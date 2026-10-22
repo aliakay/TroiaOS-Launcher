@@ -21,6 +21,7 @@ import javax.crypto.spec.GCMParameterSpec;
 final class Secrets {
     private Secrets() {}
 
+    // The alias keeps the old name (Toria) so secrets saved before the rename still open.
     private static final String ALIAS = "toria-secrets", STORE = "AndroidKeyStore";
 
     private static synchronized SecretKey key() throws Exception {

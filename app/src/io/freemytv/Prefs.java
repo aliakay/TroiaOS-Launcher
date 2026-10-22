@@ -271,7 +271,7 @@ final class Prefs {
 
     /**
      * True once Set Up was finished or put off ("Later"): nothing opens it by itself then. A TV that already had
-     * Toria set up before Set Up existed counts as done (checked once: any of its choices, or Toria as the home screen).
+     * TroiaOS set up before Set Up existed counts as done (checked once: any of its choices, or TroiaOS as the home screen).
      */
     static boolean setupDone(Context c) {
         synchronized (LOCK) {

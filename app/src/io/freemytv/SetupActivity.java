@@ -31,10 +31,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Set Up: the first time Toria opens, "hello" is written by hand (Hello), then the remote walks the person through
- * the language, their name, city, apps, wallpaper, lights, guest Wi-Fi, music app, markets, privacy and making Toria the
+ * Set Up: the first time TroiaOS opens, "hello" is written by hand (Hello), then the remote walks the person through
+ * the language, their name, city, apps, wallpaper, lights, guest Wi-Fi, music app, markets, privacy and making TroiaOS the
  * home screen. Every choice is saved at once with the keys Customize uses, so leaving half-way keeps it; the step
- * reached is kept too (`setup_step`), and opening Toria again resumes there.
+ * reached is kept too (`setup_step`), and opening TroiaOS again resumes there.
  *
  * Opened by Settings (the app's icon) and the home screen while Set Up was never finished nor put off, and by "Set Up
  * Again" in Settings and Customize (from Hello, with the current values).
@@ -148,8 +148,8 @@ public class SetupActivity extends Activity {
             return;
         }
         Dialogs.choice(this, Ui.tr("Kurulum sonra mı?", "Set up later?"),
-                Ui.tr("Toria'yı istediğiniz zaman kurabilirsiniz: Ayarlar → Kurulumu Yeniden Başlat.",
-                        "You can set up Toria any time: Settings → Set Up Again."),
+                Ui.tr("TroiaOS'u istediğiniz zaman kurabilirsiniz: Ayarlar → Kurulumu Yeniden Başlat.",
+                        "You can set up TroiaOS any time: Settings → Set Up Again."),
                 Ui.tr("Sonra", "Later"), () -> {
                     Prefs.put(this, "setup_skipped", true);
                     if (getIntent().getBooleanExtra(EXTRA_FIRST, false)) startActivity(new Intent(this, SettingsActivity.class));
@@ -214,7 +214,7 @@ public class SetupActivity extends Activity {
         private String lightsState = "";                            // "", "searching"
         private boolean[][] qr;
         private JSONObject state = new JSONObject();                // HomeMode's, while on the home screen step
-        private boolean switching;                                  // asked for Toria from here, not done yet
+        private boolean switching;                                  // asked for TroiaOS from here, not done yet
         private long pendingAt;
 
         private final Paint veil = new Paint();
@@ -321,7 +321,7 @@ public class SetupActivity extends Activity {
             }
             handler.removeCallbacks(poll);
             step = Math.max(LANGUAGE, Math.min(DONE, to));
-            if (step == HOME && freeActive()) step = DONE;   // Toria is the home screen already
+            if (step == HOME && freeActive()) step = DONE;   // TroiaOS is the home screen already
             focus = 0;
             Prefs.put(c, "setup_step", step);
             switch (step) {
@@ -501,7 +501,7 @@ public class SetupActivity extends Activity {
                     break;
                 }
                 case PRIVACY: {
-                    headerRow(Ui.tr("TORIA HİÇBİR VERİ TOPLAMAZ", "TORIA COLLECTS NOTHING"));
+                    headerRow(Ui.tr("TROIAOS HİÇBİR VERİ TOPLAMAZ", "TROIAOS COLLECTS NOTHING"));
                     info(Ui.tr("Hesap, reklam, takip yok", "No account, no ads, no tracking"), Ui.tr("Sunucumuz da yok", "And no servers of ours"), "check");
                     info(Ui.tr("Hava durumu, şehir arama", "Weather, city search"), Ui.tr("Open-Meteo, yalnızca HTTPS", "Open-Meteo, HTTPS only"), "sunny");
                     info(Ui.tr("Piyasalar", "Markets"), Ui.tr("Yahoo Finance: sembolleriniz", "Yahoo Finance: your symbols"), "chart");
@@ -513,7 +513,7 @@ public class SetupActivity extends Activity {
                     break;
                 }
                 case HOME: {
-                    note(Ui.tr("Toria TV'nin ana ekranı ve ekran koruyucusu olur.", "Toria becomes the TV's home screen and screensaver."));
+                    note(Ui.tr("TroiaOS TV'nin ana ekranı ve ekran koruyucusu olur.", "TroiaOS becomes the TV's home screen and screensaver."));
                     note(Ui.tr("Birkaç reklam uygulaması kapatılır, asla kaldırılmaz.", "A few promo apps are turned off, never uninstalled."));
                     note(Ui.tr("Ayarlar → Ana Ekran → Orijinal her şeyi geri getirir.", "Settings → Home Screen → Original brings it all back."));
                     headerRow("");
@@ -784,7 +784,7 @@ public class SetupActivity extends Activity {
                 case MUSIC: return Ui.tr("Müzik", "Music");
                 case MARKETS: return Ui.tr("Piyasalar", "Markets");
                 case PRIVACY: return Ui.tr("Gizlilik", "Privacy");
-                case HOME: return Ui.tr("Toria'yı Ana Ekran Yapın", "Make Toria Your Home");
+                case HOME: return Ui.tr("TroiaOS'u Ana Ekran Yapın", "Make TroiaOS Your Home");
                 case DONE: return Ui.tr("Her Şey Hazır", "You're All Set");
                 default: return "Dil · Language";
             }
@@ -792,7 +792,7 @@ public class SetupActivity extends Activity {
 
         private String stepHint() {
             switch (step) {
-                case NAME: return Ui.tr("Toria size nasıl seslensin?", "What should Toria call you?");
+                case NAME: return Ui.tr("TroiaOS size nasıl seslensin?", "What should TroiaOS call you?");
                 case CITY: return Ui.tr("Ekranın üstündeki hava durumu için", "For the weather at the top of the screen");
                 case APPS: return Ui.tr("OK ile ana ekrana ekleyin ya da çıkarın", "OK adds an app to Home or takes it off");
                 case WALLPAPER: return Ui.tr("Gezinirken arkada görünür, OK ile seçin", "Browse to see it behind, OK to choose");
@@ -803,7 +803,7 @@ public class SetupActivity extends Activity {
                 case PRIVACY: return Ui.tr("Verileriniz sizde kalır", "Your data stays with you");
                 case HOME: return Ui.tr("Önce okuyun, sonra geçin", "Read this first, then switch");
                 case DONE: return Ui.tr("Başlamak için birkaç ipucu", "A few tips to get going");
-                default: return Ui.tr("Toria'nın konuştuğu dil", "The language Toria speaks");
+                default: return Ui.tr("TroiaOS'un konuştuğu dil", "The language TroiaOS speaks");
             }
         }
 

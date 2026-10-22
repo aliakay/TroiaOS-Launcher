@@ -347,7 +347,7 @@ final class HomeApps {
             items.add(it);
         }
         Collections.sort(items, (a, b) -> a.label.toLowerCase(Locale.ROOT).compareTo(b.label.toLowerCase(Locale.ROOT)));
-        items.add(special(c, SETTINGS, "freemytv-settings", "Toria", "horse"));
+        items.add(special(c, SETTINGS, "freemytv-settings", "TroiaOS", "horse"));
         return items;
     }
 

@@ -1,0 +1,33 @@
+# TODO: when the TV is on
+
+The TV was off on 2026-10-22 when TroiaOS got its name, so these wait for it.
+
+## Install
+
+- [ ] Install the latest build (`./build.sh`, `adb install -r FreeMyTV.apk`). The TV still runs the "Toria" build
+      from 2026-10-21 ~19:40. Check that the app list, Settings and notices now say **TroiaOS**, and that the
+      saved guest Wi-Fi password still opens (the Keystore alias kept its old name on purpose).
+
+## New screenshots for the README
+
+Take them with the greeting name left empty, at 1920 × 1080, and save them as JPEG in `.github/screenshots/`:
+
+- [ ] `home.jpg` again, with the ⚙ button next to Control Center (the current one is from before it).
+- [ ] `control-center.jpg` again, with the Free RAM button (the current one is from before it).
+- [ ] `lights.jpg`: the lights panel (scenes, brightness, colour). The old one showed the corner buttons that are gone.
+- [ ] `markets.jpg`: the markets panel, opened from Control Center.
+- [ ] `setup.jpg`: Set Up's handwritten "hello", plus one wizard step.
+- [ ] `screensaver.jpg`: the screensaver, with the Now Playing card while music plays.
+- [ ] `space.jpg`: the home screen with the Space · NASA wallpaper.
+- [ ] `wifi-qr.jpg`: the guest Wi-Fi QR panel, but only with a made-up network (never the real one).
+
+Then add them to the README's Screenshots section.
+
+## Check, then update the README's "Not yet checked" list
+
+- [ ] Set Up: every step, the Hello animation, and the step-11 switch to the home screen (Settings → Set Up Again).
+- [ ] The ⚙ button right of Control Center opens Settings, and ↑ from the apps still lands on Control Center.
+- [ ] Customize → Lights, Guest Wi-Fi QR, Music App and Privacy pages; the welcome toast; notices in English.
+- [ ] The screensaver starts while YouTube Music plays, and shows the Now Playing card.
+- [ ] YouTube gives a video ID (`adb logcat -s FreeMyTV | grep continue` after starting a new video), so Continue
+      resumes at the exact second.

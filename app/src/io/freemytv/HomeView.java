@@ -400,7 +400,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (running) return;
         running = true;
         boolean custom = Prefs.load(getContext());      // Customize changed the name, the city, the watchlist…
-        // Toria became the home screen without Set Up (switched from Settings): Set Up, once per start. Not while a
+        // TroiaOS became the home screen without Set Up (switched from Settings): Set Up, once per start. Not while a
         // switch runs (it opens the home screen to measure it).
         if (!setupAsked && !Prefs.setupDone(getContext()) && HomeMode.state(getContext()).optString("busy").isEmpty()) {
             setupAsked = true;
@@ -496,7 +496,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         // The weather: the widget next to the clock (it takes focus too: OK opens the hours); then the round buttons.
         lightButtons.add(HomeApps.action(HomeApps.WEATHER, "weather", weatherLabel(), weatherSymbol()));
         // Everything else lives in Control Center (one button, like Apple's), so the corner stays calm. It stays the
-        // one ↑ from the apps lands on; Toria's settings sit right of it, in the corner.
+        // one ↑ from the apps lands on; TroiaOS's settings sit right of it, in the corner.
         lightButtons.add(HomeApps.action(HomeApps.CONTROL, "control", Ui.tr("Kontrol Merkezi", "Control Center"), "control"));
         lightButtons.add(HomeApps.action(HomeApps.SETTINGS, "settings", Ui.tr("Ayarlar", "Settings"), "settings"));
     }

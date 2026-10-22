@@ -219,7 +219,7 @@ final class Apod {
         HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
         c.setConnectTimeout(10_000);
         c.setReadTimeout(30_000);
-        c.setRequestProperty("User-Agent", "Toria/1.0 (Android TV home screen)");
+        c.setRequestProperty("User-Agent", "TroiaOS/1.0 (Android TV home screen)");
         if (c.getResponseCode() != 200) {
             c.disconnect();
             throw new IOException("HTTP " + c.getResponseCode() + " for " + url);
