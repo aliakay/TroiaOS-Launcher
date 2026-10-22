@@ -106,14 +106,14 @@ About fifteen minutes. You need a Google TV or Android TV (Android 12+) and a co
    git clone https://github.com/aliakay/TroiaOS-Launcher && cd TroiaOS-Launcher
    ```
 3. **The easy way:** open [Claude Code](https://claude.com/claude-code) in that folder and say
-   > Install TroiaOS on my TV at 192.168.1.50. I live in Berlin.
+   > Install TroiaOS on my TV at &lt;TV-IP&gt;. I live in &lt;your city&gt;.
 
    **The manual way:** install a JDK 17+, the Android SDK command-line tools (`build-tools;34.0.0`,
    `platforms;android-34`) and adb, then:
    ```bash
    ./build.sh                       # the first run creates config.properties: set your city there
    ./build.sh
-   adb connect 192.168.1.50:5555    # accept "Allow USB debugging?" on the TV (tick "Always allow")
+   adb connect <TV-IP>:5555         # accept "Allow USB debugging?" on the TV (tick "Always allow")
    adb install -r FreeMyTV.apk
    ```
 4. **On the TV**, open *TroiaOS* → *Home Screen* → *TroiaOS*, and accept the debugging prompt once more (the
