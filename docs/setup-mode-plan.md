@@ -6,7 +6,7 @@ The goal: the first time someone opens TroiaOS, it greets them like a new iPhone
 then the word in other languages, with TroiaOS's Trojan horse at the bottom), then walks them, one step at a time
 with the remote, through setting up their TV and the launcher. Read [CLAUDE.md](../CLAUDE.md) first: its rules apply
 (Java 8, no libraries, one Canvas per view, 60 fps with no allocations in `onDraw`, every visible string as
-`Ui.tr("tr", "en")`, `./build.sh` must end with `Built FreeMyTV.apk`).
+`Ui.tr("tr", "en")`, `./build.sh` must end with `Built TroiaOS.apk`).
 
 ## 1. When it shows
 
@@ -85,7 +85,7 @@ Customize shows the same values.
 
 New:
 
-- `SetupActivity.java`: the activity (`:home` process, theme `FreeMyTV.Home`, not exported; declare it in
+- `SetupActivity.java`: the activity (`:home` process, theme `TroiaOS.Home`, not exported; declare it in
   `AndroidManifest.xml` like `CustomizeActivity`), hosting `Hello` first, then `SetupView`.
 - `SetupView` (inside `SetupActivity`, like `CustomizeView` inside `CustomizeActivity`): the steps as a small state
   machine (`step`, `focus`, rows per step built in `rebuild()`, `onKey`). Copy Customize's row drawing and
@@ -119,7 +119,7 @@ Changed:
 
 ## 6. How to check it
 
-1. `./build.sh` ends with `Built FreeMyTV.apk`.
+1. `./build.sh` ends with `Built TroiaOS.apk`.
 2. On the TV: Settings → "Set Up Again" (the activity isn't exported, so `adb shell am start` can't open it).
 3. Walk every step with the remote; at each step, leave with Back and open Customize to see the value saved.
 4. Leave half-way, open TroiaOS again: it resumes at the same step.

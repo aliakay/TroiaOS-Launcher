@@ -80,7 +80,7 @@ Control Center · the List layout · Wallpaper · the photo picker · Customize.
 ## Tested on
 
 - **Sony BRAVIA 4K VH21** (Google TV, Android 12): TroiaOS's own TV.
-- Free My TV was built on a **TCL** Google TV (Android 14), whose lists are still here.
+- A **TCL** Google TV (Android 14): the original project was built on one, and its lists are still here.
 
 Other Google TV and Android TV sets (Android 12 or newer) and Google TV streamers should work; another brand's promo
 apps may need adding to the lists (see [Any TV](#any-tv)). Samsung or LG: plug a Google TV streamer into HDMI.
@@ -89,12 +89,30 @@ apps may need adding to the lists (see [Any TV](#any-tv)). Samsung or LG: plug a
 RAM), Customize (dock, Control Center, home screen, wallpaper), the photo and NASA wallpapers, Continue watching with
 YouTube, WiZ lights, the guest Wi-Fi QR panel and the screensaver.
 
-**Not yet checked on a real TV:** Set Up and its handwritten "hello", the ⚙ button next to Control Center, the
+**Not yet checked on a real TV:** installing the release APK with Downloader, Set Up and its handwritten "hello", the ⚙ button next to Control Center, the
 Customize pages for Lights, Guest Wi-Fi, Music App and Privacy, the screensaver's Now Playing card, and YouTube
 resuming at the exact second. LIFX, Govee, Philips Hue and Home Assistant follow their published protocols but
 haven't met a real lamp yet: reports welcome.
 
 ## Install
+
+### The APK, straight on the TV (no computer)
+
+About ten minutes. You need a Google TV or Android TV (Android 12+).
+
+1. **Turn on developer mode:** Settings → System → About → press *Android TV OS build* 7 times. Then in Settings →
+   System → Developer options turn on **USB debugging** (on Sony it's called **ADB debugging**). TroiaOS uses it from
+   inside the TV to switch the home screen; nothing is opened to the network.
+2. **Get the APK:** install **Downloader** (by AFTVnews) from the TV's Play Store, open it and type
+   `https://github.com/aliakay/TroiaOS-Launcher/releases/latest/download/TroiaOS.apk`. When the TV asks, allow
+   Downloader to install unknown apps, then press *Install*. (Or download `TroiaOS.apk` from
+   [Releases](https://github.com/aliakay/TroiaOS-Launcher/releases) and send it to the TV from your phone.)
+3. **Open TroiaOS** from the TV's apps. [Set Up](#set-it-up-on-the-tv) says hello and walks you through it with the
+   remote; at the end, accept the *Allow USB debugging?* prompt once (tick *Always allow*).
+
+The release APK starts empty: no name, no city, no apps chosen. Everything is asked on the TV.
+
+### Build it yourself
 
 About fifteen minutes. You need a Google TV or Android TV (Android 12+) and a computer that can reach it.
 
@@ -114,7 +132,7 @@ About fifteen minutes. You need a Google TV or Android TV (Android 12+) and a co
    ./build.sh                       # the first run creates config.properties: set your city there
    ./build.sh
    adb connect <TV-IP>:5555         # accept "Allow USB debugging?" on the TV (tick "Always allow")
-   adb install -r FreeMyTV.apk
+   adb install -r TroiaOS.apk
    ```
 4. **On the TV**, open *TroiaOS* → *Home Screen* → *TroiaOS*, and accept the debugging prompt once more (the
    app uses the TV's own ADB to switch the home screen).
@@ -202,7 +220,10 @@ again. Anything changed on the TV wins over it.
 | `guest_wifi_ssid`, `guest_wifi_password`, `guest_wifi_security` | A starting guest network for the QR code (`WPA`, `WEP` or `nopass`); better set on the TV | empty |
 | `disable_assistant` | Also turn off Google Assistant | `false` |
 
-Keep `freemytv.keystore`: updates must be signed with the same key.
+Keep `troiaos.keystore`: updates must be signed with the same key. A build signed with your own key can't update
+the release APK (or the other way round): uninstall one before installing the other.
+
+To build the release APK, with empty defaults: `CONFIG=config.example.properties ./build.sh`.
 
 ## On the remote
 
@@ -234,9 +255,9 @@ exactly as they were. To remove it for good, switch to *Original* first, then un
 ## Any TV
 
 The apps turned off and the ones never touched are lists in
-[`HomeMode.java`](app/src/io/freemytv/HomeMode.java) (`DEBLOAT`, `PROTECTED`). Any app can go in the dock from the
-TV; `SHELF` in [`HomeApps.java`](app/src/io/freemytv/HomeApps.java) lists the known ones (the default dock, with
-their look) and their white marks are `GLYPHS` in [`HomeView.java`](app/src/io/freemytv/HomeView.java). An app with
+[`HomeMode.java`](app/src/io/troiaos/HomeMode.java) (`DEBLOAT`, `PROTECTED`). Any app can go in the dock from the
+TV; `SHELF` in [`HomeApps.java`](app/src/io/troiaos/HomeApps.java) lists the known ones (the default dock, with
+their look) and their white marks are `GLYPHS` in [`HomeView.java`](app/src/io/troiaos/HomeView.java). An app with
 no mark shows the logo lifted from its TV banner. With Claude Code, say *"set it up for my Philips"*: it reads
 your TV and updates the lists ([CLAUDE.md](CLAUDE.md) tells it how).
 

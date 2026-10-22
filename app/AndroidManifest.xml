@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="io.freemytv"
+    package="io.troiaos"
     android:versionCode="1"
     android:versionName="1.0">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- After the TV boots (and after a TV update), checks that Free My TV mode is still as you left it. -->
+    <!-- After the TV boots (and after a TV update), checks that TroiaOS mode is still as you left it. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Control Center's "Free RAM": closes apps resting in the background (Ram). -->
     <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
@@ -51,18 +51,18 @@
         android:allowBackup="false"
         android:usesCleartextTraffic="false">
 
-        <!-- The app's icon opens the settings (switch between Free My TV and the original home screen). -->
+        <!-- The app's icon opens the settings (switch between TroiaOS and the original home screen). -->
         <activity
             android:name=".SettingsActivity"
             android:process=":home"
             android:exported="true"
             android:label="TroiaOS"
             android:launchMode="singleTask"
-            android:taskAffinity="io.freemytv.settings"
+            android:taskAffinity="io.troiaos.settings"
             android:excludeFromRecents="true"
             android:screenOrientation="landscape"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
-            android:theme="@style/FreeMyTV.Home">
+            android:theme="@style/TroiaOS.Home">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
@@ -71,7 +71,7 @@
         </activity>
 
         <!-- The home screen. Its own process (:home): if it ever crashes, the safety net in the main process still
-             works. It only becomes the TV's home screen in Free My TV mode (cmd package set-home-activity). -->
+             works. It only becomes the TV's home screen in TroiaOS mode (cmd package set-home-activity). -->
         <activity
             android:name=".HomeActivity"
             android:process=":home"
@@ -85,7 +85,7 @@
             android:excludeFromRecents="true"
             android:screenOrientation="landscape"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
-            android:theme="@style/FreeMyTV.Home">
+            android:theme="@style/TroiaOS.Home">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
@@ -102,7 +102,7 @@
             android:excludeFromRecents="true"
             android:screenOrientation="landscape"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
-            android:theme="@style/FreeMyTV.Panel" />
+            android:theme="@style/TroiaOS.Panel" />
 
         <!-- Customize: the dock's apps, Control Center's controls and the home screen's details. -->
         <activity
@@ -113,7 +113,7 @@
             android:excludeFromRecents="true"
             android:screenOrientation="landscape"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
-            android:theme="@style/FreeMyTV.Home" />
+            android:theme="@style/TroiaOS.Home" />
 
         <!-- Set Up: the first-run wizard ("hello", then the person's language, name, city, apps, wallpaper and the rest).
              Its own task, so the home screen and the settings can bring it back where it was. -->
@@ -123,11 +123,11 @@
             android:exported="false"
             android:label="TroiaOS"
             android:launchMode="singleTask"
-            android:taskAffinity="io.freemytv.setup"
+            android:taskAffinity="io.troiaos.setup"
             android:excludeFromRecents="true"
             android:screenOrientation="landscape"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
-            android:theme="@style/FreeMyTV.Home" />
+            android:theme="@style/TroiaOS.Home" />
 
         <!-- Control Center: one glass panel with Live TV, inputs, Wi-Fi, settings, sleep, lights, markets and volume. -->
         <activity
@@ -138,7 +138,7 @@
             android:excludeFromRecents="true"
             android:screenOrientation="landscape"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
-            android:theme="@style/FreeMyTV.Panel" />
+            android:theme="@style/TroiaOS.Panel" />
 
         <!-- The weather and the watchlist in detail: panels under the home screen's corner buttons. -->
         <activity
@@ -149,7 +149,7 @@
             android:excludeFromRecents="true"
             android:screenOrientation="landscape"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
-            android:theme="@style/FreeMyTV.Panel" />
+            android:theme="@style/TroiaOS.Panel" />
 
         <!-- The screensaver runs in the app's main process: on Android 12 the system starts its DreamActivity there,
              and a DreamService in another process makes it crash (BinderProxy → DreamActivityCallbacks). -->

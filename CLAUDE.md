@@ -2,8 +2,8 @@
 
 A home screen for Google TV and Android TV that replaces the stock one, plus a settings app that switches between
 TroiaOS and the TV's original home screen. A plain Android app in Java, built without Gradle by `build.sh`.
-It is a fork of [Free My TV](https://github.com/simbasjungles/free-my-tv) (MIT): the package is still `io.freemytv`
-and many comments still say "Free My TV"; the app's visible name is TroiaOS.
+Package `io.troiaos`. It started as a fork of [Free My TV](https://github.com/simbasjungles/free-my-tv) (MIT); that
+name stays only in the credits (README, LICENSE). Everywhere else it's TroiaOS.
 
 The person you're helping may not be technical. Keep it short and friendly, say what you're about to do on their TV
 before you do it, and let them do the taps on the TV.
@@ -23,16 +23,16 @@ before you do it, and let them do the taps on the TV.
    later on the TV (Settings → Customize).
 4. No keys are needed: the weather (Open-Meteo) and the markets (Yahoo Finance chart data) are keyless, and the
    WiZ lights are found on the home network.
-5. **Build:** `./build.sh` → `FreeMyTV.apk`. Keep `freemytv.keystore`: updates must be signed with the same key.
+5. **Build:** `./build.sh` → `TroiaOS.apk`. Keep `troiaos.keystore`: updates must be signed with the same key.
 6. **Install:** `adb connect <IP>:5555`. The TV asks *Allow USB debugging?*: tell them to accept and tick *Always
-   allow*. Then `adb install -r FreeMyTV.apk`.
+   allow*. Then `adb install -r TroiaOS.apk`.
 7. **Tell them what the switch does** before they make it: the home screen and screensaver change, a short list of
    promo apps is turned off (never uninstalled), and *Original* brings it all back. On some TVs the remote's
    shortcut buttons belong to the stock home screen (TCL: Netflix, YouTube, Prime), so they rest while TroiaOS
    is on.
 8. **They switch on the TV:** *TroiaOS* → *Home Screen* → *TroiaOS*. The app uses the TV's own ADB on
    127.0.0.1 with its own key, so the TV asks once more to allow debugging. Don't switch modes from the computer.
-9. **Check:** `adb logcat -s FreeMyTV` shows what the switch did.
+9. **Check:** `adb logcat -s TroiaOS` shows what the switch did.
 
 ## Adapting it to another TV
 
@@ -52,13 +52,13 @@ Then, in the code:
 - `HomeMode.PROTECTED`: add the brand's system pieces: picture, sound, inputs and HDMI-CEC, the tuner and live TV,
   remote and Bluetooth pairing, setup, updates, system UI. When in doubt, protect it.
 - `HomeApps.SHELF`, `LIVE_TV_APPS` and `HIDDEN`: the shelf apps, the brand's live TV app, apps to hide from All Apps.
-- Build, install, have them switch on the TV, read `adb logcat -s FreeMyTV`, then have them switch back to
+- Build, install, have them switch on the TV, read `adb logcat -s TroiaOS`, then have them switch back to
   *Original* once and confirm everything returned.
 
 TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is a Google TV streamer on HDMI
-(Chromecast with Google TV, Google TV Streamer, onn 4K, NVIDIA Shield). Set Free My TV up on the streamer.
+(Chromecast with Google TV, Google TV Streamer, onn 4K, NVIDIA Shield). Set TroiaOS up on the streamer.
 
-**Uninstalled while in Free My TV mode?** The apps it turned off stay off. Bring them back with
+**Uninstalled while in TroiaOS mode?** The apps it turned off stay off. Bring them back with
 `adb shell pm enable <package>` (the `DEBLOAT` list and the stock home screen), then
 `adb shell cmd package set-home-activity <stock home activity>` and
 `adb shell settings put secure screensaver_components <stock screensaver>`.
@@ -72,8 +72,8 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
   process. `Watchdog` goes back to the stock home screen after 3 crashes in 5 minutes.
 - On-screen text is bilingual, `Ui.tr("tr", "en")` (Turkish, English): add both. Comments in English, short, only where the why
   isn't obvious.
-- Settings come from `config.properties` through the generated `out/gen/io/freemytv/Config.java` (never edit that).
-- After any change, `./build.sh` must end with `Built FreeMyTV.apk`.
+- Settings come from `config.properties` through the generated `out/gen/io/troiaos/Config.java` (never edit that).
+- After any change, `./build.sh` must end with `Built TroiaOS.apk`.
 
 ## Always
 
@@ -138,7 +138,7 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
   stopped states never overwrite the position. The home screen reads it on resume and shows a card above the dock
   for the focused app (its own hardware layer, `contLayer`; zone `Z_CONTINUE`). YouTube resumes through
   `youtube.com/watch?v=ID&t=Ns` when the session's media ID looks like a video ID; otherwise the app just opens.
-- **Panels** (floating windows over the home screen, theme `FreeMyTV.Panel`): `InfoActivity` (weather hours,
+- **Panels** (floating windows over the home screen, theme `TroiaOS.Panel`): `InfoActivity` (weather hours,
   markets, the guest Wi-Fi QR) and `LightsActivity` (all lamps or one, on/off, scenes, brightness, colour).
 - **Lights** (`Lights`: `Lamp`, `Pilot`; every brand at the same time, all on the home network):
   - `Wiz`: UDP 38899 (`getPilot`, `setPilot`), broadcast; needs "Allow local communication" (on by default).
