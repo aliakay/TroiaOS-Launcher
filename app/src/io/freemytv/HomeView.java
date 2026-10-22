@@ -490,13 +490,15 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         motionDirty = true;
     }
 
-    /** The three corner buttons, with their names in the current language. */
+    /** The corner buttons, with their names in the current language. */
     private void makeLightButtons() {
         lightButtons.clear();
         // The weather: the widget next to the clock (it takes focus too: OK opens the hours); then the round buttons.
         lightButtons.add(HomeApps.action(HomeApps.WEATHER, "weather", weatherLabel(), weatherSymbol()));
-        // Everything else lives in Control Center (one button, like Apple's), so the corner stays calm.
+        // Everything else lives in Control Center (one button, like Apple's), so the corner stays calm. It stays the
+        // one ↑ from the apps lands on; Toria's settings sit right of it, in the corner.
         lightButtons.add(HomeApps.action(HomeApps.CONTROL, "control", Ui.tr("Kontrol Merkezi", "Control Center"), "control"));
+        lightButtons.add(HomeApps.action(HomeApps.SETTINGS, "settings", Ui.tr("Ayarlar", "Settings"), "settings"));
     }
 
     private static String[] tabs() {

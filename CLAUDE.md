@@ -107,7 +107,7 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
 - **Dock** (`CLEAN_DOCK`, after CleanFrame): white brand marks in `assets/symbols/app_*.png` (`GLYPHS` maps shelf
   keys to them; licences in `LICENSE-app-icons.txt`) with the app names, on a smoked glass capsule with a soft rim;
   the focused app gets a pill of light, no outline.
-- **Control Center** (`ControlCenterActivity`, the one corner button next to the weather): round buttons (Live TV,
+- **Control Center** (`ControlCenterActivity`, the corner button next to the weather; the gear right of it opens Toria's Settings): round buttons (Live TV,
   inputs, Wi-Fi QR, settings, sleep through the TV's own ADB, Free RAM: `Ram`, `am kill-all` through the TV's own ADB,
   which only closes cached apps; the app's own `killBackgroundProcesses` freed nothing on the BRAVIA), Now Playing, lights (OK on/off, ← → brightness, hold
   for the panel), markets (OK for the watchlist), volume (← →, OK mutes) and "Edit". The rows are built from

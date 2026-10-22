@@ -190,6 +190,7 @@ Keep `freemytv.keystore`: updates must be signed with the same key.
 | An app | Opens it | Customize → Dock, on that app (move, remove, add) |
 | Weather | The next hours | |
 | Control Center | Opens it | |
+| ⚙ (right of Control Center) | Toria's Settings: home screen, Customize, Set Up Again | |
 | ↑ from an app with a card | The card: OK continues it (↓ to the other app's row) | |
 | ↓ on the apps | Inputs, All Apps, settings | |
 
