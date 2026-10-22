@@ -35,7 +35,7 @@ import java.util.concurrent.Executors;
 
 /**
  * Control Center, like Apple's: one glass panel at the right with the time, the connection, round buttons (Live TV,
- * inputs, Wi-Fi, settings, sleep, free RAM), what's playing (YouTube Music), the lights, the markets and the volume. Which of
+ * inputs, Wi-Fi, settings, sleep, free RAM), what's playing (any music app), the lights, the markets and the volume. Which of
  * them show, and in what order, is chosen in Customize ("Edit" at the bottom). The corner of the home screen keeps a
  * single button that opens it.
  */
@@ -109,7 +109,7 @@ public class ControlCenterActivity extends Activity {
         private float mainH;
         private int modulesVersion = -1;
         private List<HomeApps.Item> inputs = new ArrayList<>();
-        private List<Wiz.Lamp> lamps;           // null: still looking
+        private List<Lights.Lamp> lamps;           // null: still looking
         private int brightness = -1;            // waiting to be sent
         private final NowPlaying now;
         private long lastNanos;
@@ -133,9 +133,9 @@ public class ControlCenterActivity extends Activity {
             running = true;
             lastNanos = 0;
             final Context c = getContext().getApplicationContext();
-            if (Wiz.known(c)) {
+            if (Lights.known(c)) {
                 io.execute(() -> {
-                    final List<Wiz.Lamp> found = Wiz.discover(c, 900);
+                    final List<Lights.Lamp> found = Lights.discover(c, 900);
                     handler.post(() -> {
                         lamps = found;
                         invalidate();
@@ -362,7 +362,7 @@ public class ControlCenterActivity extends Activity {
             }
         }
 
-        /** "Edit" at the bottom, like iOS's "Edit Controls": a small pill that opens Customize → Control Center. */
+        /** "Edit" at the bottom, like iOS's "Edit Controls": a small pill that opens Customize (on Control Center). */
         private void drawEdit(Canvas c, float top) {
             float f = Ui.clamp(pop[POP_EDIT].value), cx = getWidth() / 2f, h = EDIT_H * k;
             String text = Ui.tr("Düzenle", "Edit");
@@ -388,12 +388,12 @@ public class ControlCenterActivity extends Activity {
 
         /**
          * What's playing, like Apple's Now Playing: the cover, the app, the song and the artist, ⏮ ⏯ ⏭. With nothing
-         * playing it is YouTube Music's tile: OK opens it.
+         * playing it is the music app's tile (Customize → Control Center → Music App): OK opens it.
          */
         private void drawMedia(Canvas c, float top, float f) {
             float x = PAD * k, right = getWidth() - PAD * k, h = MEDIA_H * k;
             tile(c, x, top, right, top + h, f);
-            // The cover (or YouTube Music's mark on its red).
+            // The cover (or the music app's mark on its color).
             float s = 92 * k, ax = x + 18 * k, ay = top + (h - s) / 2;
             tmp.set(ax, ay, ax + s, ay + s);
             MediaController media = now.controller;
@@ -405,13 +405,14 @@ public class ControlCenterActivity extends Activity {
                 c.drawBitmap(now.art, null, tmp, bitmapPaint);
                 c.restore();
             } else {
-                boolean yt = now.isYouTubeMusic();
+                String pkg = now.markPackage(), mark = NowPlaying.mark(pkg);
+                int color = NowPlaying.markColor(pkg);
                 fill.setColor(0xFFFFFFFF);     // a paint's alpha also dims its shader: opaque first
-                fill.setShader(new LinearGradient(0, tmp.top, 0, tmp.bottom, yt ? 0xFFFF2D55 : 0xFF48484A, yt ? 0xFFD70022 : 0xFF2C2C2E,
+                fill.setShader(new LinearGradient(0, tmp.top, 0, tmp.bottom, blend(color, 0xFFFFFFFF, 0.12f), blend(color, 0xFF000000, 0.12f),
                         Shader.TileMode.CLAMP));
                 c.drawRoundRect(tmp, 18 * k, 18 * k, fill);
                 fill.setShader(null);
-                Symbols.draw(getContext(), c, yt ? "app_ytmusic" : "music_note", tmp.centerX(), tmp.centerY(), yt ? 50 * k : 40 * k, 0xFFFFFFFF);
+                Symbols.draw(getContext(), c, mark != null ? mark : "music_note", tmp.centerX(), tmp.centerY(), mark != null ? 50 * k : 40 * k, 0xFFFFFFFF);
             }
             // The controls at the right; the words fill what is left.
             boolean playing = media != null ? now.playing() : audio.isMusicActive();
@@ -421,7 +422,7 @@ public class ControlCenterActivity extends Activity {
             control(c, playing ? "pause" : "play_arrow", cPlay, cy, 32, ink, press[1]);
             control(c, "skip_next", cNext, cy, 24, ink, press[2]);
             float tx = ax + s + 20 * k, room = cPrev - 34 * k - tx;
-            String app = media == null ? "YouTube Music" : now.app;
+            String app = media == null ? HomeApps.label(getContext().getPackageManager(), Prefs.musicApp()) : now.app;
             String song = now.title.isEmpty() ? (media == null ? Ui.tr("Çalan bir şey yok", "Not playing") : app) : now.title;
             String sub = now.title.isEmpty() ? (media == null ? Ui.tr("OK ile aç", "Press OK to open") : "") : now.artist;
             caption.setColor(ink(f, 0.6f));
@@ -489,7 +490,7 @@ public class ControlCenterActivity extends Activity {
             invalidate();
         }
 
-        /** The playing app (its own screen for the song), or YouTube Music; the store page if it isn't installed. */
+        /** The playing app (its own screen for the song), or the chosen music app; the store page if it isn't installed. */
         private void openMusicApp() {
             MediaController media = now.controller;
             if (media != null) {
@@ -503,7 +504,7 @@ public class ControlCenterActivity extends Activity {
                     }
                 }
             }
-            String pkg = media != null ? media.getPackageName() : MediaListener.YT_MUSIC;
+            String pkg = media != null ? media.getPackageName() : Prefs.musicApp();
             Intent launch = HomeApps.launchIntent(getContext().getPackageManager(), pkg);
             open(launch != null ? launch : new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + pkg)));
         }
@@ -513,7 +514,7 @@ public class ControlCenterActivity extends Activity {
         /** The lights: the bulb, on/off and the brightness bar. OK switches all, ← → dims, holding OK opens the panel. */
         private void drawLights(Canvas c, float top, float f) {
             float x = PAD * k, right = getWidth() - PAD * k, h = LIGHTS_H * k;
-            Boolean on = lamps == null ? null : Wiz.anyOn(lamps);
+            Boolean on = lamps == null ? null : Lights.anyOn(lamps);
             boolean lit = Boolean.TRUE.equals(on);
             tile(c, x, top, right, top + h, f);
             float icx = x + 64 * k, icy = top + h / 2;
@@ -525,7 +526,7 @@ public class ControlCenterActivity extends Activity {
             c.drawText(Ui.tr("Işıklar", "Lights"), tx, top + 46 * k, text);
             String status;
             if (lamps == null) status = Ui.tr("Aranıyor…", "Looking…");
-            else if (on == null) status = Ui.tr("Lamba yok", "No lamps");
+            else if (on == null) status = Ui.tr("Kurmak için OK", "OK to set up");
             else status = lit ? Ui.tr("Açık", "On") : Ui.tr("Kapalı", "Off");
             dim.setColor(ink(f, 0.62f));
             c.drawText(status, tx, top + 80 * k, dim);
@@ -547,17 +548,17 @@ public class ControlCenterActivity extends Activity {
 
         private int maxDimming() {
             int m = 0;
-            if (lamps != null) for (Wiz.Lamp l : lamps) if (l.on) m = Math.max(m, l.dimming);
+            if (lamps != null) for (Lights.Lamp l : lamps) if (l.on) m = Math.max(m, l.dimming);
             return m;
         }
 
         /** ← → on the lights: 10% a step (from off, → turns them on at 10%); sent once the presses pause. */
         private void dim(int dx) {
             if (lamps == null || lamps.isEmpty()) return;
-            boolean lit = Boolean.TRUE.equals(Wiz.anyOn(lamps));
+            boolean lit = Boolean.TRUE.equals(Lights.anyOn(lamps));
             if (!lit && dx < 0) return;
             int next = Math.max(10, Math.min(100, (lit ? Math.round(maxDimming() / 10f) * 10 : 0) + 10 * dx));
-            for (Wiz.Lamp l : lamps) {
+            for (Lights.Lamp l : lamps) {
                 l.on = true;
                 l.dimming = next;
             }
@@ -570,18 +571,28 @@ public class ControlCenterActivity extends Activity {
         private final Runnable sendBrightness = new Runnable() {
             @Override public void run() {
                 if (brightness < 0 || lamps == null) return;
-                final List<Wiz.Lamp> targets = new ArrayList<>(lamps);
+                final List<Lights.Lamp> targets = new ArrayList<>(lamps);
                 final int b = brightness;
                 brightness = -1;
-                io.execute(() -> Wiz.set(targets, Wiz.params("state", true, "dimming", b)));
+                io.execute(() -> Lights.set(c(), targets, Lights.Pilot.level(b)));
             }
         };
 
+        private Context c() {
+            return getContext().getApplicationContext();
+        }
+
+        /** OK on the lights: all on or off; with no lamp ever found, Customize → Lights to set them up. */
         private void toggleLights() {
-            final Context c = getContext().getApplicationContext();
+            final Context c = c();
+            if (lamps != null && lamps.isEmpty() && !Lights.known(c)) {
+                open(new Intent().setComponent(new ComponentName(activity, CustomizeActivity.class))
+                        .putExtra(CustomizeActivity.EXTRA_PAGE, CustomizeActivity.PAGE_LIGHTS));
+                return;
+            }
             io.execute(() -> {
-                Wiz.toggleAll(c);
-                final List<Wiz.Lamp> found = Wiz.discover(c, 900);
+                Lights.toggleAll(c);
+                final List<Lights.Lamp> found = Lights.discover(c, 900);
                 handler.post(() -> {
                     lamps = found;
                     invalidate();
@@ -801,7 +812,8 @@ public class ControlCenterActivity extends Activity {
                     break;
                 default:
                     open(new Intent().setComponent(new ComponentName(activity, CustomizeActivity.class))
-                            .putExtra(CustomizeActivity.EXTRA_PAGE, CustomizeActivity.PAGE_CONTROL));
+                            .putExtra(CustomizeActivity.EXTRA_PAGE, CustomizeActivity.PAGE_MAIN)
+                            .putExtra(CustomizeActivity.EXTRA_PKG, "control"));     // every page, Control Center in focus
             }
             invalidate();
         }
@@ -835,7 +847,7 @@ public class ControlCenterActivity extends Activity {
                 long freed = Math.max(0, after - before) >> 20;
                 AppLog.w("free ram: " + (before >> 20) + " → " + (after >> 20) + " MB available");
                 handler.post(() -> {
-                    boostText = freed >= 10 ? "+" + freed + " MB" : Ui.tr("Zaten hafif", "Already light");
+                    boostText = "+" + freed + " MB";
                     invalidate();
                     handler.postDelayed(() -> {
                         boosting = false;

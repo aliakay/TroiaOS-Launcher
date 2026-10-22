@@ -52,12 +52,12 @@ public class MediaListener extends NotificationListenerService {
         }
     }
 
-    /** The one to show: what is playing; otherwise YouTube Music's; otherwise the newest one. Null if there is none. */
+    /** The one to show: what is playing; otherwise the chosen music app's; otherwise the newest one. Null if there is none. */
     static MediaController pick(List<MediaController> sessions) {
         MediaController music = null;
         for (MediaController m : sessions) {
             if (playing(m)) return m;
-            if (music == null && YT_MUSIC.equals(m.getPackageName())) music = m;
+            if (music == null && Prefs.musicApp().equals(m.getPackageName())) music = m;
         }
         return music != null ? music : sessions.isEmpty() ? null : sessions.get(0);
     }

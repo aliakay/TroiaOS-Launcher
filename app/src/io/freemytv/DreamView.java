@@ -529,10 +529,10 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
             c.drawBitmap(now.art, null, npTmp, npArt);
             c.restore();
         } else {
-            boolean yt = now.isYouTubeMusic();
-            npFill.setColor(Ui.alpha(yt ? 0xFFE8002D : 0xFF3A3A3C, a));
+            String pkg = now.markPackage(), mark = NowPlaying.mark(pkg);
+            npFill.setColor(Ui.alpha(NowPlaying.markColor(pkg), a));
             c.drawRoundRect(npTmp, 16 * k, 16 * k, npFill);
-            Symbols.draw(getContext(), c, yt ? "app_ytmusic" : "music_note", npTmp.centerX(), npTmp.centerY(), yt ? 52 * k : 42 * k,
+            Symbols.draw(getContext(), c, mark != null ? mark : "music_note", npTmp.centerX(), npTmp.centerY(), mark != null ? 52 * k : 42 * k,
                     Ui.alpha(0xFFFFFFFF, a));
         }
 

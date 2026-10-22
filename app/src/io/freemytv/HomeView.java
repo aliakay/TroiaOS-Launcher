@@ -84,6 +84,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         GLYPHS.put("browsehere", "app_browsehere");
         GLYPHS.put("bitdefender", "app_bitdefender");
         GLYPHS.put("ytmusic", "app_ytmusic");
+        GLYPHS.put("spotify", "app_spotify");
     }
     private static final float TILE_RADIUS = 22, TILE_MAX_W = 270;
     // Tile focus (Apple TV style): it grows from the center and its shadow drops (it "rises" toward the viewer).
@@ -398,6 +399,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (running) return;
         running = true;
         boolean custom = Prefs.load(getContext());      // Customize changed the name, the city, the watchlist…
+        if (!Prefs.has("welcomed")) {       // the first time: where everything is set
+            Prefs.put(getContext(), "welcomed", true);
+            handler.postDelayed(() -> showToast(Ui.tr("Hoş geldiniz! Şehir, uygulamalar, ışıklar, Wi-Fi: Kontrol Merkezi → Düzenle.",
+                    "Welcome! Your city, apps, lights and Wi-Fi: Control Center → Edit.")), 1500);
+        }
         boolean list = Prefs.layout().equals("list");
         if (list != listMode) {     // …or Dock ⇄ List
             listMode = list;
@@ -2903,7 +2909,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private void toggleLights() {
         final Context c = getContext().getApplicationContext();
         LIGHTS_IO.execute(() -> {
-            final Boolean on = Wiz.toggleAll(c);
+            final Boolean on = Lights.toggleAll(c);
             AppLog.w("lights: switched " + (on == null ? "(no lamps)" : on ? "on" : "off"));
             handler.post(() -> {
                 if (on == null) showToast(Ui.tr("Lamba bulunamadı. Basılı tutarak ışıkları aç.", "No lamps found. Hold OK to open the lights."));
@@ -2916,9 +2922,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     /** Whether the lights are on (when the home screen appears), for the bulb's color. Only once lamps were found. */
     private void refreshLights() {
         final Context c = getContext().getApplicationContext();
-        if (!Wiz.known(c)) return;
+        if (!Lights.known(c)) return;
         LIGHTS_IO.execute(() -> {
-            final Boolean on = Wiz.anyOn(Wiz.discover(c, 900));
+            final Boolean on = Lights.anyOn(Lights.discover(c, 900));
             AppLog.w("lights: " + (on == null ? "no answer" : on ? "on" : "off"));
             handler.post(() -> {
                 lightsOn = on;

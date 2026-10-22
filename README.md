@@ -21,9 +21,10 @@ One button to undo.
 
 ## What you get
 
-- **Nature photos behind everything.** 15 featured photos from Wikimedia Commons (alpine lakes, the Himalayas,
-  Cappadocia, Pamukkale…): a new one every hour, daytime photos by day and warm dusk ones at night, each credited
-  on screen.
+- **Photos behind everything, your choice.** Nature (15 featured photos from Wikimedia Commons: alpine lakes, the
+  Himalayas, Cappadocia, Pamukkale…), Space (14 public-domain NASA photos: Hubble, Webb, Cassini, Artemis II), NASA's
+  Astronomy Picture of the Day, or soft colours. A new one every hour or one you pick (previewed as you browse), and
+  darker if you like. Each is credited on screen.
 - **Liquid Glass, even on Android 12.** Every glass surface shows the blurred photo behind it through a slight lens,
   with light on top and a specular rim. On TVs without Android 13 shaders it's drawn with the plain Canvas, so it
   stays smooth on weak TV chips.
@@ -31,7 +32,7 @@ One button to undo.
   of light (after [CleanFrame](https://github.com/nthnclrk/CleanFrame)). Any installed app can go there: hold OK on
   an app to move it, remove it or add another.
 - **Control Center.** One button next to the weather opens a glass panel, like Apple's: Live TV, inputs, Wi-Fi,
-  settings and sleep; Now Playing (YouTube Music or whatever is playing: cover, song, ⏮ ⏯ ⏭); the lights with their
+  settings, sleep and Free RAM; Now Playing (Spotify, YouTube Music or whatever is playing: cover, song, ⏮ ⏯ ⏭); the lights with their
   brightness; the markets; the volume. Choose which of these show, and in what order. While music plays, the
   screensaver shows it too: a frosted card with the cover, the song and how far into it.
 - **Dock or List.** The apps on a glass dock at the bottom, or as a list of big names over the photo (after
@@ -40,14 +41,18 @@ One button to undo.
   picture, when you watched it, the title, the channel, the time left, and the latest from another app. ↑ to the
   card and OK picks it up (a YouTube video at the second you stopped, when the app tells which video it was).
 - **Make it yours, on the TV.** Settings → *Customize*: the dock's apps, Control Center's controls, the greeting,
-  the weather's city (search it by name), °C or °F, your watchlist and the language. No rebuild needed.
+  the weather's city (search it by name), °C or °F, your watchlist, the language, the wallpaper, your lights, the
+  guest Wi-Fi and your music app. No computer and no rebuild needed.
 - **The weather at a glance.** Temperature, sky, feels-like, wind and humidity next to the clock; OK shows the next
   8 hours, sunrise and sunset. [Open-Meteo](https://open-meteo.com), no key.
 - **Markets (optional).** A button for your watchlist: price, change since the last close and today's curve.
-- **WiZ smart lights.** OK on the bulb switches every lamp on or off; hold OK for a panel: all lamps or one at a
-  time, 8 scenes (Daylight, Cozy, TV time, Focus, Relax, Candlelight, Fireplace, Night light), brightness and
-  colour. Home network only: no account, no cloud.
-- **Guest Wi-Fi QR code.** OK on the network button shows a QR code that guests scan with their phone's camera.
+- **Smart lights, many brands.** WiZ, LIFX and Govee are found by themselves; a Philips Hue Bridge pairs with its
+  button; Home Assistant brings in any other brand. All lamps or one at a time, 8 scenes, brightness and colour;
+  rename lamps, hide some, blink one to tell which is which. Home network only: no account, no cloud.
+- **Guest Wi-Fi QR code.** Type your guest network on the TV (Customize → Guest Wi-Fi QR); guests scan the code
+  with their phone's camera and join without typing the password.
+- **Free RAM.** One button in Control Center closes the apps resting in the background and shows what came back.
+- **Private by design.** No account, no ads, no tracking, no Toria servers: see [Privacy](#privacy).
 - **Turkish and English**, following the TV's language or switched in the settings.
 - **No ads, a lighter TV.** The stock launcher and the promo and tracking apps are turned off, never uninstalled
   (on Sony: Samba TV's viewing tracker, Sony Select, promos, the store demo). On our Sony BRAVIA the Home button went
@@ -97,14 +102,65 @@ About fifteen minutes. You need a Google TV or Android TV (Android 12+) and a co
 Play Store) and use the TV's Tailscale address: `adb connect 100.x.y.z:5555`. That's how Toria was built and
 installed, from a server in another city.
 
-## Settings
+## Set it up on the TV
 
-Most of it can be changed on the TV: Settings → *Customize* (or hold OK on a dock app, or *Edit* at the bottom of
-Control Center). What you choose there is kept on the TV and wins over the file below.
+Everything is set on the TV with the remote: Settings → *Customize* (or hold OK on a dock app, or *Edit* at the
+bottom of Control Center).
 
-`config.properties`, created by the first build, holds the defaults a fresh install starts with, and the things
-that are better kept off screen (the Wi-Fi password). It stays on your computer (it's in `.gitignore`); change it,
-run `./build.sh` and install again.
+| Page | What you set |
+|---|---|
+| Apps on Home | The dock's apps: add any installed app, move, remove |
+| Control Center | Which controls show, and their order |
+| Home Screen | Dock or List, your name for the greeting, the weather's city, °C / °F, the watchlist, the language |
+| Wallpaper | Nature, Space · NASA, NASA Picture of the Day or Soft Colors; one photo or a new one every hour; darken |
+| Lights | Search, rename, hide or blink lamps; pair a Philips Hue Bridge; connect Home Assistant |
+| Guest Wi-Fi QR | The network name, password and security for the QR code |
+| Music App | What Now Playing opens when nothing plays (Spotify, YouTube Music, any app) |
+| Privacy | What Toria sends where (below) |
+
+**Lights, by brand:**
+
+- **WiZ:** nothing to do; keep "Allow local communication" on in the WiZ app (it is by default).
+- **LIFX:** nothing to do; they answer on the home network.
+- **Govee:** turn on *LAN Control* for each lamp in the Govee app (only models that have it).
+- **Philips Hue:** Customize → Lights → Philips Hue. The TV finds the bridge; press its round button, then
+  *Connect*.
+- **Anything else (IKEA, Nanoleaf, Tapo, Zigbee, Matter…):** through [Home Assistant](https://www.home-assistant.io).
+  Customize → Lights → Home Assistant: its address (found on the network when it can be), then a long-lived
+  access token (Home Assistant → your profile → Security). Typing a long token with a remote is no fun: the Google
+  TV app on your phone has a keyboard that can paste it.
+
+## Privacy
+
+Toria has no servers and no account, shows no ads and collects nothing: nothing about you or your TV is ever sent
+to us. What goes out, and to whom, is all on Customize → Privacy:
+
+| What | Goes to | What they see |
+|---|---|---|
+| Weather | [Open-Meteo](https://open-meteo.com) | Your city's coordinates (from the city you chose) |
+| City search | Open-Meteo | The name you type |
+| Markets (only with a watchlist) | Yahoo Finance | Your symbols |
+| NASA picture (only if chosen) | NASA (science.nasa.gov) | That the feed was read |
+
+All of these use HTTPS. Like any website, each of them also sees your internet address.
+
+What stays at home:
+
+- **Lights** are spoken to on your home network only. Plain HTTP (the Hue Bridge, a local Home Assistant) is only
+  ever used with home-network addresses; the app refuses it for anything on the internet.
+- **The Wi-Fi password, the Hue key and the Home Assistant token** are encrypted with a key in the TV's Android
+  Keystore, which never leaves the TV. Keyboards are told not to learn them.
+- **Now Playing and Continue Watching** read what plays on the TV itself; the app reads no notifications, and
+  nothing of it leaves the TV.
+- **The TV's own ADB** is only used, from inside the TV, for the app's own fixed commands (switching the home screen,
+  sleep, Free RAM).
+- **Android backup is off**, so the settings never go to a cloud backup.
+
+## Defaults for a build (optional)
+
+`config.properties`, created by the first build, holds the defaults a fresh install starts with (handy when you
+set up a TV for someone). It stays on your computer (it's in `.gitignore`); change it, run `./build.sh` and install
+again. Anything changed on the TV wins over it.
 
 | Key | What it does | Default |
 |---|---|---|
@@ -115,7 +171,7 @@ run `./build.sh` and install again.
 | `language` | `auto` (follows the TV), `en` or `tr` | `auto` |
 | `temperature` | `C`, `F` or `auto` | `auto` |
 | `stocks` | Your watchlist, Yahoo Finance symbols: `^GSPC:SPX,BTC-USD:BTC,GC=F:XAU,TSLA,NVDA` (empty = no markets button) | empty |
-| `guest_wifi_ssid`, `guest_wifi_password`, `guest_wifi_security` | The guest network for the QR code (`WPA`, `WEP` or `nopass`) | empty |
+| `guest_wifi_ssid`, `guest_wifi_password`, `guest_wifi_security` | A starting guest network for the QR code (`WPA`, `WEP` or `nopass`); better set on the TV | empty |
 | `disable_assistant` | Also turn off Google Assistant | `false` |
 
 Keep `freemytv.keystore`: updates must be signed with the same key.
@@ -134,11 +190,12 @@ In Control Center:
 
 | Where | OK | ← → | Hold OK |
 |---|---|---|---|
-| Now Playing | Play / pause (nothing playing: opens YouTube Music) | Previous / next song | Opens the music app |
-| Lights | All lamps on / off | Brightness | The lights panel |
+| Now Playing | Play / pause (nothing playing: opens your music app) | Previous / next song | Opens the music app |
+| Lights | All lamps on / off (none yet: sets them up) | Brightness | The lights panel |
 | Markets | Your watchlist | | |
 | Volume | Mute | Down / up | |
-| Edit | Customize → Control Center | | |
+| Free RAM | Closes background apps, shows the memory freed | | |
+| Edit | Customize (every page) | | |
 
 ## Going back
 
@@ -161,7 +218,9 @@ your TV and updates the lists ([CLAUDE.md](CLAUDE.md) tells it how).
 - **The TV's own ADB, from inside the TV**, sets the home screen and screensaver and turns apps off
   (`cmd package set-home-activity`, `pm disable-user`). Nothing listens to the network.
 - **Drawn by hand on one Canvas.** Android 13+ gets AGSL shaders; Android 12 gets `Wallpaper` + `LiquidGlass`.
-- **WiZ** lamps are found with a broadcast on UDP port 38899 and driven with their local `setPilot` API.
+- **Lights** (`Lights`): WiZ (UDP 38899, `setPilot`), LIFX (its LAN protocol, UDP 56700), Govee (LAN API: multicast
+  scan on 4001, commands on 4003), Philips Hue (the bridge's local API) and Home Assistant (its REST API), all on the
+  home network. The Hue Bridge and Home Assistant are found with mDNS (`Nsd`).
 - **QR codes** come from a small built-in encoder (`QrCode.java`).
 
 ## Credits and licences
@@ -175,12 +234,15 @@ your TV and updates the lists ([CLAUDE.md](CLAUDE.md) tells it how).
   [Custom Brand Icons](https://github.com/elax46/custom-brand-icons) (MIT); see
   [`LICENSE-app-icons.txt`](app/assets/symbols/LICENSE-app-icons.txt). Brand names and marks belong to their owners
   and are used only to identify the apps.
-- **Photos:** Wikimedia Commons featured pictures under CC BY, CC BY-SA and the Free Art License, each with its own
-  terms: see [`CREDITS.md`](app/assets/wallpapers/CREDITS.md). They are not covered by the MIT licence.
+- **Photos:** Wikimedia Commons featured pictures under CC BY, CC BY-SA and the Free Art License, and public-domain
+  NASA pictures, each with its own terms: see [`CREDITS.md`](app/assets/wallpapers/CREDITS.md). They are not covered
+  by the MIT licence. NASA's Astronomy Picture of the Day is downloaded on the TV, and only on days whose credit is
+  public agencies alone (many APOD pictures belong to their photographers). NASA doesn't endorse Toria.
 - **Fonts and symbols:** [Inter](https://rsms.me/inter/) (SIL OFL 1.1), [Material Symbols](https://fonts.google.com/icons)
   (Apache 2.0).
 - **Data:** weather by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0). Markets use Yahoo Finance's public
   chart data, which is unofficial and may be delayed: it's meant for personal use, and an empty `stocks` turns it off.
 - **QR encoder** after the algorithm of [Project Nayuki's QR Code generator](https://www.nayuki.io/page/qr-code-generator-library).
 
-Not affiliated with Sony, Google, TCL, WiZ, Yahoo or any streaming service.
+Not affiliated with Sony, Google, TCL, WiZ, LIFX, Govee, Signify (Philips Hue), Home Assistant, NASA, Spotify,
+Yahoo or any streaming service.

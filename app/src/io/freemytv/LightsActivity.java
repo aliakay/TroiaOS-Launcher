@@ -16,7 +16,6 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +23,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * The WiZ lights panel: a small window under the home screen's bulb (hold OK on the bulb, or "Lights" in the bottom
+ * The lights panel (any brand, through Lights): a small window under the home screen's bulb (hold OK on the bulb, or "Lights" in the bottom
  * drawer), the home screen still visible behind it. At the top, what to control: All, Lamp 1, Lamp 2… (← →); below,
  * on/off (OK), brightness (← →) and color (← →) of that choice. Everything goes over the home network (Wiz) on a
  * background thread; ← → changes are sent once the keys rest. Back closes it.
@@ -99,31 +98,36 @@ public class LightsActivity extends Activity {
         new Preset("Pembe", "Pink", 0, 0, 0xFF0090, 0xFFFF375F),
     };
 
-    /** One of WiZ's own scenes (sceneId), with its icon and color here. */
+    /**
+     * A scene: WiZ's own (sceneId) on WiZ lamps; on other brands, its stand-in (a white in K, or a color), with its
+     * icon and color here.
+     */
     private static final class Mood {
         final String tr, en, symbol;
-        final int id, color;
+        final int id, color, temp, rgb;
 
-        Mood(String tr, String en, int id, String symbol, int color) {
+        Mood(String tr, String en, int id, String symbol, int color, int temp, int rgb) {
             this.tr = tr;
             this.en = en;
             this.id = id;
             this.symbol = symbol;
             this.color = color;
+            this.temp = temp;
+            this.rgb = rgb;
         }
 
         String name() { return Ui.tr(tr, en); }
     }
 
     private static final Mood[] MOODS = {
-        new Mood("Gün ışığı", "Daylight", 12, "sunny", 0xFFFFC300),
-        new Mood("Rahat", "Cozy", 6, "sofa", 0xFFFF9F0A),
-        new Mood("TV zamanı", "TV time", 18, "tv", 0xFF8E7CF8),
-        new Mood("Odak", "Focus", 15, "focus", 0xFF32ADE6),
-        new Mood("Rahatla", "Relax", 16, "leaf", 0xFF30D158),
-        new Mood("Mum ışığı", "Candlelight", 29, "candle", 0xFFFFB347),
-        new Mood("Şömine", "Fireplace", 5, "flame", 0xFFFF6B35),
-        new Mood("Gece ışığı", "Night light", 14, "bedtime", 0xFFBF5AF2),
+        new Mood("Gün ışığı", "Daylight", 12, "sunny", 0xFFFFC300, 5500, -1),
+        new Mood("Rahat", "Cozy", 6, "sofa", 0xFFFF9F0A, 2700, -1),
+        new Mood("TV zamanı", "TV time", 18, "tv", 0xFF8E7CF8, 0, 0x5A3CFF),
+        new Mood("Odak", "Focus", 15, "focus", 0xFF32ADE6, 4500, -1),
+        new Mood("Rahatla", "Relax", 16, "leaf", 0xFF30D158, 0, 0x7CD45A),
+        new Mood("Mum ışığı", "Candlelight", 29, "candle", 0xFFFFB347, 2200, -1),
+        new Mood("Şömine", "Fireplace", 5, "flame", 0xFFFF6B35, 0, 0xFF5A1E),
+        new Mood("Gece ışığı", "Night light", 14, "bedtime", 0xFFBF5AF2, 0, 0x8C3CFF),
     };
 
     private static Mood mood(int id) {
@@ -146,7 +150,7 @@ public class LightsActivity extends Activity {
         private final RectF tmp = new RectF(), panel = new RectF();
         private final LiquidGlass glass = new LiquidGlass();
         private final int[] onScreen = new int[2];
-        private List<Wiz.Lamp> lamps = new ArrayList<>();
+        private List<Lights.Lamp> lamps = new ArrayList<>();
         /** 0 = all lamps, 1… = that lamp. */
         private int target;
         private boolean searching = true, running, okDown, sendQueued, colorChanged;
@@ -166,13 +170,12 @@ public class LightsActivity extends Activity {
         private final Runnable send = new Runnable() {
             @Override public void run() {
                 sendQueued = false;
-                List<Wiz.Lamp> targets = targets();
+                List<Lights.Lamp> targets = targets();
                 if (targets.isEmpty()) return;
-                JSONObject params = colorChanged ? presetParams(PRESETS[preset], brightness)
-                        : Wiz.params("state", true, "dimming", brightness);
+                Lights.Pilot params = colorChanged ? presetParams(PRESETS[preset], brightness) : Lights.Pilot.level(brightness);
                 if (colorChanged) scene = 0;
                 colorChanged = false;
-                for (Wiz.Lamp l : targets) {
+                for (Lights.Lamp l : targets) {
                     l.on = true;
                     l.dimming = brightness;
                     if (scene == 0) l.scene = 0;
@@ -207,7 +210,7 @@ public class LightsActivity extends Activity {
         private void search() {
             searching = true;
             io.execute(() -> {
-                final List<Wiz.Lamp> found = Wiz.discover(getContext(), 1500);
+                final List<Lights.Lamp> found = Lights.discover(getContext(), 1500);
                 handler.post(() -> {
                     boolean resize = found.isEmpty() != lamps.isEmpty();
                     searching = false;
@@ -221,18 +224,18 @@ public class LightsActivity extends Activity {
         }
 
         /** The lamps the controls act on: all of them, or the chosen one. */
-        private List<Wiz.Lamp> targets() {
+        private List<Lights.Lamp> targets() {
             if (target == 0 || target > lamps.size()) return new ArrayList<>(lamps);
-            List<Wiz.Lamp> one = new ArrayList<>();
+            List<Lights.Lamp> one = new ArrayList<>();
             one.add(lamps.get(target - 1));
             return one;
         }
 
         /** Brightness and color shown: the chosen lamp's, or (All) those of the first lamp that is on. */
         private void readState() {
-            List<Wiz.Lamp> list = targets();
-            Wiz.Lamp ref = null;
-            for (Wiz.Lamp l : list) if (l.on) { ref = l; break; }
+            List<Lights.Lamp> list = targets();
+            Lights.Lamp ref = null;
+            for (Lights.Lamp l : list) if (l.on) { ref = l; break; }
             if (ref == null && !list.isEmpty()) ref = list.get(0);
             if (ref == null) return;
             brightness = Math.max(10, Math.min(100, Math.round(ref.dimming / 10f) * 10));
@@ -240,7 +243,7 @@ public class LightsActivity extends Activity {
             scene = mood(ref.scene) != null ? ref.scene : 0;
         }
 
-        private static int nearestPreset(Wiz.Lamp l) {
+        private static int nearestPreset(Lights.Lamp l) {
             int best = 0;
             double bestDistance = Double.MAX_VALUE;
             for (int i = 0; i < PRESETS.length; i++) {
@@ -260,18 +263,20 @@ public class LightsActivity extends Activity {
             return best;
         }
 
-        private static JSONObject presetParams(Preset p, int dimming) {
-            if (p.scene != 0) return Wiz.params("state", true, "sceneId", p.scene, "dimming", dimming);
-            if (p.temp != 0) return Wiz.params("state", true, "temp", p.temp, "dimming", dimming);
-            return Wiz.params("state", true, "r", (p.rgb >> 16) & 255, "g", (p.rgb >> 8) & 255, "b", p.rgb & 255, "dimming", dimming);
+        private static Lights.Pilot presetParams(Preset p, int dimming) {
+            Lights.Pilot pilot = Lights.Pilot.level(dimming);
+            pilot.scene = p.scene;
+            if (p.temp != 0) pilot.temp = p.temp;
+            else pilot.rgb = p.rgb;
+            return pilot;
         }
 
         /** Sends in the background; if a lamp doesn't confirm, a notice and a new search (to show the real state). */
-        private void command(final List<Wiz.Lamp> targets, final JSONObject params) {
+        private void command(final List<Lights.Lamp> targets, final Lights.Pilot params) {
             problem = "";
             invalidate();
             io.execute(() -> {
-                final boolean ok = Wiz.set(targets, params);
+                final boolean ok = Lights.set(getContext(), targets, params);
                 handler.post(() -> {
                     if (!ok) {
                         problem = Ui.tr("Bir lamba cevap vermedi.", "A lamp didn't answer.");
@@ -283,13 +288,15 @@ public class LightsActivity extends Activity {
         }
 
         private boolean targetOn() {
-            for (Wiz.Lamp l : targets()) if (l.on) return true;
+            for (Lights.Lamp l : targets()) if (l.on) return true;
             return false;
         }
 
         private String chipLabel(int i) {
             if (i == 0) return Ui.tr("Tümü", "All");
-            return lamps.size() > 3 ? String.valueOf(i) : Ui.tr("Lamba ", "Lamp ") + i;
+            if (lamps.size() > 3) return String.valueOf(i);
+            String n = lamps.get(i - 1).name();
+            return n.length() > 12 ? n.substring(0, 11).trim() + "…" : n;
         }
 
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
@@ -355,7 +362,7 @@ public class LightsActivity extends Activity {
                     c.drawText(Ui.tr("Lambalar aranıyor…", "Looking for lamps…"), x, 140 * k, status);
                 } else {
                     c.drawText(Ui.tr("Lamba bulunamadı. OK: tekrar ara", "No lamps found. OK: search again"), x, 140 * k, status);
-                    c.drawText(Ui.tr("WiZ'de “Yerel iletişime izin ver” açık olmalı.", "WiZ needs “Allow local communication”."), x, 180 * k, status);
+                    c.drawText(Ui.tr("Kurulum: Özelleştir → Işıklar", "Set up in Customize → Lights"), x, 180 * k, status);
                 }
                 return;
             }
@@ -432,7 +439,7 @@ public class LightsActivity extends Activity {
             c.drawCircle(cx, cy, r, fill);
             Symbols.draw(getContext(), c, "lightbulb", cx, cy, 34 * k, on ? INK : iconOff);
             float tx = cx + d / 2 + 24 * k;
-            String name = target == 0 ? Ui.tr("Tüm ışıklar", "All lights") : Ui.tr("Lamba ", "Lamp ") + target;
+            String name = target == 0 ? Ui.tr("Tüm ışıklar", "All lights") : lamps.get(target - 1).name();
             c.drawText(name, tx, cy - 6 * k, title);
             String state = searching && lamps.isEmpty() ? "" : on
                     ? Ui.tr("Açık · ", "On · ") + (active != null ? active.name() : PRESETS[preset].name()) + " · "
@@ -590,18 +597,22 @@ public class LightsActivity extends Activity {
             }
             if (focus == SCENES_A || focus == SCENES_B) {
                 Mood m = MOODS[(focus - SCENES_A) * 4 + sceneCol];
-                List<Wiz.Lamp> list = targets();
-                for (Wiz.Lamp l : list) {
+                List<Lights.Lamp> list = targets();
+                for (Lights.Lamp l : list) {
                     l.on = true;
                     l.scene = m.id;
                 }
                 scene = m.id;
-                command(list, Wiz.params("state", true, "sceneId", m.id, "dimming", brightness));
+                Lights.Pilot p = Lights.Pilot.level(brightness);
+                p.scene = m.id;
+                p.temp = m.temp;
+                p.rgb = m.rgb;
+                command(list, p);
             } else if (focus == POWER || focus == TARGET) {
                 boolean next = !targetOn();
-                List<Wiz.Lamp> list = targets();
-                for (Wiz.Lamp l : list) l.on = next;
-                command(list, Wiz.params("state", next));
+                List<Lights.Lamp> list = targets();
+                for (Lights.Lamp l : list) l.on = next;
+                command(list, Lights.Pilot.power(next));
             } else {
                 // OK on brightness or color: the choice right away (and the lights on).
                 colorChanged |= focus == COLOR;

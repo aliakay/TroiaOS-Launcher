@@ -466,7 +466,7 @@ final class HomeApps {
 
     /** True when config.properties has a guest Wi-Fi network (the network button then shows its QR code). */
     static boolean guestWifi() {
-        return !Config.WIFI_SSID.trim().isEmpty();
+        return !Prefs.wifiSsid().isEmpty();
     }
 
     static String networkLabel(String symbol) {

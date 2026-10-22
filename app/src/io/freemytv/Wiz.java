@@ -33,20 +33,14 @@ final class Wiz {
 
     static final int PORT = 38899;
 
-    static final class Lamp {
-        String ip, mac;
-        boolean on;
-        int dimming = 100, temp, scene, r = -1, g, b;
-    }
-
     /**
      * Finds the lamps: asks for their state on the network's broadcast addresses and at the addresses found last time
      * (twice: a lost packet gets a second chance), and collects the answers for `waitMs`. Sorted by address, so they
      * keep their order (Lamp 1, Lamp 2…).
      */
-    static List<Lamp> discover(Context c, int waitMs) {
+    static List<Lights.Lamp> discover(Context c, int waitMs) {
         SharedPreferences prefs = c.getSharedPreferences("wiz", Context.MODE_PRIVATE);
-        Map<String, Lamp> found = new LinkedHashMap<>();
+        Map<String, Lights.Lamp> found = new LinkedHashMap<>();
         try (DatagramSocket s = new DatagramSocket()) {
             s.setBroadcast(true);
             byte[] ask = "{\"method\":\"getPilot\",\"params\":{}}".getBytes(StandardCharsets.UTF_8);
@@ -71,13 +65,14 @@ final class Wiz {
         } catch (IOException e) {
             AppLog.w("wiz: " + e.getMessage());
         }
-        List<Lamp> lamps = new ArrayList<>(found.values());
+        List<Lights.Lamp> lamps = new ArrayList<>(found.values());
         Collections.sort(lamps, (x, y) -> Long.compare(ipValue(x.ip), ipValue(y.ip)));
         if (!lamps.isEmpty()) {
             StringBuilder ips = new StringBuilder();
-            for (Lamp l : lamps) ips.append(ips.length() == 0 ? "" : ",").append(l.ip);
+            for (Lights.Lamp l : lamps) ips.append(ips.length() == 0 ? "" : ",").append(l.ip);
             prefs.edit().putString("ips", ips.toString()).apply();
         }
+        for (int i = 0; i < lamps.size(); i++) lamps.get(i).deviceName = "WiZ " + (i + 1);
         return lamps;
     }
 
@@ -86,35 +81,16 @@ final class Wiz {
         return !c.getSharedPreferences("wiz", Context.MODE_PRIVATE).getString("ips", "").isEmpty();
     }
 
-    /** True if any lamp answered and is on; null if none answered. */
-    static Boolean anyOn(List<Lamp> lamps) {
-        if (lamps.isEmpty()) return null;
-        for (Lamp l : lamps) if (l.on) return true;
-        return false;
-    }
-
-    /**
-     * The bulb on the home screen: all lamps off if any is on, otherwise all on. Returns the new state, or null if no
-     * lamp answered.
-     */
-    static Boolean toggleAll(Context c) {
-        List<Lamp> lamps = discover(c, 1200);
-        Boolean on = anyOn(lamps);
-        if (on == null) return null;
-        set(lamps, params("state", !on));
-        return !on;
-    }
-
     /** Sends one setPilot to every lamp, again to the ones that didn't confirm; true when all of them confirmed. */
-    static boolean set(List<Lamp> lamps, JSONObject params) {
+    static boolean set(List<Lights.Lamp> lamps, Lights.Pilot p) {
         byte[] msg;
         try {
-            msg = new JSONObject().put("method", "setPilot").put("params", params).toString().getBytes(StandardCharsets.UTF_8);
+            msg = new JSONObject().put("method", "setPilot").put("params", params(p)).toString().getBytes(StandardCharsets.UTF_8);
         } catch (JSONException e) {
             return false;
         }
         Set<String> waiting = new HashSet<>();
-        for (Lamp l : lamps) waiting.add(l.ip);
+        for (Lights.Lamp l : lamps) waiting.add(l.ip);
         try (DatagramSocket s = new DatagramSocket()) {
             byte[] buf = new byte[512];
             for (int attempt = 0; attempt < 3 && !waiting.isEmpty(); attempt++) {
@@ -124,14 +100,14 @@ final class Wiz {
                     long left = until - System.currentTimeMillis();
                     if (left <= 0) break;
                     s.setSoTimeout((int) left);
-                    DatagramPacket p = new DatagramPacket(buf, buf.length);
+                    DatagramPacket answer = new DatagramPacket(buf, buf.length);
                     try {
-                        s.receive(p);
+                        s.receive(answer);
                     } catch (SocketTimeoutException e) {
                         break;
                     }
-                    String body = new String(p.getData(), 0, p.getLength(), StandardCharsets.UTF_8);
-                    if (body.contains("\"success\":true")) waiting.remove(p.getAddress().getHostAddress());
+                    String body = new String(answer.getData(), 0, answer.getLength(), StandardCharsets.UTF_8);
+                    if (body.contains("\"success\":true")) waiting.remove(answer.getAddress().getHostAddress());
                 }
             }
         } catch (IOException e) {
@@ -142,12 +118,15 @@ final class Wiz {
         return waiting.isEmpty();
     }
 
-    static JSONObject params(Object... keysAndValues) {
+    /** setPilot's params: state, dimming (10–100), then a scene, a white (temp) or a color (r, g, b). */
+    private static JSONObject params(Lights.Pilot p) throws JSONException {
         JSONObject o = new JSONObject();
-        try {
-            for (int i = 0; i + 1 < keysAndValues.length; i += 2) o.put((String) keysAndValues[i], keysAndValues[i + 1]);
-        } catch (JSONException ignored) {
-        }
+        if (p.on != null) o.put("state", p.on);
+        if (Boolean.FALSE.equals(p.on)) return o;
+        if (p.dimming >= 0) o.put("dimming", Math.max(10, Math.min(100, p.dimming)));
+        if (p.scene != 0) o.put("sceneId", p.scene);
+        else if (p.temp > 0) o.put("temp", Math.max(2200, Math.min(6500, p.temp)));
+        else if (p.rgb >= 0) o.put("r", (p.rgb >> 16) & 255).put("g", (p.rgb >> 8) & 255).put("b", p.rgb & 255);
         return o;
     }
 
@@ -155,7 +134,7 @@ final class Wiz {
      * Collects answers until `until`; once every lamp known from last time has answered, only a short moment more
      * (for a new one). True in that case: no second round needed.
      */
-    private static boolean receive(DatagramSocket s, Map<String, Lamp> found, Set<String> known, long until) throws IOException {
+    private static boolean receive(DatagramSocket s, Map<String, Lights.Lamp> found, Set<String> known, long until) throws IOException {
         byte[] buf = new byte[1024];
         boolean complete = false;
         while (true) {
@@ -168,11 +147,11 @@ final class Wiz {
             } catch (SocketTimeoutException e) {
                 return complete;
             }
-            Lamp l = parse(new String(p.getData(), 0, p.getLength(), StandardCharsets.UTF_8), p.getAddress().getHostAddress());
-            if (l != null) found.put(l.mac, l);
+            Lights.Lamp l = parse(new String(p.getData(), 0, p.getLength(), StandardCharsets.UTF_8), p.getAddress().getHostAddress());
+            if (l != null) found.put(l.id, l);
             if (!complete && !known.isEmpty()) {
                 Set<String> answered = new HashSet<>();
-                for (Lamp f : found.values()) answered.add(f.ip);
+                for (Lights.Lamp f : found.values()) answered.add(f.ip);
                 if (answered.containsAll(known)) {
                     complete = true;
                     until = Math.min(until, System.currentTimeMillis() + 150);
@@ -182,16 +161,18 @@ final class Wiz {
     }
 
     /** {"method":"getPilot","result":{"mac":…,"state":true,"temp":2700,"dimming":72}} (or r, g, b; or sceneId). */
-    private static Lamp parse(String body, String ip) {
+    private static Lights.Lamp parse(String body, String ip) {
         try {
             JSONObject o = new JSONObject(body);
             if (!"getPilot".equals(o.optString("method"))) return null;
             JSONObject r = o.getJSONObject("result");
-            Lamp l = new Lamp();
+            Lights.Lamp l = new Lights.Lamp();
+            l.brand = Lights.WIZ;
             l.ip = ip;
-            l.mac = r.optString("mac", ip);
+            l.id = r.optString("mac", ip);
             l.on = r.optBoolean("state");
             l.dimming = r.optInt("dimming", 100);
+            l.color = l.white = true;
             l.temp = r.optInt("temp", 0);
             l.scene = r.optInt("sceneId", 0);
             if (r.has("r")) {
@@ -206,7 +187,7 @@ final class Wiz {
     }
 
     /** Broadcast addresses of the networks the TV is on (Ethernet or Wi-Fi; not the VPN). */
-    private static List<InetAddress> broadcasts() {
+    static List<InetAddress> broadcasts() {
         List<InetAddress> out = new ArrayList<>();
         try {
             Enumeration<NetworkInterface> list = NetworkInterface.getNetworkInterfaces();

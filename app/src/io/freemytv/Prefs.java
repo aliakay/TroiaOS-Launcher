@@ -161,6 +161,118 @@ final class Prefs {
         }
     }
 
+    // MARK: - Secrets (encrypted with the TV's keystore: Secrets)
+
+    /** A secret saved on the TV, or `fallback` (config.properties) if none was ever saved. */
+    static String secret(String key, String fallback) {
+        String sealed;
+        synchronized (LOCK) {
+            if (!data.has(key)) return fallback;
+            sealed = data.optString(key);
+        }
+        return Secrets.open(sealed);
+    }
+
+    /** Saves a secret encrypted; false (and nothing saved) if the TV couldn't encrypt it. */
+    static boolean putSecret(Context c, String key, String value) {
+        try {
+            put(c, key, value == null ? null : Secrets.seal(value));
+            return true;
+        } catch (Exception e) {
+            AppLog.w("prefs: can't encrypt " + key + " (" + e.getClass().getSimpleName() + ")");
+            return false;
+        }
+    }
+
+    // MARK: - Guest Wi-Fi (the QR code phones scan to join)
+
+    static String wifiSsid() {
+        return string("wifi_ssid", Config.WIFI_SSID);
+    }
+
+    static String wifiPassword() {
+        return secret("wifi_password", Config.WIFI_PASSWORD);
+    }
+
+    /** WPA, WEP or nopass. */
+    static String wifiSecurity() {
+        String s = string("wifi_security", Config.WIFI_SECURITY);
+        return s.equalsIgnoreCase("WEP") ? "WEP" : s.equalsIgnoreCase("nopass") ? "nopass" : "WPA";
+    }
+
+    // MARK: - Music (Control Center's Now Playing, when nothing plays)
+
+    /** The app Now Playing opens, by package ("" = YouTube Music). */
+    static String musicApp() {
+        String m = string("music_app", "");
+        return m.isEmpty() ? MediaListener.YT_MUSIC : m;
+    }
+
+    // MARK: - Lights: names and hidden lamps (by Lights.Lamp.key), the Hue Bridge and Home Assistant
+
+    static String lampName(String key) {
+        synchronized (LOCK) {
+            JSONObject names = data.optJSONObject("lamp_names");
+            return names == null ? "" : names.optString(key, "");
+        }
+    }
+
+    static void setLampName(Context c, String key, String name) {
+        synchronized (LOCK) {
+            try {
+                JSONObject names = data.optJSONObject("lamp_names");
+                if (names == null) data.put("lamp_names", names = new JSONObject());
+                if (name == null || name.trim().isEmpty()) names.remove(key);
+                else names.put(key, name.trim());
+            } catch (JSONException ignored) {
+            }
+            save(c);
+        }
+    }
+
+    static boolean lampHidden(String key) {
+        synchronized (LOCK) {
+            JSONArray a = data.optJSONArray("lamp_hidden");
+            for (int i = 0; a != null && i < a.length(); i++) if (key.equals(a.optString(i))) return true;
+            return false;
+        }
+    }
+
+    static void setLampHidden(Context c, String key, boolean hidden) {
+        synchronized (LOCK) {
+            JSONArray a = data.optJSONArray("lamp_hidden"), out = new JSONArray();
+            for (int i = 0; a != null && i < a.length(); i++) if (!key.equals(a.optString(i))) out.put(a.optString(i));
+            if (hidden) out.put(key);
+            try {
+                data.put("lamp_hidden", out);
+            } catch (JSONException ignored) {
+            }
+            save(c);
+        }
+    }
+
+    static String hueBridge() {
+        return string("hue_ip", "");
+    }
+
+    static String hueUser() {
+        return secret("hue_user", "");
+    }
+
+    static String haUrl() {
+        return string("ha_url", "");
+    }
+
+    static String haToken() {
+        return secret("ha_token", "");
+    }
+
+    static boolean has(String key) {
+        synchronized (LOCK) {
+            return data.has(key);
+        }
+    }
+
     static void setPlace(Context c, String city, double lat, double lon) {
         synchronized (LOCK) {
             try {

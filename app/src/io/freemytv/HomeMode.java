@@ -48,8 +48,11 @@ final class HomeMode {
      * Turned off in Free My TV mode, when the TV has them. Google extras first, then TV-maker extras (TCL here; add
      * your brand's, see the README). The TV's own home screen and screensaver are added at switch time.
      */
+    /** Were on DEBLOAT in earlier versions and aren't anymore: the check after boot turns them back on. */
+    private static final String[] OLD_DEBLOAT = {"com.google.android.youtube.tvmusic"};
+
     static final String[] DEBLOAT = {
-        "com.google.android.play.games", "com.google.android.youtube.tvmusic",        // Play Games, YouTube Music
+        "com.google.android.play.games",                                              // Play Games
         // TCL
         "com.tcl.magiconnectfree", "com.tcl.miracast",                                // screen mirroring apps
         "com.tcl.waterfall.overseas", "com.tcl.channelplus",                          // TCL Channel and its Live TV
@@ -286,17 +289,25 @@ final class HomeMode {
                 save(app, s);
             } catch (JSONException ignored) {}
             if (!FREE.equals(s.optString("mode"))) return;
-            List<String> fixed = new ArrayList<>();
+            List<String> fixed = new ArrayList<>(), restored = new ArrayList<>();
             try (Adb adb = Adb.connect(app, 10_000, null)) {
                 Set<String> present = packages(adb, "");
                 Set<String> disabledNow = packages(adb, "-d");
                 boolean reverted = s.optBoolean("homeReverted");
                 String home = s.optString("originalHome", "");
-                Set<String> wanted = new HashSet<>(stringList(s, "disabled"));
+                Set<String> wanted = new HashSet<>();
                 for (String pkg : targets(home, s.optString("originalDream", ""))) {
                     if (!reverted || !(pkg.equals(packageOf(home)) || pkg.equals(GOOGLE_SETUP))) wanted.add(pkg);
                 }
                 Set<String> disabled = new HashSet<>(stringList(s, "disabled"));
+                // Turned off by an older version but no longer on the list (YouTube Music, which Now Playing opens): back on.
+                for (String pkg : sorted(disabled)) {
+                    if (wanted.contains(pkg) || !Arrays.asList(OLD_DEBLOAT).contains(pkg)) continue;
+                    if (adb.shell("pm enable " + pkg).contains("new state: enabled")) {
+                        disabled.remove(pkg);
+                        restored.add(pkg);
+                    }
+                }
                 for (String pkg : sorted(wanted)) {
                     if (PROTECTED.contains(pkg) || !present.contains(pkg)) continue;
                     if (disabledNow.contains(pkg)) {
@@ -322,6 +333,10 @@ final class HomeMode {
             } catch (Exception e) {
                 notice(app, Ui.tr("Toria kontrol edilemedi: ", "Couldn't check Toria: ") + e.getMessage());
                 return;
+            }
+            if (!restored.isEmpty()) {
+                notice(app, Ui.tr("Artık kapatılmayan uygulama yeniden açıldı: ", "Turned back on (no longer turned off): ")
+                        + String.join(", ", restored) + ".");
             }
             if (!fixed.isEmpty()) {
                 notice(app, (updated ? Ui.tr("TV güncellemesi şunları yeniden açtı: ", "The TV update turned back on ")

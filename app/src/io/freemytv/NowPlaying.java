@@ -104,8 +104,22 @@ final class NowPlaying {
         return MediaListener.playing(controller);
     }
 
-    boolean isYouTubeMusic() {
-        return controller == null || MediaListener.YT_MUSIC.equals(controller.getPackageName());
+    /** The music app's mark and color for the empty cover: what plays, or (nothing playing) the chosen music app. */
+    String markPackage() {
+        return controller != null ? controller.getPackageName() : Prefs.musicApp();
+    }
+
+    /** The white mark of a known music app ("app_spotify"…), or null. */
+    static String mark(String pkg) {
+        String key = HomeApps.knownKey(pkg);
+        return key == null ? null : HomeView.GLYPHS.get(key);
+    }
+
+    /** The color behind a known music app's mark (its brand's), or a neutral gray. */
+    static int markColor(String pkg) {
+        if (MediaListener.YT_MUSIC.equals(pkg)) return 0xFFE8002D;
+        if ("com.spotify.tv.android".equals(pkg)) return 0xFF1DB954;
+        return 0xFF3A3A3C;
     }
 
     /** How far into the song (0 to 1), counting the time since the app last reported it; -1 if unknown. */
@@ -131,6 +145,7 @@ final class NowPlaying {
 
     private String appName(String pkg) {
         if (MediaListener.YT_MUSIC.equals(pkg)) return "YouTube Music";
+        if ("com.spotify.tv.android".equals(pkg)) return "Spotify";
         try {
             PackageManager pm = context.getPackageManager();
             return pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString();

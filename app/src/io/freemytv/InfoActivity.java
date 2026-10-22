@@ -76,7 +76,8 @@ public class InfoActivity extends Activity {
             super(a);
             this.markets = markets;
             this.wifi = wifi;
-            qr = wifi ? QrCode.encode(QrCode.wifi(Config.WIFI_SSID.trim(), Config.WIFI_PASSWORD, Config.WIFI_SECURITY)) : null;
+            Prefs.load(a);
+            qr = wifi ? QrCode.encode(QrCode.wifi(Prefs.wifiSsid(), Prefs.wifiPassword(), Prefs.wifiSecurity())) : null;
             data = HomeData.get(a);
             stocks = Stocks.get(a);
         }
@@ -187,10 +188,10 @@ public class InfoActivity extends Activity {
             float tx = x + box + 40 * k;
             c.drawText(Ui.tr("Misafir Wi-Fi", "Guest Wi-Fi"), tx, top + 40 * k, title);
             c.drawText(Ui.tr("AĞ", "NETWORK"), tx, top + 104 * k, dim);
-            c.drawText(Config.WIFI_SSID.trim(), tx, top + 142 * k, text);
-            boolean open = Config.WIFI_PASSWORD.isEmpty() || Config.WIFI_SECURITY.trim().equalsIgnoreCase("nopass");
+            c.drawText(Prefs.wifiSsid(), tx, top + 142 * k, text);
+            boolean open = Prefs.wifiPassword().isEmpty() || Prefs.wifiSecurity().equals("nopass");
             c.drawText(Ui.tr("ŞİFRE", "PASSWORD"), tx, top + 198 * k, dim);
-            c.drawText(open ? Ui.tr("Şifre yok", "No password") : Config.WIFI_PASSWORD, tx, top + 236 * k, text);
+            c.drawText(open ? Ui.tr("Şifre yok", "No password") : Prefs.wifiPassword(), tx, top + 236 * k, text);
             c.drawText(Ui.tr("Telefonun kamerasıyla okutun,", "Scan it with your phone's camera"), tx, top + 300 * k, dim);
             c.drawText(Ui.tr("otomatik bağlanır.", "to join."), tx, top + 328 * k, dim);
         }

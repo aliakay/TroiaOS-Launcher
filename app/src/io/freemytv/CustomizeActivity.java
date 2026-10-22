@@ -39,8 +39,9 @@ import java.util.concurrent.Executors;
 
 /**
  * Customize, in the style of the settings: the dock's apps (add, move, remove), Control Center's controls (show, hide,
- * move), the home screen (greeting, weather city, temperature unit, watchlist, language) and the wallpaper (nature,
- * NASA's space photos, NASA's picture of the day or soft colors; one photo or a new one every hour; darkening). Everything is saved in
+ * move), the home screen (greeting, weather city, temperature unit, watchlist, language), the wallpaper (nature,
+ * NASA's space photos, NASA's picture of the day or soft colors; one photo or a new one every hour; darkening), the
+ * lights (any brand: Lights), the guest Wi-Fi QR code, the music app, and what Toria does with data (Privacy). Everything is saved in
  * Prefs at once; the home screen and Control Center pick it up when they come back.
  *
  * Opened from Settings, from "Edit" in Control Center (straight to its page) and by holding OK on a dock app (straight
@@ -49,7 +50,7 @@ import java.util.concurrent.Executors;
 public class CustomizeActivity extends Activity {
     static final String EXTRA_PAGE = "page", EXTRA_PKG = "pkg";
     static final int PAGE_MAIN = 0, PAGE_DOCK = 1, PAGE_ADD = 2, PAGE_CONTROL = 3, PAGE_HOME = 4, PAGE_CITY = 5,
-            PAGE_WALL = 6, PAGE_PICK = 7;
+            PAGE_WALL = 6, PAGE_PICK = 7, PAGE_LIGHTS = 8, PAGE_WIFI = 9, PAGE_MUSIC = 10, PAGE_PRIVACY = 11;
 
     private CustomizeView view;
 
@@ -115,6 +116,8 @@ public class CustomizeActivity extends Activity {
         private final List<Prefs.Module> buttons = new ArrayList<>(), tiles = new ArrayList<>();
         private final List<String[]> places = new ArrayList<>();   // name, detail, latitude, longitude
         private String placesState = "";                           // "", "searching", "none", "error"
+        private List<Lights.Lamp> lampsAll = new ArrayList<>();         // Customize → Lights, hidden ones too
+        private String lightsState = "";                            // "", "searching", "connecting"
         private String[] menu;                                       // the open action menu's options (null: none)
         private int menuFocus;
 
@@ -133,6 +136,7 @@ public class CustomizeActivity extends Activity {
             veil.setColor(0x52000000);
             load();
             rebuild();
+            if (page == PAGE_LIGHTS) searchLamps();
             if (pkg != null) {
                 for (int i = 0; i < rows.size(); i++) if (pkg.equals(rows.get(i).id)) focus = i;
             }
@@ -223,6 +227,19 @@ public class CustomizeActivity extends Activity {
                     r = item("wall", Ui.tr("Duvar Kağıdı", "Wallpaper"), "wallpaper");
                     r.value = wallpaperName(Prefs.wallpaper());
                     r.chevron = true;
+                    r = item("lights", Ui.tr("Işıklar", "Lights"), "lightbulb");
+                    r.value = Lights.known(c) ? Ui.tr("Kurulu", "Set up") : Ui.tr("Kurulmadı", "Not set up");
+                    r.chevron = true;
+                    r = item("wifi", Ui.tr("Misafir Wi-Fi QR", "Guest Wi-Fi QR"), "wifi");
+                    r.value = Prefs.wifiSsid().isEmpty() ? Ui.tr("Kapalı", "Off") : Prefs.wifiSsid();
+                    r.chevron = true;
+                    r = item("music", Ui.tr("Müzik Uygulaması", "Music App"), "music_note");
+                    r.value = HomeApps.label(c.getPackageManager(), Prefs.musicApp());
+                    r.chevron = true;
+                    rows.add(headerRow(""));
+                    r = item("privacy", Ui.tr("Gizlilik", "Privacy"), "check");
+                    r.value = Ui.tr("Hiçbir veri toplanmaz", "Nothing is collected");
+                    r.chevron = true;
                     break;
                 }
                 case PAGE_DOCK: {
@@ -309,6 +326,75 @@ public class CustomizeActivity extends Activity {
                     }
                     break;
                 }
+                case PAGE_LIGHTS: {
+                    if (lightsState.equals("searching")) rows.add(headerRow(Ui.tr("LAMBALAR ARANIYOR…", "LOOKING FOR LAMPS…")));
+                    else if (lightsState.equals("connecting")) rows.add(headerRow(Ui.tr("BAĞLANIYOR…", "CONNECTING…")));
+                    else rows.add(headerRow(lampsAll.isEmpty() ? Ui.tr("LAMBA BULUNAMADI", "NO LAMPS FOUND")
+                            : Ui.tr("LAMBALAR · OK: ADI, YANIP SÖN, GİZLE", "LAMPS · OK: RENAME, BLINK, HIDE")));
+                    for (Lights.Lamp l : lampsAll) {
+                        boolean hidden = Prefs.lampHidden(l.key());
+                        Row r = item(l.key(), l.name(), "lightbulb");
+                        r.value = Lights.brandName(l.brand) + (hidden ? Ui.tr(" · gizli", " · hidden") : "");
+                        r.dim = hidden;
+                    }
+                    item("search", Ui.tr("Yeniden Ara", "Search Again"), "sync");
+                    rows.add(headerRow(Ui.tr("BAĞLA", "CONNECT")));
+                    Row hue = item("hue", "Philips Hue", "lightbulb");
+                    hue.value = Prefs.has("hue_user") ? Ui.tr("Bağlı · ", "Connected · ") + Prefs.hueBridge() : Ui.tr("Köprüyü bağla", "Pair the Bridge");
+                    hue.chevron = !Prefs.has("hue_user");
+                    Row ha = item("ha", "Home Assistant", "home");
+                    ha.value = Prefs.has("ha_token") ? Ui.tr("Bağlı", "Connected") : Ui.tr("Diğer markalar için", "For any other brand");
+                    ha.chevron = !Prefs.has("ha_token");
+                    rows.add(headerRow(Ui.tr("WIZ, LIFX VE GOVEE KENDİLİĞİNDEN BULUNUR", "WIZ, LIFX AND GOVEE ARE FOUND BY THEMSELVES")));
+                    rows.add(headerRow(Ui.tr("GOVEE: UYGULAMASINDA “LAN CONTROL” AÇIK OLMALI", "GOVEE: TURN ON “LAN CONTROL” IN THE GOVEE APP")));
+                    rows.add(headerRow(Ui.tr("HER ŞEY EV AĞINIZDA KALIR · BULUT YOK", "EVERYTHING STAYS ON YOUR HOME NETWORK · NO CLOUD")));
+                    break;
+                }
+                case PAGE_WIFI: {
+                    rows.add(headerRow(Ui.tr("MİSAFİRLER QR KODU TARAYIP BAĞLANIR", "GUESTS SCAN A QR CODE TO JOIN")));
+                    String ssid = Prefs.wifiSsid(), pass = Prefs.wifiPassword(), sec = Prefs.wifiSecurity();
+                    Row r = item("ssid", Ui.tr("Ağ Adı", "Network Name"), "wifi");
+                    r.value = ssid.isEmpty() ? Ui.tr("Ayarlanmadı", "Not set") : ssid;
+                    r = item("password", Ui.tr("Şifre", "Password"), "settings");
+                    r.value = sec.equals("nopass") ? Ui.tr("Yok (açık ağ)", "None (open network)")
+                            : pass.isEmpty() ? Ui.tr("Ayarlanmadı", "Not set") : "••••••••";
+                    r.dim = sec.equals("nopass");
+                    r = item("security", Ui.tr("Güvenlik", "Security"), "check");
+                    r.value = sec.equals("nopass") ? Ui.tr("Yok", "None") : sec.equals("WEP") ? "WEP" : "WPA / WPA2 / WPA3";
+                    r = item("show", Ui.tr("QR Kodunu Göster", "Show the QR Code"), "focus");
+                    r.chevron = !ssid.isEmpty();
+                    r.dim = ssid.isEmpty();
+                    item("clear", Ui.tr("Kaldır", "Remove"), "restart_alt");
+                    rows.add(headerRow(Ui.tr("YALNIZCA BU TV'DE, ŞİFRELİ SAKLANIR · HİÇBİR YERE GÖNDERİLMEZ",
+                            "KEPT ONLY ON THIS TV, ENCRYPTED · NEVER SENT ANYWHERE")));
+                    break;
+                }
+                case PAGE_MUSIC: {
+                    rows.add(headerRow(Ui.tr("ÇALAN BİR ŞEY YOKKEN NOW PLAYING BUNU AÇAR", "NOW PLAYING OPENS IT WHEN NOTHING PLAYS")));
+                    String chosen = Prefs.musicApp();
+                    for (HomeApps.Item it : musicApps(c)) {
+                        Row r = item(it.pkg, it.label, appSymbol(it.pkg));
+                        r.value = it.pkg.equals(chosen) ? Ui.tr("Seçili", "Selected") : "";
+                    }
+                    break;
+                }
+                case PAGE_PRIVACY: {
+                    rows.add(headerRow(Ui.tr("TORIA HİÇBİR VERİ TOPLAMAZ", "TORIA COLLECTS NOTHING")));
+                    info(Ui.tr("Hesap, reklam, takip yok", "No account, no ads, no tracking"), "", "check");
+                    info(Ui.tr("Toria'nın sunucusu yok", "Toria has no servers"), Ui.tr("Bize hiçbir şey gelmez", "Nothing is sent to us"), "check");
+                    rows.add(headerRow(Ui.tr("İNTERNETE GİDENLER (YALNIZCA HTTPS)", "WHAT GOES TO THE INTERNET (HTTPS ONLY)")));
+                    info(Ui.tr("Hava durumu", "Weather"), Ui.tr("Open-Meteo: şehrinizin konumu", "Open-Meteo: your city's location"), "sunny");
+                    info(Ui.tr("Şehir arama", "City search"), Ui.tr("Open-Meteo: yazdığınız ad", "Open-Meteo: the name you type"), "pin");
+                    info(Ui.tr("Piyasalar", "Markets"), Ui.tr("Yahoo Finance: sembolleriniz", "Yahoo Finance: your symbols"), "chart");
+                    info(Ui.tr("NASA fotoğrafı", "NASA picture"), Ui.tr("NASA: yalnızca seçerseniz", "NASA: only if you choose it"), "sparkles");
+                    rows.add(headerRow(Ui.tr("EVDE KALANLAR", "WHAT STAYS AT HOME")));
+                    info(Ui.tr("Işıklar", "Lights"), Ui.tr("Yalnızca ev ağı, bulut yok", "Home network only, no cloud"), "lightbulb");
+                    info(Ui.tr("Şifreler, anahtarlar", "Passwords, keys"), Ui.tr("Bu TV'de şifreli", "Encrypted on this TV"), "settings");
+                    info(Ui.tr("Çalan müzik", "Now Playing"), Ui.tr("TV'de okunur, gönderilmez", "Read on the TV, never sent"), "music_note");
+                    info(Ui.tr("TV kontrolü (ADB)", "TV control (ADB)"), Ui.tr("Yalnızca bu TV'nin kendisi", "Only this TV, its own commands"), "tv");
+                    info(Ui.tr("Yedekleme", "Backup"), Ui.tr("Kapalı: ayarlar TV'den çıkmaz", "Off: settings never leave the TV"), "home");
+                    break;
+                }
                 default: {   // PAGE_CITY
                     if (placesState.equals("searching")) rows.add(headerRow(Ui.tr("ARANIYOR…", "SEARCHING…")));
                     else if (placesState.equals("none")) rows.add(headerRow(Ui.tr("BULUNAMADI", "NOTHING FOUND")));
@@ -364,6 +450,20 @@ public class CustomizeActivity extends Activity {
                 b.append(b.length() == 0 ? "" : ", ").append(colon > 0 ? item.substring(colon + 1) : item);
             }
             return b.length() == 0 ? Ui.tr("Boş", "Empty") : b.toString();
+        }
+
+        /** A line that only informs (Privacy): OK does nothing on it. */
+        private void info(String label, String value, String symbol) {
+            Row r = item("", label, symbol);
+            r.value = value;
+        }
+
+        /** Installed apps for Music App: the known music apps first, then the rest. */
+        private static List<HomeApps.Item> musicApps(Context c) {
+            List<HomeApps.Item> all = HomeApps.launchable(c), out = new ArrayList<>();
+            for (HomeApps.Item it : all) if (it.pkg.equals(MediaListener.YT_MUSIC) || it.pkg.equals("com.spotify.tv.android")) out.add(it);
+            for (HomeApps.Item it : all) if (!out.contains(it)) out.add(it);
+            return out;
         }
 
         private static String wallpaperName(String mode) {
@@ -463,6 +563,10 @@ public class CustomizeActivity extends Activity {
                 case PAGE_CITY: return "pin";
                 case PAGE_WALL: return "wallpaper";
                 case PAGE_PICK: return "photo_library";
+                case PAGE_LIGHTS: return "lightbulb";
+                case PAGE_WIFI: return "wifi";
+                case PAGE_MUSIC: return "music_note";
+                case PAGE_PRIVACY: return "check";
                 default: return "tune";
             }
         }
@@ -476,6 +580,10 @@ public class CustomizeActivity extends Activity {
                 case PAGE_CITY: return Ui.tr("Şehir Seçin", "Pick Your City");
                 case PAGE_WALL: return Ui.tr("Duvar Kağıdı", "Wallpaper");
                 case PAGE_PICK: return Ui.tr("Fotoğraf Seçin", "Pick a Photo");
+                case PAGE_LIGHTS: return Ui.tr("Işıklar", "Lights");
+                case PAGE_WIFI: return Ui.tr("Misafir Wi-Fi", "Guest Wi-Fi");
+                case PAGE_MUSIC: return Ui.tr("Müzik Uygulaması", "Music App");
+                case PAGE_PRIVACY: return Ui.tr("Gizlilik", "Privacy");
                 default: return Ui.tr("Özelleştir", "Customize");
             }
         }
@@ -489,7 +597,11 @@ public class CustomizeActivity extends Activity {
                 case PAGE_CITY: return Ui.tr("Hava durumu bu şehir için gösterilir", "The weather follows this city");
                 case PAGE_WALL: return Ui.tr("Seçtiğiniz hemen arkada görünür", "What you choose shows right behind");
                 case PAGE_PICK: return Ui.tr("Gezinirken arkada görünür, OK ile seçin", "Browse to preview, OK to choose");
-                default: return Ui.tr("Uygulamalar, kontroller, ana ekran ve duvar kağıdı", "Your apps, controls, home screen and wallpaper");
+                case PAGE_LIGHTS: return Ui.tr("WiZ, LIFX, Govee, Hue, Home Assistant", "WiZ, LIFX, Govee, Hue, Home Assistant");
+                case PAGE_WIFI: return Ui.tr("Telefonlar şifre yazmadan bağlanır", "Phones join without typing the password");
+                case PAGE_MUSIC: return Ui.tr("Spotify, YouTube Music ya da başkası", "Spotify, YouTube Music or any other");
+                case PAGE_PRIVACY: return Ui.tr("Verileriniz sizde kalır", "Your data stays with you");
+                default: return Ui.tr("Uygulamalar, ekran, ışıklar, Wi-Fi ve müzik", "Apps, screen, lights, Wi-Fi and music");
             }
         }
 
@@ -539,9 +651,10 @@ public class CustomizeActivity extends Activity {
             }
             String value = lifted ? "" : r.value;
             rowValue.setColor(blend(0x8CFFFFFF, 0x8C1C1C1E, f));
-            float valueW = value.isEmpty() ? 0 : Math.min(rowValue.measureText(value), 380 * k);
+            float valueMax = Math.max(380 * k, right - x - rowLabel.measureText(r.label) - 40 * k);
+            float valueW = value.isEmpty() ? 0 : Math.min(rowValue.measureText(value), valueMax);
             if (!value.isEmpty()) {
-                c.drawText(TextUtils.ellipsize(value, new TextPaint(rowValue), 380 * k, TextUtils.TruncateAt.END).toString(), right,
+                c.drawText(TextUtils.ellipsize(value, new TextPaint(rowValue), valueMax, TextUtils.TruncateAt.END).toString(), right,
                         cy + Ui.halfCap(rowValue), rowValue);
             }
             float room = right - valueW - 24 * k - x;
@@ -676,7 +789,9 @@ public class CustomizeActivity extends Activity {
                 rebuild();
                 focus = 0;
                 String id = from == PAGE_DOCK ? "dock" : from == PAGE_CONTROL ? "control" : from == PAGE_HOME ? "home"
-                        : from == PAGE_ADD ? "add" : from == PAGE_WALL ? "wall" : from == PAGE_PICK ? "pick" : "city";
+                        : from == PAGE_ADD ? "add" : from == PAGE_WALL ? "wall" : from == PAGE_PICK ? "pick"
+                        : from == PAGE_LIGHTS ? "lights" : from == PAGE_WIFI ? "wifi" : from == PAGE_MUSIC ? "music"
+                        : from == PAGE_PRIVACY ? "privacy" : "city";
                 for (int i = 0; i < rows.size(); i++) if (rows.get(i).id.equals(id)) focus = i;
                 snapScroll();
             }
@@ -704,7 +819,31 @@ public class CustomizeActivity extends Activity {
             Context c = getContext();
             switch (page) {
                 case PAGE_MAIN:
-                    open(r.id.equals("dock") ? PAGE_DOCK : r.id.equals("control") ? PAGE_CONTROL : r.id.equals("wall") ? PAGE_WALL : PAGE_HOME);
+                    switch (r.id) {
+                        case "dock": open(PAGE_DOCK); break;
+                        case "control": open(PAGE_CONTROL); break;
+                        case "wall": open(PAGE_WALL); break;
+                        case "lights": openLights(); break;
+                        case "wifi": open(PAGE_WIFI); break;
+                        case "music": openMusic(); break;
+                        case "privacy": open(PAGE_PRIVACY); break;
+                        default: open(PAGE_HOME);
+                    }
+                    break;
+                case PAGE_LIGHTS:
+                    lights(r);
+                    break;
+                case PAGE_WIFI:
+                    wifi(r.id);
+                    break;
+                case PAGE_MUSIC:
+                    Prefs.put(c, "music_app", r.id.equals(MediaListener.YT_MUSIC) ? null : r.id);
+                    page = PAGE_MAIN;
+                    rebuild();
+                    for (int j = 0; j < rows.size(); j++) if (rows.get(j).id.equals("music")) focus = j;
+                    snapScroll();
+                    break;
+                case PAGE_PRIVACY:
                     break;
                 case PAGE_DOCK:
                     if (r.id.equals("add")) {
@@ -779,6 +918,11 @@ public class CustomizeActivity extends Activity {
             menu = null;
             Context c = getContext();
             String id = rows.get(focus).id;
+            if (page == PAGE_LIGHTS) {
+                lightsMenu(option, id);
+                invalidate();
+                return;
+            }
             if (option.equals(Ui.tr("Taşı", "Move"))) {
                 moving = true;
             } else if (option.equals(removeLabel())) {
@@ -902,21 +1046,280 @@ public class CustomizeActivity extends Activity {
             }
         }
 
+        // MARK: - Lights
+
+        private void openLights() {
+            open(PAGE_LIGHTS);
+            searchLamps();
+        }
+
+        private void searchLamps() {
+            lightsState = "searching";
+            rebuild();
+            invalidate();
+            final Context c = getContext().getApplicationContext();
+            io.execute(() -> {
+                final List<Lights.Lamp> found = Lights.all(c, 1800);
+                handler.post(() -> {
+                    lampsAll = found;
+                    lightsState = "";
+                    if (page == PAGE_LIGHTS && menu == null) rebuild();
+                    invalidate();
+                });
+            });
+        }
+
+        private Lights.Lamp lamp(String key) {
+            for (Lights.Lamp l : lampsAll) if (l.key().equals(key)) return l;
+            return null;
+        }
+
+        private void lights(Row r) {
+            final Context c = getContext().getApplicationContext();
+            switch (r.id) {
+                case "search":
+                    if (!lightsState.equals("searching")) searchLamps();
+                    break;
+                case "hue":
+                    if (Prefs.has("hue_user")) openMenu(Ui.tr("Bağlantıyı kes", "Disconnect"));
+                    else findService(Hue.SERVICE, ip -> confirmHue(stripPort(ip), null),
+                            () -> ask(Ui.tr("Hue Köprüsü'nün adresi (IP)", "The Hue Bridge's address (IP)"),
+                                    Ui.tr("Hue uygulaması → Ayarlar → Köprüler → (i)", "Hue app → Settings → Bridges → (i)"),
+                                    "", FIELD_CODE, ip -> confirmHue(ip.trim(), null)));
+                    break;
+                case "ha":
+                    if (Prefs.has("ha_token")) openMenu(Ui.tr("Bağlantıyı kes", "Disconnect"));
+                    else findService(HomeAssistant.SERVICE, this::askHaUrl, () -> askHaUrl(""));
+                    break;
+                default: {
+                    if (lamp(r.id) == null) return;
+                    openMenu(Ui.tr("Yeniden adlandır", "Rename"), Ui.tr("Yanıp sön", "Blink"),
+                            Prefs.lampHidden(r.id) ? Ui.tr("Göster", "Show") : Ui.tr("Gizle", "Hide"));
+                }
+            }
+        }
+
+        private void lightsMenu(String option, final String id) {
+            final Context c = getContext().getApplicationContext();
+            if (option.equals(Ui.tr("Bağlantıyı kes", "Disconnect"))) {
+                if (id.equals("hue")) {
+                    Prefs.put(c, "hue_ip", null);
+                    Prefs.put(c, "hue_user", null);
+                } else {
+                    Prefs.put(c, "ha_url", null);
+                    Prefs.put(c, "ha_token", null);
+                }
+                searchLamps();
+                return;
+            }
+            final Lights.Lamp l = lamp(id);
+            if (l == null) return;
+            if (option.equals(Ui.tr("Yeniden adlandır", "Rename"))) {
+                ask(Ui.tr("Lambanın adı", "The lamp's name"), l.name(), false, text -> {
+                    Prefs.setLampName(c, id, text);
+                    rebuild();
+                });
+            } else if (option.equals(Ui.tr("Yanıp sön", "Blink"))) {
+                io.execute(() -> Lights.blink(c, l));
+            } else {
+                Prefs.setLampHidden(c, id, !Prefs.lampHidden(id));
+                rebuild();
+            }
+        }
+
+        interface Found { void at(String hostPort); }
+
+        /** Looks for a device on the home network (mDNS); `none` when nothing answered in 3 seconds. */
+        private void findService(final String type, final Found found, final Runnable none) {
+            lightsState = "connecting";
+            rebuild();
+            invalidate();
+            final Context c = getContext().getApplicationContext();
+            io.execute(() -> {
+                final List<String> list = Nsd.find(c, type, 3000);
+                handler.post(() -> {
+                    lightsState = "";
+                    rebuild();
+                    if (list.isEmpty()) none.run();
+                    else found.at(list.get(0));
+                    invalidate();
+                });
+            });
+        }
+
+        private static String stripPort(String hostPort) {
+            int colon = hostPort.lastIndexOf(':');
+            return colon > 0 && hostPort.indexOf(':') == colon ? hostPort.substring(0, colon) : hostPort;
+        }
+
+        /** Hue: press the bridge's button, then Connect (within 30 s). Asked again while the button wasn't pressed. */
+        private void confirmHue(final String ip, String problem) {
+            if (ip.isEmpty()) return;
+            final Context c = getContext().getApplicationContext();
+            String msg = (problem != null ? problem + "\n\n" : "")
+                    + Ui.tr("Hue Köprüsü'nün (" + ip + ") üstündeki yuvarlak düğmeye basın, sonra 30 saniye içinde Bağlan'ı seçin.",
+                            "Press the round button on top of the Hue Bridge (" + ip + "), then choose Connect within 30 seconds.")
+                    + "\n\n" + Ui.tr("Köprünün verdiği anahtar yalnızca bu TV'de, şifreli saklanır.",
+                            "The key the bridge gives stays on this TV only, encrypted.");
+            dialog("Philips Hue", msg, Ui.tr("Bağlan", "Connect"), () -> {
+                lightsState = "connecting";
+                rebuild();
+                io.execute(() -> {
+                    String error = null;
+                    boolean retry = false;
+                    try {
+                        String user = Hue.pair(ip);
+                        Prefs.put(c, "hue_ip", ip);
+                        if (!Prefs.putSecret(c, "hue_user", user)) error = Ui.tr("TV anahtarı güvenle saklayamadı.", "The TV couldn't store the key securely.");
+                    } catch (Hue.ButtonNotPressed e) {
+                        retry = true;
+                    } catch (Exception e) {
+                        error = e.getMessage();
+                    }
+                    final String err = error;
+                    final boolean again = retry;
+                    handler.post(() -> {
+                        lightsState = "";
+                        if (again) confirmHue(ip, Ui.tr("Düğmeye henüz basılmadı.", "The button wasn't pressed yet."));
+                        else if (err != null) dialog("Philips Hue", err, null, null);
+                        else searchLamps();
+                        rebuild();
+                        invalidate();
+                    });
+                });
+            });
+        }
+
+        private void askHaUrl(String found) {
+            String suggestion = !Prefs.haUrl().isEmpty() ? Prefs.haUrl() : found.isEmpty() ? "http://" : "http://" + found;
+            ask(Ui.tr("Home Assistant adresi", "Home Assistant's address"),
+                    Ui.tr("Örn. http://192.168.1.10:8123 — düz http yalnızca ev ağında kullanılır.",
+                            "E.g. http://192.168.1.10:8123. Plain http is only used inside your home network."),
+                    suggestion, FIELD_CODE, url -> {
+                        if (HomeAssistant.clean(url).length() > 8) askHaToken(HomeAssistant.clean(url));
+                    });
+        }
+
+        private void askHaToken(final String url) {
+            final Context c = getContext().getApplicationContext();
+            ask(Ui.tr("Uzun ömürlü erişim anahtarı", "Long-lived access token"),
+                    Ui.tr("Home Assistant → profiliniz → Güvenlik → Uzun ömürlü erişim anahtarları. Telefondan Google TV uygulamasının klavyesiyle yapıştırabilirsiniz. Yalnızca bu TV'de, şifreli saklanır.",
+                            "Home Assistant → your profile → Security → Long-lived access tokens. You can paste it from your phone with the Google TV app's keyboard. Kept on this TV only, encrypted."),
+                    "", FIELD_SECRET, token -> {
+                        final String t = token.trim();
+                        if (t.isEmpty()) return;
+                        lightsState = "connecting";
+                        rebuild();
+                        io.execute(() -> {
+                            String error = HomeAssistant.check(url, t);
+                            if (error == null) {
+                                Prefs.put(c, "ha_url", url);
+                                if (!Prefs.putSecret(c, "ha_token", t)) error = Ui.tr("TV anahtarı güvenle saklayamadı.", "The TV couldn't store the token securely.");
+                            }
+                            final String err = error;
+                            handler.post(() -> {
+                                lightsState = "";
+                                if (err != null) dialog("Home Assistant", Ui.tr("Bağlanamadı: ", "Couldn't connect: ") + err, null, null);
+                                else searchLamps();
+                                rebuild();
+                                invalidate();
+                            });
+                        });
+                    });
+        }
+
+        /** A message with one action (or just OK when `action` is null). */
+        private void dialog(String title, String message, String action, final Runnable then) {
+            AlertDialog.Builder b = new AlertDialog.Builder(activity, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    .setTitle(title)
+                    .setMessage(message);
+            if (action != null) {
+                b.setPositiveButton(action, (d, w) -> then.run()).setNegativeButton(Ui.tr("Vazgeç", "Cancel"), null);
+            } else {
+                b.setPositiveButton("OK", null);
+            }
+            AlertDialog d = b.create();
+            d.setOnDismissListener(x -> invalidate());
+            d.show();
+        }
+
+        // MARK: - Guest Wi-Fi and the music app
+
+        private void wifi(String id) {
+            final Context c = getContext();
+            switch (id) {
+                case "ssid":
+                    ask(Ui.tr("Ağ adı (SSID)", "Network name (SSID)"), Prefs.wifiSsid(), true, text -> {
+                        Prefs.put(c, "wifi_ssid", text.trim());
+                        rebuild();
+                    });
+                    break;
+                case "password":
+                    if (Prefs.wifiSecurity().equals("nopass")) return;
+                    ask(Ui.tr("Wi-Fi şifresi", "Wi-Fi password"),
+                            Ui.tr("Yalnızca bu TV'de, şifreli saklanır; QR kodunda ve misafir ekranında görünür.",
+                                    "Kept on this TV only, encrypted; shown in the QR code and on the guest screen."),
+                            Prefs.wifiPassword(), FIELD_SECRET, text -> {
+                                if (!Prefs.putSecret(c, "wifi_password", text)) {
+                                    dialog(Ui.tr("Misafir Wi-Fi", "Guest Wi-Fi"), Ui.tr("TV şifreyi güvenle saklayamadı.", "The TV couldn't store the password securely."), null, null);
+                                }
+                                rebuild();
+                            });
+                    break;
+                case "security": {
+                    String s = Prefs.wifiSecurity();
+                    Prefs.put(c, "wifi_security", s.equals("WPA") ? "nopass" : s.equals("nopass") ? "WEP" : "WPA");
+                    rebuild();
+                    break;
+                }
+                case "show":
+                    if (Prefs.wifiSsid().isEmpty()) return;
+                    activity.startActivity(new android.content.Intent().setComponent(new android.content.ComponentName(activity, InfoActivity.class))
+                            .putExtra(InfoActivity.EXTRA, InfoActivity.WIFI));
+                    break;
+                default:    // Remove: empty (not the config.properties defaults)
+                    Prefs.put(c, "wifi_ssid", "");
+                    Prefs.putSecret(c, "wifi_password", "");
+                    Prefs.put(c, "wifi_security", null);
+                    rebuild();
+            }
+        }
+
+        private void openMusic() {
+            open(PAGE_MUSIC);
+            String chosen = Prefs.musicApp();
+            for (int i = 0; i < rows.size(); i++) if (rows.get(i).id.equals(chosen)) focus = i;
+            snapScroll();
+        }
+
         interface Answer { void text(String value); }
 
-        /** A text field in a dialog: the TV's keyboard comes up with it. */
         private void ask(String question, String current, boolean code, final Answer answer) {
+            ask(question, null, current, code ? FIELD_CODE : FIELD_WORDS, answer);
+        }
+
+        private static final int FIELD_WORDS = 0, FIELD_CODE = 1, FIELD_SECRET = 2;
+
+        /**
+         * A text field in a dialog: the TV's keyboard comes up with it. `note` (optional) under the title. A secret is
+         * typed as a visible password: keyboards don't learn or suggest it.
+         */
+        private void ask(String question, String note, String current, int kind, final Answer answer) {
             final EditText field = new EditText(activity);
             field.setSingleLine(true);
             field.setText(current);
             field.setSelection(field.getText().length());
-            field.setInputType(code ? InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+            field.setInputType(kind == FIELD_SECRET
+                    ? InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+                    : kind == FIELD_CODE ? InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
                     : InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
-            field.setImeOptions(EditorInfo.IME_ACTION_DONE);
+            if (kind == FIELD_SECRET) field.setImeOptions(EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING);
+            field.setImeOptions(field.getImeOptions() | EditorInfo.IME_ACTION_DONE);
             int pad = Math.round(28 * k);
             field.setPadding(pad, pad / 2, pad, pad / 2);
             final AlertDialog dialog = new AlertDialog.Builder(activity, android.R.style.Theme_DeviceDefault_Dialog_Alert)
                     .setTitle(question)
+                    .setMessage(note)
                     .setView(field)
                     .setPositiveButton(Ui.tr("Kaydet", "Save"), (d, which) -> answer.text(field.getText().toString()))
                     .setNegativeButton(Ui.tr("Vazgeç", "Cancel"), null)

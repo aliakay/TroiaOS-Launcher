@@ -82,6 +82,9 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
   *Original* can bring it back.
 - Don't change the TV's picture, sound, network or account settings.
 - Keep the way back working: the *Original* mode and the watchdog.
+- Keep the privacy promise (README → Privacy, Customize → Privacy): no analytics, no servers of ours. A new request
+  to the internet goes on both lists, over HTTPS. Secrets typed on the TV go through `Prefs.putSecret` (encrypted with
+  the Android Keystore, `Secrets`); plain HTTP only through `Net`, which allows home-network addresses only.
 
 ## Toria's additions
 
@@ -129,10 +132,23 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
   for the focused app (its own hardware layer, `contLayer`; zone `Z_CONTINUE`). YouTube resumes through
   `youtube.com/watch?v=ID&t=Ns` when the session's media ID looks like a video ID; otherwise the app just opens.
 - **Panels** (floating windows over the home screen, theme `FreeMyTV.Panel`): `InfoActivity` (weather hours,
-  markets) and `LightsActivity` (WiZ: all lamps or one, on/off, scenes, brightness, colour). OK on the bulb switches
-  every lamp; holding OK opens the panel.
-- **WiZ** (`Wiz`): local UDP on port 38899 (`getPilot`, `setPilot`), broadcast discovery, no cloud. Lamps answer
-  only with "Allow local communication" on in the WiZ app.
+  markets, the guest Wi-Fi QR) and `LightsActivity` (all lamps or one, on/off, scenes, brightness, colour).
+- **Lights** (`Lights`: `Lamp`, `Pilot`; every brand at the same time, all on the home network):
+  - `Wiz`: UDP 38899 (`getPilot`, `setPilot`), broadcast; needs "Allow local communication" (on by default).
+  - `Lifx`: the LAN protocol, UDP 56700 (LightGet → LightState; SetColor HSBK, SetPower, with acks).
+  - `Govee`: the LAN API (scan to 239.255.255.250:4001, answers on 4002, commands to 4003; no confirmations); each
+    lamp needs "LAN Control" on in the Govee app.
+  - `Hue`: the bridge's local v1 API over `Net`; found with `Nsd` (`_hue._tcp`) or typed; paired with its button.
+  - `HomeAssistant`: REST (`/api/states`, `light.turn_on`/`turn_off`) with a long-lived token; for any other brand.
+  - Names, hidden lamps, the bridge and the token are in `Prefs` (`lamp_names`, `lamp_hidden`, `hue_*`, `ha_*`);
+    Customize → Lights searches, renames, blinks, hides and connects. WiZ scenes become a white or a colour on other
+    brands (`Mood.temp`/`rgb` in `LightsActivity`). Only WiZ has been tried on a real TV; the other brands follow their
+    published protocols.
+- **Guest Wi-Fi QR**: Customize → Guest Wi-Fi QR (`Prefs.wifiSsid`, `wifiPassword` (encrypted), `wifiSecurity`);
+  `config.properties` `guest_wifi_*` is only the starting value.
+- **Music app**: `Prefs.musicApp` (YouTube Music when unset): what Now Playing opens and prefers; marks and colours of
+  known music apps in `NowPlaying.mark`/`markColor`. YouTube Music is no longer turned off (`HomeMode.OLD_DEBLOAT`:
+  the check after boot or an update turns it back on where an older version turned it off).
 - **Markets** (`Stocks`): Yahoo Finance's public chart endpoint, unofficial and keyless; off when `stocks` is empty.
 - **Android 12 HOME role**: `cmd role get-role-holders` doesn't exist there; `HomeMode.homeHolder` reads `dumpsys
   role` instead.
