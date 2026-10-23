@@ -75,7 +75,21 @@ One button to undo.
 <img src=".github/screenshots/space.jpg" width="49%" alt="The home screen with the Space · NASA wallpaper: the center of the Milky Way">
 </p>
 
-Control Center · the List layout · Wallpaper · the photo picker · Customize · the Space wallpaper. All taken on a Sony BRAVIA (October
+Control Center · the List layout · Wallpaper · the photo picker · Customize · the Space wallpaper.
+
+### Set Up
+
+<p align="center">
+<img src=".github/screenshots/hello.jpg" width="49%" alt="Set Up's first screen: TroiaOS written by hand on black, the horse below and Press OK to set up">
+<img src=".github/screenshots/setup-language.jpg" width="49%" alt="Set Up, the language step: Türkçe or English">
+</p>
+<p align="center">
+<img src=".github/screenshots/setup-apps.jpg" width="49%" alt="Set Up, your apps: the ones on Home are ticked">
+<img src=".github/screenshots/setup-privacy.jpg" width="49%" alt="Set Up, privacy: what TroiaOS sends where">
+</p>
+
+The first screen writes "TroiaOS" by hand, then says hello in many languages. After that, Set Up walks through
+the language, your name, city, apps, wallpaper, lights, guest Wi-Fi, music, markets and privacy, one step at a time. All taken on a Sony BRAVIA (October
 2026).
 
 ## Tested on
@@ -89,9 +103,9 @@ apps may need adding to the lists (see [Any TV](#any-tv)). Samsung or LG: plug a
 
 **Checked on the BRAVIA:** the dock and the List layout, Control Center (Now Playing, lights, markets, volume, Free
 RAM), Customize (dock, Control Center, home screen, wallpaper), the photo and NASA wallpapers, Continue watching with
-YouTube, WiZ lights, the guest Wi-Fi QR panel, the screensaver, and Set Up switching the TV to TroiaOS.
+YouTube, WiZ lights, the guest Wi-Fi QR panel, the screensaver, and Set Up (its handwritten first screen and switching the TV to TroiaOS).
 
-**Not yet checked on a real TV:** installing the release APK with Downloader, the handwritten "hello", the ⚙ button next to Control Center, the
+**Not yet checked on a real TV:** installing the release APK with Downloader, the ⚙ button next to Control Center, the
 Customize pages for Lights, Guest Wi-Fi, Music App and Privacy, the screensaver's Now Playing card, and YouTube
 resuming at the exact second. LIFX, Govee, Philips Hue and Home Assistant follow their published protocols but
 haven't met a real lamp yet: reports welcome.
@@ -145,8 +159,8 @@ installed, from a server in another city.
 
 ## Set it up on the TV
 
-The first time you open TroiaOS from the TV's apps, **Set Up** greets you: "hello" is written by hand, then the word
-in other languages. Press OK and the remote walks you through it, one step at a time: the language, your name, your
+The first time you open TroiaOS from the TV's apps, **Set Up** greets you: "TroiaOS" is written by hand, then "hello"
+in many languages. Press OK and the remote walks you through it, one step at a time: the language, your name, your
 city (for the weather), your apps, the wallpaper, lights, a guest Wi-Fi QR code, the music app, a watchlist, what
 TroiaOS does with data, and making TroiaOS the home screen. Every choice is saved at once; leave half-way and it opens
 where you left it. *Later* on the first screen puts it off for good, and Settings → *Set Up Again* runs it any time
@@ -292,7 +306,7 @@ your TV and updates the lists ([CLAUDE.md](CLAUDE.md) tells it how).
   public agencies alone (many APOD pictures belong to their photographers). NASA doesn't endorse TroiaOS.
 - **Fonts and symbols:** [Inter](https://rsms.me/inter/) (SIL OFL 1.1), [Material Symbols](https://fonts.google.com/icons)
   (Apache 2.0).
-- **Set Up's handwritten "hello":** from the Hershey Script font (`tools/make_hello.py`). The Hershey Fonts were
+- **Set Up's handwritten "TroiaOS":** from the Hershey Script font (`tools/make_hello.py`). The Hershey Fonts were
   originally created by Dr. A. V. Hershey while working at the U. S. National Bureau of Standards; the format of the
   font data it was read from was originally created by James Hurt, Cognition, Inc. See
   [`CREDITS.md`](app/assets/setup/CREDITS.md).

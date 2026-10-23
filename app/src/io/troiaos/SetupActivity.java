@@ -31,7 +31,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Set Up: the first time TroiaOS opens, "hello" is written by hand (Hello), then the remote walks the person through
+ * Set Up: the first time TroiaOS opens, "TroiaOS" is written by hand (Hello), then the remote walks the person through
  * the language, their name, city, apps, wallpaper, lights, guest Wi-Fi, music app, markets, privacy and making TroiaOS the
  * home screen. Every choice is saved at once with the keys Customize uses, so leaving half-way keeps it; the step
  * reached is kept too (`setup_step`), and opening TroiaOS again resumes there.

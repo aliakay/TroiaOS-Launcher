@@ -24,14 +24,10 @@ Take them with the greeting name left empty, at 1920 × 1080, and save them as J
 - [ ] `control-center.jpg` again, with the Free RAM button (the current one is from before it).
 - [ ] `lights.jpg`: the lights panel (scenes, brightness, colour). The old one showed the corner buttons that are gone.
 - [ ] `markets.jpg`: the markets panel, opened from Control Center.
-- [ ] `hello.jpg`: Set Up's handwritten "hello" (asked for again on 2026-10-23). Take it in the middle of the
-      writing and once the word is complete, keep the better one.
-- [ ] `setup.jpg` and `setup-apps.jpg`: two Set Up steps, the Language step (with the new translate symbol) and the
-      apps step. Then add a "Set Up" row to the README's Screenshots section.
-      How: easiest on the Google TV Streamer if its Set Up isn't done yet. It has the clean build, so no name shows.
-      Opening TroiaOS (`am start -n io.troiaos/.SettingsActivity`) shows Hello, OK goes to the steps. On the Sony,
-      it's Settings → Set Up Again, and the name "Ali" has to be erased from any frame showing it. Ask first: someone
-      may be watching that TV.
+- [x] `hello.jpg` (now the handwritten "TroiaOS"), `setup-language.jpg`, `setup-apps.jpg`, `setup-privacy.jpg`:
+      taken on the Sony on 2026-10-23 via Settings → Set Up Again, and added to the README. Name, City, Guest Wi-Fi
+      and Markets were left out on purpose: they show the user's name, city, real Wi-Fi QR and watchlist.
+- [ ] Set Up → Privacy: the first row is cut ("No account, no ads, no…"). Shorten it or give the label more room.
 - [ ] `screensaver.jpg`: the screensaver, with the Now Playing card while music plays.
 - [x] `space.jpg`: the home screen with the Space · NASA wallpaper.
 - [ ] `wifi-qr.jpg`: the guest Wi-Fi QR panel, but only with a made-up network (never the real one).

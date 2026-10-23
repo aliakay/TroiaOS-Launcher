@@ -1,6 +1,6 @@
 # Set Up credits
 
-`hello.txt` is the word "hello" from the **Hershey Script** (simplex) font, joined into one path and smoothed by
+`hello.txt` is the word "TroiaOS" from the **Hershey Script** (simplex) font, joined into one path and smoothed by
 [`tools/make_hello.py`](../../../tools/make_hello.py).
 
 - The Hershey Fonts were originally created by Dr. A. V. Hershey while working at the U. S. National Bureau of

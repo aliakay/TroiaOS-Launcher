@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Writes app/assets/setup/hello.txt: the word "hello" in the Hershey Script font as one SVG path (M, C), the
+"""Writes app/assets/setup/hello.txt: the word "TroiaOS" in the Hershey Script font as one SVG path (M, C), the
 handwriting Set Up writes on its first screen. The letters' strokes are joined where one ends near where the next
 begins, so the pen draws the word in as few strokes as possible, and the font's straight segments are smoothed into
 curves (Catmull-Rom), keeping the sharp turns. Normalized to a 1000 x 400 box (y down).
@@ -8,7 +8,8 @@ The Hershey fonts were originally created by Dr. A. V. Hershey while working at 
 Standards. The format of the font data used here was originally created by James Hurt, Cognition, Inc.
 The data file is read into a temporary directory and deleted afterwards; only the generated path is kept.
 
-    python3 tools/make_hello.py            # writes app/assets/setup/hello.txt
+    python3 tools/make_hello.py            # writes app/assets/setup/hello.txt ("TroiaOS")
+    python3 tools/make_hello.py hello      # another word
 """
 import os
 import sys
@@ -16,7 +17,7 @@ import tempfile
 import urllib.request
 
 URL = "https://raw.githubusercontent.com/kamalmostafa/hershey-fonts/master/hershey-fonts/scripts.jhf"
-WORD = "hello"
+WORD = "TroiaOS"
 BOX_W, BOX_H, MARGIN = 1000.0, 400.0, 20.0
 JOIN = 3.5          # font units: a stroke ending this close to the next one's start continues it
 CORNER = 110        # degrees: a sharper turn than this stays a corner (the cusp at the foot of the h)
@@ -108,7 +109,7 @@ def main():
         urllib.request.urlretrieve(URL, path)
         with open(path, encoding="latin-1") as f:
             font = glyphs(f.read())
-    strokes = word_strokes(font, WORD)
+    strokes = word_strokes(font, sys.argv[1] if len(sys.argv) > 1 else WORD)
     xs = [p[0] for s in strokes for p in s]
     ys = [p[1] for s in strokes for p in s]
     w, h = max(xs) - min(xs), max(ys) - min(ys)

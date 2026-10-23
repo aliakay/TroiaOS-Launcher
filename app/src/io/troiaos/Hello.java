@@ -21,17 +21,17 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Set Up's first screen: on black, "hello" is written by hand (assets/setup/hello.txt, from the Hershey Script font:
- * tools/make_hello.py), then the word in other languages follows, and "hello" is written again. TroiaOS's horse rests at
+ * Set Up's first screen: on black, "TroiaOS" is written by hand (assets/setup/hello.txt, from the Hershey Script font:
+ * tools/make_hello.py), then "hello" follows in many languages, and "TroiaOS" is written again. TroiaOS's horse rests at
  * the bottom with "Press OK to set up" under it. The keys are SetupActivity's.
  */
 final class Hello extends View implements Choreographer.FrameCallback {
     // The timeline, in seconds from start().
-    private static final float WRITE_AT = 0.6f, WRITE_FOR = 2.4f, FADE_AT = 4.2f, FADE_FOR = 0.5f, WORDS_AT = 4.5f,
-            WORD_FOR = 1.6f, CROSS = 0.4f, HORSE_AT = 1.2f, HINT_AT = 3.4f, BREATH = 2.4f;
+    private static final float WRITE_AT = 0.6f, WRITE_FOR = 3.2f, FADE_AT = 5.0f, FADE_FOR = 0.5f, WORDS_AT = 5.3f,
+            WORD_FOR = 1.6f, CROSS = 0.4f, HORSE_AT = 1.2f, HINT_AT = 4.0f, BREATH = 2.4f;
     private static final int CREAM = 0xFFFFF4E6, PEACH = 0xFFFFC9A8;
     /** Languages (their codes) and their hello; the TV's own language moves to the front. */
-    private static final String[][] WORDS = {{"tr", "Merhaba"}, {"es", "Hola"}, {"fr", "Bonjour"}, {"de", "Hallo"},
+    private static final String[][] WORDS = {{"en", "Hello"}, {"tr", "Merhaba"}, {"es", "Hola"}, {"fr", "Bonjour"}, {"de", "Hallo"},
             {"it", "Ciao"}, {"pt", "Olá"}, {"sv da nb no", "Hej"}, {"ru", "Привет"}, {"ja", "こんにちは"}, {"ko", "안녕하세요"},
             {"zh", "你好"}, {"ar", "مرحبا"}};
 
@@ -140,7 +140,7 @@ final class Hello extends View implements Choreographer.FrameCallback {
         }
     }
 
-    /** "hello", written up to where the pen is, then fading. */
+    /** "TroiaOS", written up to where the pen is, then fading. */
     private void drawHand(Canvas c, float local) {
         float alpha = 1 - Ui.clamp((local - FADE_AT) / FADE_FOR);
         if (alpha <= 0) return;
@@ -154,7 +154,7 @@ final class Hello extends View implements Choreographer.FrameCallback {
         c.drawPath(drawn, pen);
     }
 
-    /** The other languages, one after the other: each rises a little into place, then on as the next comes. */
+    /** Hello in every language, one after the other: each rises a little into place, then on as the next comes. */
     private void drawWords(Canvas c, float local) {
         for (int i = 0; i < words.length; i++) {
             float at = WORDS_AT + i * WORD_FOR;

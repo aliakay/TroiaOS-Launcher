@@ -116,8 +116,8 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
   `moduleSymbol`/`moduleLabel`, and its drawing and keys.
 - **Set Up** (`SetupActivity`, `Hello`): the first-run wizard. Settings (the app's icon) and the home screen open it
   while `Prefs.setupDone` is false (not while a switch runs: `HomeMode` opens Settings and Home to measure). `Hello`
-  writes "hello" along `assets/setup/hello.txt` (SVG path data from the Hershey Script font, `tools/make_hello.py`;
-  keep the acknowledgement in `assets/setup/CREDITS.md`), then other languages. The steps save with Customize's
+  writes "TroiaOS" along `assets/setup/hello.txt` (SVG path data from the Hershey Script font, `tools/make_hello.py`;
+  keep the acknowledgement in `assets/setup/CREDITS.md`), then "hello" in many languages. The steps save with Customize's
   `Prefs` keys at once, plus `setup_step` (resumed there), `setup_done` and `setup_skipped` ("Later"). A TV that had
   TroiaOS set up before counts as done (`setup_checked`, once). "Set Up Again" in Settings and Customize. Shared with
   Customize: `Dialogs` (keyboard field, messages), `Geocode` (city search).
