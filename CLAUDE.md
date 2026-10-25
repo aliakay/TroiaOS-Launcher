@@ -147,11 +147,16 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
   - `Govee`: the LAN API (scan to 239.255.255.250:4001, answers on 4002, commands to 4003; no confirmations); each
     lamp needs "LAN Control" on in the Govee app.
   - `Hue`: the bridge's local v1 API over `Net`; found with `Nsd` (`_hue._tcp`) or typed; paired with its button.
+  - `Tapo`: TP-Link Tapo bulbs (L530/L535…) by their local KLAP protocol (AES session from the Tapo account's e-mail and
+    password, checked by the bulb; no cloud). They don't announce themselves, so Customize → Lights → Tapo takes the account
+    (encrypted, `tapo_user`/`tapo_pass`) and the bulbs' addresses (`tapo_ips`). Its own small HTTP/1.1 client on one kept-alive
+    socket per bulb (KLAP ties the cookie to the connection; `Net` has no binary bodies), still home-network addresses only
+    (`Net.home`).
   - `HomeAssistant`: REST (`/api/states`, `light.turn_on`/`turn_off`) with a long-lived token; for any other brand.
   - Names, hidden lamps, the bridge and the token are in `Prefs` (`lamp_names`, `lamp_hidden`, `hue_*`, `ha_*`);
     Customize → Lights searches, renames, blinks, hides and connects. WiZ scenes become a white or a colour on other
-    brands (`Mood.temp`/`rgb` in `LightsActivity`). Only WiZ has been tried on a real TV; the other brands follow their
-    published protocols.
+    brands (`Mood.temp`/`rgb` in `LightsActivity`). Only WiZ and Tapo (two L535 bulbs) have been tried on a real TV; the other
+    brands follow their published protocols.
 - **Guest Wi-Fi QR**: Customize → Guest Wi-Fi QR (`Prefs.wifiSsid`, `wifiPassword` (encrypted), `wifiSecurity`);
   `config.properties` `guest_wifi_*` is only the starting value.
 - **Music app**: `Prefs.musicApp` (YouTube Music when unset): what Now Playing opens and prefers; marks and colours of

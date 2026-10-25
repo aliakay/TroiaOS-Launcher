@@ -334,6 +334,9 @@ public class CustomizeActivity extends Activity {
                     Row hue = item("hue", "Philips Hue", "lightbulb");
                     hue.value = Prefs.has("hue_user") ? Ui.tr("Bağlı · ", "Connected · ") + Prefs.hueBridge() : Ui.tr("Köprüyü bağla", "Pair the Bridge");
                     hue.chevron = !Prefs.has("hue_user");
+                    Row tapo = item("tapo", "Tapo", "lightbulb");
+                    tapo.value = Prefs.has("tapo_pass") ? Ui.tr("Bağlı · ", "Connected · ") + Prefs.tapoIps() : Ui.tr("Hesap ve adresleri gir", "Enter the account and addresses");
+                    tapo.chevron = !Prefs.has("tapo_pass");
                     Row ha = item("ha", "Home Assistant", "home");
                     ha.value = Prefs.has("ha_token") ? Ui.tr("Bağlı", "Connected") : Ui.tr("Diğer markalar için", "For any other brand");
                     ha.chevron = !Prefs.has("ha_token");
@@ -1086,6 +1089,10 @@ public class CustomizeActivity extends Activity {
                                     Ui.tr("Hue uygulaması → Ayarlar → Köprüler → (i)", "Hue app → Settings → Bridges → (i)"),
                                     "", FIELD_CODE, ip -> confirmHue(ip.trim(), null)));
                     break;
+                case "tapo":
+                    if (Prefs.has("tapo_pass")) openMenu(Ui.tr("Bağlantıyı kes", "Disconnect"));
+                    else askTapoUser();
+                    break;
                 case "ha":
                     if (Prefs.has("ha_token")) openMenu(Ui.tr("Bağlantıyı kes", "Disconnect"));
                     else findService(HomeAssistant.SERVICE, this::askHaUrl, () -> askHaUrl(""));
@@ -1104,6 +1111,10 @@ public class CustomizeActivity extends Activity {
                 if (id.equals("hue")) {
                     Prefs.put(c, "hue_ip", null);
                     Prefs.put(c, "hue_user", null);
+                } else if (id.equals("tapo")) {
+                    Prefs.put(c, "tapo_ips", null);
+                    Prefs.put(c, "tapo_user", null);
+                    Prefs.put(c, "tapo_pass", null);
                 } else {
                     Prefs.put(c, "ha_url", null);
                     Prefs.put(c, "ha_token", null);
@@ -1187,6 +1198,57 @@ public class CustomizeActivity extends Activity {
                     });
                 });
             });
+        }
+
+        private void askTapoUser() {
+            ask(Ui.tr("Tapo hesabının e-postası", "The Tapo account's e-mail"),
+                    Ui.tr("Tapo uygulamasında giriş yaptığınız hesap. Lambalar bunu kendileri denetler; bulut kullanılmaz, yalnızca bu TV'de şifreli saklanır.",
+                            "The account you sign in with in the Tapo app. The bulbs check it themselves; no cloud, kept encrypted on this TV only."),
+                    "", FIELD_CODE, user -> {
+                        if (!user.trim().isEmpty()) askTapoPass(user.trim());
+                    });
+        }
+
+        private void askTapoPass(final String user) {
+            ask(Ui.tr("Tapo hesabının şifresi", "The Tapo account's password"), null, "", FIELD_SECRET, pass -> {
+                if (!pass.isEmpty()) askTapoIps(user, pass);
+            });
+        }
+
+        private void askTapoIps(final String user, final String pass) {
+            final Context c = getContext().getApplicationContext();
+            ask(Ui.tr("Lambaların adresleri (IP)", "The bulbs' addresses (IP)"),
+                    Ui.tr("Boşlukla ayırın, örn. 192.168.1.20 192.168.1.21. Tapo uygulaması → lamba → Ayarlar → Cihaz bilgisi. Yalnızca ev ağı adresleri kabul edilir.",
+                            "Separated by spaces, e.g. 192.168.1.20 192.168.1.21. Tapo app → the bulb → Settings → Device info. Only home-network addresses are accepted."),
+                    Prefs.tapoIps(), FIELD_CODE, text -> {
+                        final String ips = String.join(" ", Tapo.addresses(text));
+                        if (ips.isEmpty()) {
+                            dialog("Tapo", Ui.tr("Geçerli bir ev ağı adresi yok.", "No valid home-network address."), null, null);
+                            return;
+                        }
+                        lightsState = "connecting";
+                        rebuild();
+                        io.execute(() -> {
+                            String error = Tapo.check(ips, user, pass);
+                            if (error == null) {
+                                Prefs.put(c, "tapo_ips", ips);
+                                if (!Prefs.putSecret(c, "tapo_user", user) || !Prefs.putSecret(c, "tapo_pass", pass)) {
+                                    error = Ui.tr("TV bilgileri güvenle saklayamadı.", "The TV couldn't store the details securely.");
+                                    Prefs.put(c, "tapo_ips", null);
+                                    Prefs.put(c, "tapo_user", null);
+                                    Prefs.put(c, "tapo_pass", null);
+                                }
+                            }
+                            final String err = error;
+                            handler.post(() -> {
+                                lightsState = "";
+                                if (err != null) dialog("Tapo", Ui.tr("Bağlanamadı: ", "Couldn't connect: ") + err, null, null);
+                                else searchLamps();
+                                rebuild();
+                                invalidate();
+                            });
+                        });
+                    });
         }
 
         private void askHaUrl(String found) {
