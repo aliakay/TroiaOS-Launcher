@@ -25,6 +25,36 @@ shade at the top and bottom.
 | `kakerdaja.jpg` | Kakerdaja bog, Estonia | evening / night | Abrget47j | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Hommikune_udu_Kakerdaja_rabas.jpg) |
 | `cunia.jpg` | Lake Cuniã, Amazon | evening / night | RodrigoErse | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Aurora_amaz%C3%B4nica_no_Lago_do_Cuni%C3%A3.jpg) |
 
+## Cities
+
+Famous cities of the world, also **Featured pictures** from Wikimedia Commons under their own free licenses (not
+under this project's MIT license). Changes: cropped to their 16:9 middle at 1920 × 1080 (wide panoramas lose their
+sides). Day photos show by day, the evening and night ones at night.
+
+| File | Place | Shown | Photographer | License | Source |
+|---|---|---|---|---|---|
+| `city-paris.jpg` | The Eiffel Tower, Paris | day | Jorge Royan | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Paris_-_The_Eiffel_Tower_in_spring_-_2307.jpg) |
+| `city-istanbul.jpg` | Yeni Cami and the Galata Bridge, Istanbul | day | Mstyslav Chernov | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Panoramic_view_of_Istanbul-_Yeni_Cami_(The_New_Mosque),_Galata_Bridge._Turkey,_Southeastern_Europe.jpg) |
+| `city-rome.jpg` | The Roman Forum, Rome | day | Wolfgang Moroder | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Foro_Romano_visto_dal_Vittoriano_Roma.jpg) |
+| `city-venice.jpg` | Grand Canal and Rialto Bridge, Venice | day | Martin Falbisoner | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Panorama_of_Canal_Grande_and_Ponte_di_Rialto,_Venice_-_September_2017.jpg) |
+| `city-prague.jpg` | The Vltava, Prague | day | Dmitry A. Mottl | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Vltava_river_in_Prague.jpg) |
+| `city-san-francisco.jpg` | Golden Gate Bridge, San Francisco | day | Frank Schulenburg | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Golden_Gate_Bridge_as_seen_from_Battery_East.jpg) |
+| `city-los-angeles.jpg` | The Hollywood Sign, Los Angeles | day | Thomas Wolf | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Hollywood_Sign.jpg) |
+| `city-athens.jpg` | The Acropolis, Athens | day | A.Savin | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Attica_06-13_Athens_50_View_from_Philopappos_-_Acropolis_Hill.jpg) |
+| `city-dubrovnik.jpg` | Dubrovnik, Croatia | day | Martin Falbisoner | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Dubrovnik_as_seen_from_Sr%C4%91_-_September_2017.jpg) |
+| `city-kyoto.jpg` | Higashiyama, Kyoto | day | Basile Morin | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Pedestrian_road_with_pavements_and_paper_umbrellas,_Higashiyama-ku,_Kyoto,_Japan,_early_morning.jpg) |
+| `city-amsterdam.jpg` | The canals, Amsterdam | day | Diliff | [CC BY 2.5](https://creativecommons.org/licenses/by/2.5/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Amsterdam_Canals_-_July_2006.jpg) |
+| `city-berlin.jpg` | Brandenburg Gate, Berlin | day | Thomas Wolf | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Brandenburger_Tor_morgens.jpg) |
+| `city-rio.jpg` | Sugarloaf Mountain, Rio de Janeiro | day | Wilfredor | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Rio_de_Janeiro_skyline_and_Sugarloaf_Mountain_at_sunset,_Brazil_3.jpg) |
+| `city-new-york.jpg` | Lower Manhattan, New York | night | King of Hearts | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Lower_Manhattan_from_Jersey_City_November_2016_002.jpg) |
+| `city-tokyo.jpg` | Shibuya Crossing, Tokyo | night | Benh LIEU SONG | [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Tokyo_Shibuya_Scramble_Crossing_2018-10-09.jpg) |
+| `city-hong-kong.jpg` | Victoria Harbour, Hong Kong | night | Base64, retouched by CarolSpears | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Hong_Kong_Night_Skyline.jpg) |
+| `city-sydney.jpg` | Sydney Harbour, Australia | night | Diliff | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Sydney_skyline_at_dusk_-_Dec_2008.jpg) |
+| `city-london.jpg` | London from Waterloo Bridge | night | Diliff | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:London_Skyline_from_Waterloo_Bridge,_London,_UK_-_Diliff.jpg) |
+| `city-budapest.jpg` | The Chain Bridge, Budapest | night | Wilfredor | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Sz%C3%A9chenyi_Chain_Bridge_in_Budapest_at_night.jpg) |
+| `city-singapore.jpg` | Marina Bay, Singapore | night | Basile Morin | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Marina_Bay_Sands_and_illuminated_polyhedral_building_Louis_Vuitton_over_the_water_at_blue_hour_with_pink_clouds_in_Singapore.jpg) |
+| `city-paris-notre-dame.jpg` | Notre-Dame and Île de la Cité, Paris | night | DXR | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Notre-Dame_de_Paris_and_%C3%8Ele_de_la_Cit%C3%A9_at_dusk_140516_1.jpg) |
+
 ## Space (NASA)
 
 Public-domain NASA pictures (works of the U.S. government, some with partner agencies), also from Commons. They are

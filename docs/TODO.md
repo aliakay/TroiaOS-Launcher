@@ -27,6 +27,8 @@ Take them with the greeting name left empty, at 1920 × 1080, and save them as J
 - [x] `hello.jpg` (now the handwritten "TroiaOS"), `setup-language.jpg`, `setup-apps.jpg`, `setup-privacy.jpg`:
       taken on the Sony on 2026-10-23 via Settings → Set Up Again, and added to the README. Name, City, Guest Wi-Fi
       and Markets were left out on purpose: they show the user's name, city, real Wi-Fi QR and watchlist.
+- [ ] Customize → Wallpaper → Cities (added 2026-10-25, installed on the Sony): pick it, browse the photo picker, and
+      check the night set after dark. Retake `wallpaper.jpg` with the new Cities row.
 - [ ] Set Up → Privacy: the first row is cut ("No account, no ads, no…"). Shorten it or give the label more room.
 - [ ] `screensaver.jpg`: the screensaver, with the Now Playing card while music plays.
 - [x] `space.jpg`: the home screen with the Space · NASA wallpaper.

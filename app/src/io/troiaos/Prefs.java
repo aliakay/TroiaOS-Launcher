@@ -139,8 +139,8 @@ final class Prefs {
 
     // MARK: - Wallpaper
 
-    /** What's behind the home screen: nature photos, NASA's space photos, NASA's picture of the day, or soft colors. */
-    static final String[] WALLPAPERS = {"nature", "space", "apod", "colors"};
+    /** What's behind the home screen: nature photos, city photos, NASA's space photos, NASA's picture of the day, or soft colors. */
+    static final String[] WALLPAPERS = {"nature", "cities", "space", "apod", "colors"};
 
     static String wallpaper() {
         String w = string("wallpaper", "nature");

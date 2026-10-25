@@ -603,6 +603,7 @@ public class SetupActivity extends Activity {
 
         private static String wallpaperName(String mode) {
             switch (mode) {
+                case "cities": return Ui.tr("Şehirler", "Cities");
                 case "space": return Ui.tr("Uzay · NASA", "Space · NASA");
                 case "apod": return Ui.tr("NASA Günün Fotoğrafı", "NASA Picture of the Day");
                 case "colors": return Ui.tr("Yumuşak Renkler", "Soft Colors");
@@ -612,6 +613,7 @@ public class SetupActivity extends Activity {
 
         private static String wallpaperSymbol(String mode) {
             switch (mode) {
+                case "cities": return "city";
                 case "space": return "planet";
                 case "apod": return "sparkles";
                 case "colors": return "drop";

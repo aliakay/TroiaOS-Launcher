@@ -22,7 +22,8 @@ One button to undo.
 ## What you get
 
 - **Photos behind everything, your choice.** Nature (15 featured photos from Wikimedia Commons: alpine lakes, the
-  Himalayas, Cappadocia, Pamukkale…), Space (14 public-domain NASA photos: Hubble, Webb, Cassini, Artemis II), NASA's
+  Himalayas, Cappadocia, Pamukkale…), Cities (21 featured photos: Paris, Istanbul, New York, Los Angeles, San
+  Francisco, Tokyo, Hong Kong, London… with the lit-up ones at night), Space (14 public-domain NASA photos: Hubble, Webb, Cassini, Artemis II), NASA's
   Astronomy Picture of the Day, or soft colours. A new one every hour or one you pick (previewed as you browse), and
   darker if you like. Each is credited on screen.
 - **Liquid Glass, even on Android 12.** Every glass surface shows the blurred photo behind it through a slight lens,
@@ -67,7 +68,7 @@ One button to undo.
 <img src=".github/screenshots/list.jpg" width="49%" alt="The List layout: the apps as big names over a photo of the Flatirons">
 </p>
 <p align="center">
-<img src=".github/screenshots/wallpaper.jpg" width="49%" alt="Customize → Wallpaper: Nature, Space · NASA, NASA Picture of the Day or Soft Colors">
+<img src=".github/screenshots/wallpaper.jpg" width="49%" alt="Customize → Wallpaper: Nature, Cities, Space · NASA, NASA Picture of the Day or Soft Colors">
 <img src=".github/screenshots/photo-picker.jpg" width="49%" alt="The photo picker: each photo previews behind the list as you browse">
 </p>
 <p align="center">
@@ -174,7 +175,7 @@ at the bottom of Control Center).
 | Apps on Home | The dock's apps: add any installed app, move, remove |
 | Control Center | Which controls show, and their order |
 | Home Screen | Dock or List, your name for the greeting, the weather's city, °C / °F, the watchlist, the language |
-| Wallpaper | Nature, Space · NASA, NASA Picture of the Day or Soft Colors; one photo or a new one every hour; darken |
+| Wallpaper | Nature, Cities, Space · NASA, NASA Picture of the Day or Soft Colors; one photo or a new one every hour; darken |
 | Lights | Search, rename, hide or blink lamps; pair a Philips Hue Bridge; connect Home Assistant |
 | Guest Wi-Fi QR | The network name, password and security for the QR code |
 | Music App | What Now Playing opens when nothing plays (Spotify, YouTube Music, any app) |

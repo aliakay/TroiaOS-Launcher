@@ -287,7 +287,7 @@ public class CustomizeActivity extends Activity {
                         r.value = m.equals(mode) ? Ui.tr("Seçili", "Selected") : "";
                     }
                     rows.add(headerRow(""));
-                    if (mode.equals("nature") || mode.equals("space")) {
+                    if (mode.equals("nature") || mode.equals("cities") || mode.equals("space")) {
                         Row r = item("pick", Ui.tr("Fotoğraf", "Photo"), "photo_library");
                         r.value = chosenPhotoName(mode);
                         r.chevron = true;
@@ -311,7 +311,7 @@ public class CustomizeActivity extends Activity {
                     auto.value = fixed.isEmpty() ? Ui.tr("Seçili", "Selected") : "";
                     rows.add(headerRow(Ui.tr("YA DA HEP AYNISI", "OR ALWAYS THE SAME ONE")));
                     for (Photos.Photo p : Photos.get(c).choices(mode)) {
-                        Row r = item(p.file, p.place(), mode.equals("space") ? "planet" : "leaf");
+                        Row r = item(p.file, p.place(), wallpaperSymbol(mode));
                         r.value = p.file.equals(fixed) ? Ui.tr("Seçili", "Selected") : "";
                     }
                     break;
@@ -458,6 +458,7 @@ public class CustomizeActivity extends Activity {
 
         private static String wallpaperName(String mode) {
             switch (mode) {
+                case "cities": return Ui.tr("Şehirler", "Cities");
                 case "space": return Ui.tr("Uzay · NASA", "Space · NASA");
                 case "apod": return Ui.tr("NASA Günün Fotoğrafı", "NASA Picture of the Day");
                 case "colors": return Ui.tr("Yumuşak Renkler", "Soft Colors");
@@ -467,6 +468,7 @@ public class CustomizeActivity extends Activity {
 
         private static String wallpaperSymbol(String mode) {
             switch (mode) {
+                case "cities": return "city";
                 case "space": return "planet";
                 case "apod": return "sparkles";
                 case "colors": return "drop";

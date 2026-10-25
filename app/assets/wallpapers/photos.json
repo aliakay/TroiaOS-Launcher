@@ -259,5 +259,215 @@
   "author": "NASA",
   "license": "Public domain",
   "source": "https://commons.wikimedia.org/wiki/File:Glacial_lakes,_Bhutan.jpg"
+ },
+ {
+  "file": "city-paris.jpg",
+  "set": "cities",
+  "time": "day",
+  "tr": "Eyfel Kulesi, Paris",
+  "en": "The Eiffel Tower, Paris",
+  "author": "Jorge Royan",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Paris_-_The_Eiffel_Tower_in_spring_-_2307.jpg"
+ },
+ {
+  "file": "city-istanbul.jpg",
+  "set": "cities",
+  "time": "day",
+  "tr": "Yeni Cami ve Galata Köprüsü, İstanbul",
+  "en": "Yeni Cami and the Galata Bridge, Istanbul",
+  "author": "Mstyslav Chernov",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Panoramic_view_of_Istanbul-_Yeni_Cami_(The_New_Mosque),_Galata_Bridge._Turkey,_Southeastern_Europe.jpg"
+ },
+ {
+  "file": "city-rome.jpg",
+  "set": "cities",
+  "time": "day",
+  "tr": "Forum Romanum, Roma",
+  "en": "The Roman Forum, Rome",
+  "author": "Wolfgang Moroder",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Foro_Romano_visto_dal_Vittoriano_Roma.jpg"
+ },
+ {
+  "file": "city-venice.jpg",
+  "set": "cities",
+  "time": "day",
+  "tr": "Büyük Kanal ve Rialto Köprüsü, Venedik",
+  "en": "Grand Canal and Rialto Bridge, Venice",
+  "author": "Martin Falbisoner",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Panorama_of_Canal_Grande_and_Ponte_di_Rialto,_Venice_-_September_2017.jpg"
+ },
+ {
+  "file": "city-prague.jpg",
+  "set": "cities",
+  "time": "day",
+  "tr": "Vltava Nehri, Prag",
+  "en": "The Vltava, Prague",
+  "author": "Dmitry A. Mottl",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Vltava_river_in_Prague.jpg"
+ },
+ {
+  "file": "city-san-francisco.jpg",
+  "set": "cities",
+  "time": "day",
+  "tr": "Golden Gate Köprüsü, San Francisco",
+  "en": "Golden Gate Bridge, San Francisco",
+  "author": "Frank Schulenburg",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Golden_Gate_Bridge_as_seen_from_Battery_East.jpg"
+ },
+ {
+  "file": "city-los-angeles.jpg",
+  "set": "cities",
+  "time": "day",
+  "tr": "Hollywood Tabelası, Los Angeles",
+  "en": "The Hollywood Sign, Los Angeles",
+  "author": "Thomas Wolf",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Hollywood_Sign.jpg"
+ },
+ {
+  "file": "city-athens.jpg",
+  "set": "cities",
+  "time": "day",
+  "tr": "Akropolis, Atina",
+  "en": "The Acropolis, Athens",
+  "author": "A.Savin",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Attica_06-13_Athens_50_View_from_Philopappos_-_Acropolis_Hill.jpg"
+ },
+ {
+  "file": "city-dubrovnik.jpg",
+  "set": "cities",
+  "time": "day",
+  "tr": "Dubrovnik, Hırvatistan",
+  "en": "Dubrovnik, Croatia",
+  "author": "Martin Falbisoner",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Dubrovnik_as_seen_from_Sr%C4%91_-_September_2017.jpg"
+ },
+ {
+  "file": "city-kyoto.jpg",
+  "set": "cities",
+  "time": "day",
+  "tr": "Higashiyama, Kyoto",
+  "en": "Higashiyama, Kyoto",
+  "author": "Basile Morin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Pedestrian_road_with_pavements_and_paper_umbrellas,_Higashiyama-ku,_Kyoto,_Japan,_early_morning.jpg"
+ },
+ {
+  "file": "city-amsterdam.jpg",
+  "set": "cities",
+  "time": "day",
+  "tr": "Kanallar, Amsterdam",
+  "en": "The canals, Amsterdam",
+  "author": "Diliff",
+  "license": "CC BY 2.5",
+  "source": "https://commons.wikimedia.org/wiki/File:Amsterdam_Canals_-_July_2006.jpg"
+ },
+ {
+  "file": "city-berlin.jpg",
+  "set": "cities",
+  "time": "day",
+  "tr": "Brandenburg Kapısı, Berlin",
+  "en": "Brandenburg Gate, Berlin",
+  "author": "Thomas Wolf",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Brandenburger_Tor_morgens.jpg"
+ },
+ {
+  "file": "city-rio.jpg",
+  "set": "cities",
+  "time": "day",
+  "tr": "Şekerhane Dağı, Rio de Janeiro",
+  "en": "Sugarloaf Mountain, Rio de Janeiro",
+  "author": "Wilfredor",
+  "license": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:Rio_de_Janeiro_skyline_and_Sugarloaf_Mountain_at_sunset,_Brazil_3.jpg"
+ },
+ {
+  "file": "city-new-york.jpg",
+  "set": "cities",
+  "time": "night",
+  "tr": "Aşağı Manhattan, New York",
+  "en": "Lower Manhattan, New York",
+  "author": "King of Hearts",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Lower_Manhattan_from_Jersey_City_November_2016_002.jpg"
+ },
+ {
+  "file": "city-tokyo.jpg",
+  "set": "cities",
+  "time": "night",
+  "tr": "Shibuya Kavşağı, Tokyo",
+  "en": "Shibuya Crossing, Tokyo",
+  "author": "Benh LIEU SONG",
+  "license": "CC BY-SA 2.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Tokyo_Shibuya_Scramble_Crossing_2018-10-09.jpg"
+ },
+ {
+  "file": "city-hong-kong.jpg",
+  "set": "cities",
+  "time": "night",
+  "tr": "Victoria Limanı, Hong Kong",
+  "en": "Victoria Harbour, Hong Kong",
+  "author": "Base64, retouched by CarolSpears",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Hong_Kong_Night_Skyline.jpg"
+ },
+ {
+  "file": "city-sydney.jpg",
+  "set": "cities",
+  "time": "night",
+  "tr": "Sidney Limanı, Avustralya",
+  "en": "Sydney Harbour, Australia",
+  "author": "Diliff",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Sydney_skyline_at_dusk_-_Dec_2008.jpg"
+ },
+ {
+  "file": "city-london.jpg",
+  "set": "cities",
+  "time": "night",
+  "tr": "Waterloo Köprüsü'nden Londra",
+  "en": "London from Waterloo Bridge",
+  "author": "Diliff",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:London_Skyline_from_Waterloo_Bridge,_London,_UK_-_Diliff.jpg"
+ },
+ {
+  "file": "city-budapest.jpg",
+  "set": "cities",
+  "time": "night",
+  "tr": "Zincir Köprü, Budapeşte",
+  "en": "The Chain Bridge, Budapest",
+  "author": "Wilfredor",
+  "license": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:Sz%C3%A9chenyi_Chain_Bridge_in_Budapest_at_night.jpg"
+ },
+ {
+  "file": "city-singapore.jpg",
+  "set": "cities",
+  "time": "night",
+  "tr": "Marina Körfezi, Singapur",
+  "en": "Marina Bay, Singapore",
+  "author": "Basile Morin",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Marina_Bay_Sands_and_illuminated_polyhedral_building_Louis_Vuitton_over_the_water_at_blue_hour_with_pink_clouds_in_Singapore.jpg"
+ },
+ {
+  "file": "city-paris-notre-dame.jpg",
+  "set": "cities",
+  "time": "night",
+  "tr": "Notre-Dame ve Cité Adası, Paris",
+  "en": "Notre-Dame and Île de la Cité, Paris",
+  "author": "DXR",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Notre-Dame_de_Paris_and_%C3%8Ele_de_la_Cit%C3%A9_at_dusk_140516_1.jpg"
  }
 ]

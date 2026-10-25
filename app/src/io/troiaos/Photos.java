@@ -22,8 +22,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * TroiaOS's photos behind the home screen (Customize → Wallpaper): nature photos from Wikimedia Commons (daytime ones by
- * day, night ones at night), NASA's public-domain space photos, or NASA's Astronomy Picture of the Day (Apod), each
+ * TroiaOS's photos behind the home screen (Customize → Wallpaper): nature or city photos from Wikimedia Commons (daytime
+ * ones by day, night ones at night), NASA's public-domain space photos, or NASA's Astronomy Picture of the Day (Apod), each
  * credited on screen; a new one every hour, or one chosen photo. "colors" shows Wallpaper's soft clouds instead. The
  * bundled photos are in assets/wallpapers (photos.json: place, author, license). Loaded in the background into
  * Wallpaper (with its blur, for the glass), darkened as chosen.
@@ -52,7 +52,8 @@ final class Photos {
     }
 
     private final Context context;
-    private final List<Photo> day = new ArrayList<>(), night = new ArrayList<>(), space = new ArrayList<>();
+    private final List<Photo> day = new ArrayList<>(), night = new ArrayList<>(), space = new ArrayList<>(),
+            cityDay = new ArrayList<>(), cityNight = new ArrayList<>();
     private final ExecutorService io = Executors.newSingleThreadExecutor(), net = Executors.newSingleThreadExecutor();
     private final Handler main = new Handler(Looper.getMainLooper());
     private final List<Listener> listeners = new ArrayList<>();
@@ -81,7 +82,8 @@ final class Photos {
                 p.en = o.optString("en");
                 p.author = o.optString("author");
                 p.license = o.optString("license");
-                (p.set.equals("space") ? space : "night".equals(o.optString("time")) ? night : day).add(p);
+                boolean dark = "night".equals(o.optString("time"));
+                (p.set.equals("space") ? space : p.set.equals("cities") ? dark ? cityNight : cityDay : dark ? night : day).add(p);
             }
         } catch (Exception e) {
             AppLog.w("photos: " + e.getMessage());
@@ -91,11 +93,14 @@ final class Photos {
     void addListener(Listener l) { if (!listeners.contains(l)) listeners.add(l); }
     void removeListener(Listener l) { listeners.remove(l); }
 
-    /** The photos one can pick for a wallpaper choice ("nature" or "space"). */
+    /** The photos one can pick for a wallpaper choice ("nature", "cities" or "space"). */
     List<Photo> choices(String set) {
         List<Photo> out = new ArrayList<>();
         if (set.equals("space")) {
             out.addAll(space);
+        } else if (set.equals("cities")) {
+            out.addAll(cityDay);
+            out.addAll(cityNight);
         } else if (set.equals("nature")) {
             out.addAll(day);
             out.addAll(night);
@@ -139,8 +144,10 @@ final class Photos {
             }
             if (p == null) {
                 long now = System.currentTimeMillis();
+                boolean dark = HomeData.get(context).isNight(now);
                 List<Photo> list = set.equals("space") ? space
-                        : HomeData.get(context).isNight(now) && !night.isEmpty() ? night : day;
+                        : set.equals("cities") ? dark && !cityNight.isEmpty() ? cityNight : cityDay
+                        : dark && !night.isEmpty() ? night : day;
                 if (list.isEmpty()) return;
                 p = list.get((int) ((now / 3_600_000L) % list.size()));
             }
