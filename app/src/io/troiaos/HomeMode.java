@@ -41,6 +41,8 @@ final class HomeMode {
 
     /** Google TV's home screen: the fallback when the TV's own one wasn't recorded. */
     static final String GOOGLE_HOME = "com.google.android.apps.tv.launcherx/.home.HomeActivity";
+    /** Android TV's (not Google TV's) home screen: the fallback on Philips and other plain Android TV 11 sets. */
+    static final String ANDROID_TV_HOME = "com.google.android.tvlauncher/.MainActivity";
     /** Google TV has a RecoveryActivity that would take over the home screen without its launcher. */
     static final String GOOGLE_SETUP = "com.google.android.tungsten.setupwraith";
 
@@ -88,6 +90,18 @@ final class HomeMode {
         "com.sony.dtv.remotecontrolsettings", "com.sony.dtv.systemupdate", "com.sony.dtv.update",
         "com.sony.dtv.imeproxy", "com.sony.dtv.ime.chww", "com.sony.dtv.airplayapp", "com.uei.quicksetsdk.sony",
         "mtktvapi.agent", "com.mediatek.agent"));
+
+    /**
+     * Whole families that are never turned off. Philips (TP Vision) keeps the TV itself in org.droidtv.* (TV service,
+     * HDMI, Ambilight, inputs, settings, remote keys, power, updates) and MediaTek in com.mediatek.*: too many to list.
+     */
+    private static final String[] PROTECTED_PREFIXES = {"org.droidtv.", "com.mediatek."};
+
+    private static boolean isProtected(String pkg) {
+        if (PROTECTED.contains(pkg)) return true;
+        for (String prefix : PROTECTED_PREFIXES) if (pkg.startsWith(prefix)) return true;
+        return false;
+    }
 
     /** One switch at a time (jobs can overlap: a boot check and a button press). */
     private static final Object RUN = new Object();
@@ -154,7 +168,7 @@ final class HomeMode {
             for (String pkg : targets) {
                 done++;
                 busy(c, Ui.tr("Uygulamalar kapatılıyor (", "Turning off apps (") + done + "/" + targets.size() + ")…");
-                if (PROTECTED.contains(pkg) || !present.contains(pkg)) continue;
+                if (isProtected(pkg) || !present.contains(pkg)) continue;
                 String out = adb.shell("pm disable-user --user 0 " + pkg);
                 if (out.contains("disabled-user")) disabled.add(pkg);
                 else AppLog.w("could not turn off " + pkg + ": " + out.trim());
@@ -224,7 +238,11 @@ final class HomeMode {
 
     /** The recorded home screen; without one, Google TV's; without that, the system picks (we leave the role). */
     private static boolean restoreHome(Adb adb, String home) throws IOException {
-        if (home.isEmpty() && adb.shell("pm path " + packageOf(GOOGLE_HOME)).contains("package:")) home = GOOGLE_HOME;
+        if (home.isEmpty()) {
+            for (String candidate : new String[]{GOOGLE_HOME, ANDROID_TV_HOME}) {
+                if (adb.shell("pm path " + packageOf(candidate)).contains("package:")) { home = candidate; break; }
+            }
+        }
         if (!home.isEmpty()) {
             adb.shell("pm enable " + packageOf(home));
             if (adb.shell("cmd package set-home-activity " + home).contains("Success")) return true;
@@ -309,7 +327,7 @@ final class HomeMode {
                     }
                 }
                 for (String pkg : sorted(wanted)) {
-                    if (PROTECTED.contains(pkg) || !present.contains(pkg)) continue;
+                    if (isProtected(pkg) || !present.contains(pkg)) continue;
                     if (disabledNow.contains(pkg)) {
                         disabled.add(pkg);
                         continue;
