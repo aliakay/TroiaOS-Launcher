@@ -2764,6 +2764,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
      * below it, and a column with feels-like, the city, and wind and humidity. No background: only when focused does
      * a glass pill appear behind it (OK opens the hours).
      */
+    private static final int SUNRISE_INK = 0xFFFFD21F, SUNSET_INK = 0xFFFF8A1F;
+
     private void drawWeatherWidget(Canvas c, RectF r, float f) {
         if (f > 0.01f) {
             float rad = r.height() / 2;
@@ -2811,6 +2813,32 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             Symbols.draw(getContext(), c, "drop", lx + 6 * k, mid, icon, 0xFF64B5F6);
             c.drawText(humidityText(), lx + 20 * k, line, lWxDim);
         }
+        // A second column on the same lines: sunrise (yellow, arrow up) and sunset (orange, arrow down) with the time.
+        float sunX = x + weatherColumnWidth() + 36 * k, sunIcon = 22 * k;
+        float sunW = Symbols.width(getContext(), "sunrise", sunIcon);
+        if (wx.sunrise != 0) {
+            Symbols.draw(getContext(), c, "sunrise", sunX + sunW / 2, cy - 18 * k - Ui.halfCap(lWxDim), sunIcon, SUNRISE_INK);
+            c.drawText(Ui.time(wx.sunrise), sunX + sunW + 10 * k, cy - 18 * k, lWxDim);
+        }
+        if (wx.sunset != 0) {
+            Symbols.draw(getContext(), c, "sunset", sunX + sunW / 2, cy + 10 * k - Ui.halfCap(lWxDim), sunIcon, SUNSET_INK);
+            c.drawText(Ui.time(wx.sunset), sunX + sunW + 10 * k, cy + 10 * k, lWxDim);
+        }
+    }
+
+    /** The width of the details column (feels-like, city, wind and humidity). */
+    private float weatherColumnWidth() {
+        HomeData.Weather wx = data.weather;
+        float wind = Double.isNaN(wx.wind) ? 0 : 26 * k + lWxDim.measureText(windText()) + 20 * k;
+        float hum = Double.isNaN(wx.humidity) ? 0 : 20 * k + lWxDim.measureText(humidityText());
+        return Math.max(lWxDim.measureText(feelsText()), Math.max(22 * k + lWxDim.measureText(Prefs.city()), wind + hum));
+    }
+
+    /** The sunrise and sunset column's width (0 when the times aren't known yet). */
+    private float sunColumnWidth() {
+        HomeData.Weather wx = data.weather;
+        float w = Math.max(wx.sunrise != 0 ? lWxDim.measureText(Ui.time(wx.sunrise)) : 0, wx.sunset != 0 ? lWxDim.measureText(Ui.time(wx.sunset)) : 0);
+        return w == 0 ? 0 : 36 * k + Symbols.width(getContext(), "sunrise", 22 * k) + 10 * k + w;
     }
 
     /** The weather symbol in its own color: a golden sun or moon, white clouds, blue rain, yellow lightning. */
@@ -2836,9 +2864,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         float w = 24 * k + Symbols.width(getContext(), weatherSymbol(), 56 * k) + 18 * k
                 + Math.max(lWxTemp.measureText(tempText(wx.temp)), lWxMain.measureText(sky)) + 30 * k;
         if (details) {
-            float wind = Double.isNaN(wx.wind) ? 0 : 26 * k + lWxDim.measureText(windText()) + 20 * k;
-            float hum = Double.isNaN(wx.humidity) ? 0 : 20 * k + lWxDim.measureText(humidityText());
-            w += 10 * k + Math.max(lWxDim.measureText(feelsText()), Math.max(22 * k + lWxDim.measureText(Prefs.city()), wind + hum)) + 10 * k;
+            w += 10 * k + weatherColumnWidth() + sunColumnWidth() + 10 * k;
         }
         return w;
     }
