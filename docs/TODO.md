@@ -29,6 +29,10 @@ Take them with the greeting name left empty, at 1920 × 1080, and save them as J
       and Markets were left out on purpose: they show the user's name, city, real Wi-Fi QR and watchlist.
 - [ ] Customize → Wallpaper → Cities (added 2026-10-25, installed on the Sony): pick it, browse the photo picker, and
       check the night set after dark. Retake `wallpaper.jpg` with the new Cities row.
+- [ ] Install main after PRs #1–#5 (merged 2026-10-25; the TV was offline). Regression check on the Sony for #1
+      (minSdk 30, the SDK guards, the org.droidtv/com.mediatek protection), then look at the weather widget's sunrise and
+      sunset column (#3), listen to the new click sound (#4, Customize → Home Screen → Click Sound) and the lights'
+      "Loading…" in Control Center (#5).
 - [ ] Set Up → Privacy: the first row is cut ("No account, no ads, no…"). Shorten it or give the label more room.
 - [ ] `screensaver.jpg`: the screensaver, with the Now Playing card while music plays.
 - [x] `space.jpg`: the home screen with the Space · NASA wallpaper.
