@@ -275,6 +275,8 @@ public class CustomizeActivity extends Activity {
                     r.value = t.startsWith("F") ? "°F" : t.startsWith("C") ? "°C" : Ui.tr("Otomatik", "Automatic");
                     r = item("stocks", Ui.tr("Piyasa Listesi", "Watchlist"), "chart");
                     r.value = watchlistSummary();
+                    r = item("sound", Ui.tr("Tık Sesi", "Click Sound"), "music_note");
+                    r.value = Prefs.clickSound() ? Ui.tr("Açık", "On") : Ui.tr("Kapalı", "Off");
                     r = item("language", "Dil / Language", "translate");
                     r.value = Ui.en ? "English" : "Türkçe";
                     break;
@@ -1017,6 +1019,10 @@ public class CustomizeActivity extends Activity {
                     rebuild();
                     break;
                 }
+                case "sound":
+                    Prefs.put(c, "click_sound", !Prefs.clickSound());
+                    rebuild();
+                    break;
                 case "stocks":
                     ask(Ui.tr("Yahoo sembolleri, virgülle (örn. ^GSPC:S&P, BTC-USD:BTC, AAPL)",
                             "Yahoo symbols, comma-separated (e.g. ^GSPC:S&P, BTC-USD:BTC, AAPL)"), Prefs.stocks(), true, text -> {
