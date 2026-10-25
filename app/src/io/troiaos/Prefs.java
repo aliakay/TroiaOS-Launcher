@@ -122,6 +122,13 @@ final class Prefs {
         return string("longitude", Config.LONGITUDE);
     }
 
+    /** The soft click when focus moves or something opens on the home screen (on unless switched off in Customize). */
+    static boolean clickSound() {
+        synchronized (LOCK) {
+            return data.optBoolean("click_sound", true);
+        }
+    }
+
     /** How the home screen shows the apps: "dock" (the glass bar) or "list" (big names over the photo). */
     static String layout() {
         return string("layout", Config.LAYOUT).equals("list") ? "list" : "dock";
