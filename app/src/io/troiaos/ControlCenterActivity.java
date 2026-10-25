@@ -111,6 +111,7 @@ public class ControlCenterActivity extends Activity {
         private List<HomeApps.Item> inputs = new ArrayList<>();
         private List<Lights.Lamp> lamps;           // null: still looking
         private int brightness = -1;            // waiting to be sent
+        private boolean lightsBusy;             // OK on the lights was pressed and the lamps haven't answered yet
         private final NowPlaying now;
         private long lastNanos;
         private int w;
@@ -525,7 +526,8 @@ public class ControlCenterActivity extends Activity {
             text.setColor(ink(f, 0.95f));
             c.drawText(Ui.tr("Işıklar", "Lights"), tx, top + 46 * k, text);
             String status;
-            if (lamps == null) status = Ui.tr("Aranıyor…", "Looking…");
+            if (lightsBusy) status = Ui.tr("Yükleniyor…", "Loading…");
+            else if (lamps == null) status = Ui.tr("Aranıyor…", "Looking…");
             else if (on == null) status = Ui.tr("Kurmak için OK", "OK to set up");
             else status = lit ? Ui.tr("Açık", "On") : Ui.tr("Kapalı", "Off");
             dim.setColor(ink(f, 0.62f));
@@ -590,11 +592,15 @@ public class ControlCenterActivity extends Activity {
                         .putExtra(CustomizeActivity.EXTRA_PAGE, CustomizeActivity.PAGE_LIGHTS));
                 return;
             }
+            if (lightsBusy) return;     // the lamps are still answering: a second press would switch them back
+            lightsBusy = true;
+            invalidate();
             io.execute(() -> {
                 Lights.toggleAll(c);
                 final List<Lights.Lamp> found = Lights.discover(c, 900);
                 handler.post(() -> {
                     lamps = found;
+                    lightsBusy = false;
                     invalidate();
                 });
             });
