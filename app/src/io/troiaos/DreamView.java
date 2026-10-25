@@ -15,6 +15,7 @@ import android.graphics.RecordingCanvas;
 import android.graphics.RenderNode;
 import android.graphics.RuntimeShader;
 import android.graphics.Shader;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -68,7 +69,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
             this.image = image;
             this.frost = frost;
             shader = new BitmapShader(frost, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
-            shader.setFilterMode(BitmapShader.FILTER_MODE_LINEAR);
+            if (Build.VERSION.SDK_INT >= 33) shader.setFilterMode(BitmapShader.FILTER_MODE_LINEAR);   // older: the paint's filter
             this.lightCaption = lightCaption;
             this.lightClock = lightClock;
             zoomIn = n % 2 == 0;
@@ -737,7 +738,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
 
     private static BitmapShader nearest(Bitmap b) {
         BitmapShader s = new BitmapShader(b, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
-        s.setFilterMode(BitmapShader.FILTER_MODE_NEAREST);
+        if (Build.VERSION.SDK_INT >= 33) s.setFilterMode(BitmapShader.FILTER_MODE_NEAREST);
         return s;
     }
 
