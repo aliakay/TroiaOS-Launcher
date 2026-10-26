@@ -23,9 +23,23 @@ final class LiquidGlass {
     private final RectF edge = new RectF();
     private BitmapShader dayShader, nightShader, photoShader;
     private android.graphics.Bitmap photoFrost;
+    /** Android 13+: the AGSL glass over the photo. Null on Android 11/12, which never load it. */
+    private PhotoGlass photoGlass;
 
     LiquidGlass() {
         rim.setStyle(Paint.Style.STROKE);
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            try {
+                photoGlass = new PhotoGlass();
+            } catch (RuntimeException | LinkageError e) {
+                AppLog.w("photo glass unavailable: " + e.getMessage());
+            }
+        }
+    }
+
+    /** The focus lens (Android 13+ with a photo); false where the caller draws its own highlight. */
+    boolean lens(Canvas c, RectF r, float radius, float alpha, int screenW, int screenH, float ox, float oy) {
+        return photoGlass != null && photoGlass.lens(c, r, radius, alpha, screenW, screenH, ox, oy);
     }
 
     /**
@@ -38,6 +52,8 @@ final class LiquidGlass {
     void draw(Canvas c, RectF r, float radius, int tint, float tintAlpha, int screenW, int screenH, float ox, float oy,
               float night, float body, float alpha) {
         if (alpha <= 0.004f) return;
+        if (body >= 0.999f && photoGlass != null
+                && photoGlass.draw(c, r, radius, tint, tintAlpha, 0.02f, 0.5f, rimStrength, alpha, screenW, screenH, ox, oy)) return;
         radius = Math.min(radius, Math.min(r.width(), r.height()) / 2);
         float k = screenW / 1920f;
         if (body > 0) {

@@ -678,8 +678,12 @@ public class CustomizeActivity extends Activity {
             tmp.offset(0, 12 * k);
             c.drawRoundRect(tmp, 32 * k, 32 * k, shadow);
             tmp.offset(0, -12 * k);
-            glassFill.setColor(Ui.alpha(0xFF2C2C2E, 0.94f * a));
-            c.drawRoundRect(tmp, 32 * k, 32 * k, glassFill);
+            if (scene.photoGlassReady()) {
+                scene.glass(c, tmp, 32 * k, 0xFF2C2C2E, 1.3f, 0, 0, 0.02f, 1, a);     // Android 13+: Liquid Glass
+            } else {
+                glassFill.setColor(Ui.alpha(0xFF2C2C2E, 0.94f * a));
+                c.drawRoundRect(tmp, 32 * k, 32 * k, glassFill);
+            }
             for (int i = 0; i < menu.length; i++) {
                 float y = top + (10 + i * MENU_ROW) * k;
                 rowRect.set(right - mw + 10 * k, y, right - 10 * k, y + MENU_ROW * k);

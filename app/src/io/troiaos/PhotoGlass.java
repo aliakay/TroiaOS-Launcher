@@ -141,6 +141,12 @@ final class PhotoGlass {
         }
     }
 
+    /** Whether `draw` would draw now. */
+    boolean ready() {
+        Wallpaper wp = Wallpaper.get();
+        return !failed && wanted() && wp.photoSharp != null && wp.photoFrost != null;
+    }
+
     /** The focus lens in the dock (a clear glass pill over the photo). Same false as `draw` when LiquidGlass must do it. */
     boolean lens(Canvas c, RectF r, float radius, float alpha, int screenW, int screenH, float ox, float oy) {
         return draw(c, r, radius, 0xFFFFFFFF, 0.22f, 0f, 0.8f, 1f, alpha, screenW, screenH, ox, oy);

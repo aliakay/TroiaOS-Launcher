@@ -205,6 +205,11 @@ final class Scene {
      * The focus lens on the dock: Android 13+ with a photo, a clear glass pill that bends the photo; false elsewhere
      * (the caller draws its pill of light).
      */
+    /** True while the Android 13+ glass is the one being drawn (so a screen can swap a plain fill for real glass). */
+    boolean photoGlassReady() {
+        return photoGlass != null && photoGlass.ready();
+    }
+
     boolean focusLens(Canvas c, RectF r, float radius, float alpha) {
         return photoGlass != null && photoGlass.lens(c, r, radius, alpha, w, h, offsetX, offsetY);
     }
