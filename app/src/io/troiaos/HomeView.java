@@ -346,6 +346,16 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         }
     };
 
+    @Override protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        PhotoGlass.watch(activity);      // Android 13+: back to the classic glass if the TV can't keep up
+    }
+
+    @Override protected void onDetachedFromWindow() {
+        PhotoGlass.unwatch();
+        super.onDetachedFromWindow();
+    }
+
     HomeView(Activity a) {
         super(a);
         activity = a;
@@ -1297,7 +1307,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         float cx = base.centerX(), cy = base.centerY();
         cell.set(cx - base.width() * s / 2, cy - base.height() * s / 2, cx + base.width() * s / 2, cy + base.height() * s / 2);
         float r = cell.height() / 2;
-        if (fc > 0.01f) {
+        if (fc > 0.01f && !scene.focusLens(c, cell, r, fc)) {
             fill.setShader(null);
             fill.setColor(Ui.alpha(0xFFFFFFFF, 0.16f * fc));
             c.drawRoundRect(cell, r, r, fill);

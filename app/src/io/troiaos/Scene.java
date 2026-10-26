@@ -30,9 +30,13 @@ final class Scene {
     private final Paint fallback = new Paint();
     private final Paint wallPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
     private final LiquidGlass flatGlass = new LiquidGlass();
+    /** Android 13+: the AGSL glass over the photo. Null on Android 11/12, which never load it. */
+    private PhotoGlass photoGlass;
+    private float rimStrength = 1;
 
     /** The rim's brightness for the glass drawn next without AGSL (1: the usual). */
     void rim(float strength) {
+        rimStrength = strength;
         flatGlass.rimStrength = strength;
     }
     /** Android 12 look: 0 = the day wallpaper, 1 = the night one (dark by default: white text reads on it). */
@@ -67,6 +71,13 @@ final class Scene {
             }
         }
         auroraNode.setUseCompositingLayer(true, null);
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            try {
+                photoGlass = new PhotoGlass();
+            } catch (RuntimeException | LinkageError e) {
+                AppLog.w("photo glass unavailable: " + e.getMessage());
+            }
+        }
     }
 
     void setSize(int width, int height) {
@@ -173,6 +184,7 @@ final class Scene {
                 float specular, float alpha) {
         if (alpha <= 0.004f) return;
         if (liquid == null) {
+            if (photoGlass != null && photoGlass.draw(c, r, radius, tint, tintAlpha, lift, specular, rimStrength, alpha, w, h, offsetX, offsetY)) return;
             glass(c, r, radius, tint, tintAlpha, 0, 0, lift, 1, alpha);
             return;
         }
@@ -187,6 +199,14 @@ final class Scene {
         liquidPaint.setAlpha(Math.round(255 * Math.min(1, alpha)));
         c.drawRect(r.left - 1, r.top - 1, r.right + 1, r.bottom + 1, liquidPaint);
         liquidPaint.setAlpha(255);
+    }
+
+    /**
+     * The focus lens on the dock: Android 13+ with a photo, a clear glass pill that bends the photo; false elsewhere
+     * (the caller draws its pill of light).
+     */
+    boolean focusLens(Canvas c, RectF r, float radius, float alpha) {
+        return photoGlass != null && photoGlass.lens(c, r, radius, alpha, w, h, offsetX, offsetY);
     }
 
     /** The glass now reads the blurred background image (Backdrop.FW × FH, ARGB). */
@@ -277,6 +297,8 @@ final class Scene {
     void glass(Canvas c, RectF r, float radius, int tint, float tintAlpha, int glow, float glowAlpha, float lift, float body, float alpha) {
         if (alpha <= 0.004f) return;
         if (glass == null) {
+            if (body >= 0.999f && photoGlass != null
+                    && photoGlass.draw(c, r, radius, tint, tintAlpha, lift, 0.5f, rimStrength, alpha, w, h, offsetX, offsetY)) return;
             // The tints were made for the shader's glass, which already lightens: here a little less of them.
             flatGlass.draw(c, r, radius, tint, Math.min(0.62f, tintAlpha * 0.55f), w, h, offsetX, offsetY, night, body, alpha);
             return;

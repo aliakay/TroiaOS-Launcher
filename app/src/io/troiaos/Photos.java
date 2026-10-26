@@ -169,9 +169,10 @@ final class Photos {
             try {
                 Bitmap image = decode(p, dim);
                 Bitmap frost = Wallpaper.frostOf(image);
+                Bitmap sharp = PhotoGlass.wanted() ? Wallpaper.sharpOf(image) : null;      // Android 13+ only
                 main.post(() -> {
                     if (!key.equals(loading)) return;      // something else was asked for meanwhile
-                    Wallpaper.get().setPhoto(image, frost);
+                    Wallpaper.get().setPhoto(image, frost, sharp);
                     current = p;
                     loaded = key;
                     loading = null;
@@ -183,6 +184,18 @@ final class Photos {
                     if (key.equals(loading)) loading = null;
                 });
             }
+        });
+    }
+
+    /** Customize → Glass changed: build (or drop) the Android 13+ glass's copy of the photo on screen. */
+    void glassChanged() {
+        io.execute(() -> {
+            final Bitmap image = Wallpaper.get().photo;
+            final Bitmap sharp = image != null && PhotoGlass.wanted() ? Wallpaper.sharpOf(image) : null;
+            main.post(() -> {
+                if (Wallpaper.get().photo == image) Wallpaper.get().photoSharp = sharp;
+                notifyListeners();
+            });
         });
     }
 

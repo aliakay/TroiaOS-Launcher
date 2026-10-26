@@ -129,6 +129,15 @@ final class Prefs {
         }
     }
 
+    /**
+     * The glass on Android 13+: "auto" (the AGSL Liquid Glass over the photo), "classic" (what Android 11 and 12 use) or
+     * "slow" (switched to classic by PhotoGlass because the TV couldn't keep up). Android 11/12 ignore it.
+     */
+    static String glass() {
+        String g = string("glass", "auto");
+        return g.equals("classic") || g.equals("slow") ? g : "auto";
+    }
+
     /** How the home screen shows the apps: "dock" (the glass bar) or "list" (big names over the photo). */
     static String layout() {
         return string("layout", Config.LAYOUT).equals("list") ? "list" : "dock";

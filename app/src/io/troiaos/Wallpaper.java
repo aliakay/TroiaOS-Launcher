@@ -23,6 +23,8 @@ final class Wallpaper {
     final Bitmap day, night, dayFrost, nightFrost;
     /** A photo (Photos) in place of the clouds, 1920 × 1080, and its blur for the glass; null = the clouds. */
     volatile Bitmap photo, photoFrost;
+    /** Android 13+ glass: the photo at 960 × 540, slightly blurred (null on Android 11/12, and with the classic glass). */
+    volatile Bitmap photoSharp;
 
     static synchronized Wallpaper get() {
         if (instance == null) instance = new Wallpaper();
@@ -68,6 +70,11 @@ final class Wallpaper {
 
     /** The photo is replaced on the main thread (the old one is left to the garbage collector: it may still be drawn). */
     void setPhoto(Bitmap image, Bitmap frost) {
+        setPhoto(image, frost, null);
+    }
+
+    void setPhoto(Bitmap image, Bitmap frost, Bitmap sharp) {
+        photoSharp = sharp;
         photoFrost = frost;
         photo = image;
     }
@@ -85,6 +92,19 @@ final class Wallpaper {
         blur(px, FW, FH, 12, 3);
         Bitmap out = Bitmap.createBitmap(FW, FH, Bitmap.Config.ARGB_8888);
         out.setPixels(px, 0, FW, 0, 0, FW, FH);
+        return out;
+    }
+
+    /** The glass's view of a photo for the bezel (PhotoGlass): clear enough to show what bends, a little soft. */
+    static Bitmap sharpOf(Bitmap image) {
+        final int sw = 960, sh = 540;
+        Bitmap small = Bitmap.createScaledBitmap(image, sw, sh, true);
+        int[] px = new int[sw * sh];
+        small.getPixels(px, 0, sw, 0, 0, sw, sh);
+        small.recycle();
+        blur(px, sw, sh, 2, 2);
+        Bitmap out = Bitmap.createBitmap(sw, sh, Bitmap.Config.ARGB_8888);
+        out.setPixels(px, 0, sw, 0, 0, sw, sh);
         return out;
     }
 

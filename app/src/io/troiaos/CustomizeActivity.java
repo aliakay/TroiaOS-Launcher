@@ -277,6 +277,12 @@ public class CustomizeActivity extends Activity {
                     r.value = watchlistSummary();
                     r = item("sound", Ui.tr("Tık Sesi", "Click Sound"), "music_note");
                     r.value = Prefs.clickSound() ? Ui.tr("Açık", "On") : Ui.tr("Kapalı", "Off");
+                    if (android.os.Build.VERSION.SDK_INT >= 33) {      // Android 11/12 only have the classic glass
+                        r = item("glass", Ui.tr("Cam", "Glass"), "contrast");
+                        String g = Prefs.glass();
+                        r.value = g.equals("auto") ? Ui.tr("Liquid Glass", "Liquid Glass")
+                                : g.equals("slow") ? Ui.tr("Klasik (TV yavaş)", "Classic (TV too slow)") : Ui.tr("Klasik", "Classic");
+                    }
                     r = item("language", "Dil / Language", "translate");
                     r.value = Ui.en ? "English" : "Türkçe";
                     break;
@@ -1019,6 +1025,11 @@ public class CustomizeActivity extends Activity {
                     rebuild();
                     break;
                 }
+                case "glass":
+                    Prefs.put(c, "glass", Prefs.glass().equals("auto") ? "classic" : "auto");
+                    Photos.get(c).glassChanged();
+                    rebuild();
+                    break;
                 case "sound":
                     Prefs.put(c, "click_sound", !Prefs.clickSound());
                     rebuild();
