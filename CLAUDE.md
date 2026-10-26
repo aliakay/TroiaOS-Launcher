@@ -92,6 +92,12 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
   aurora stays in the code, off: it can't show the photos). Then the background is `Wallpaper`
   (a photo from `Photos`, or soft clouds of colour) and every glass surface is `LiquidGlass`: the pre-blurred
   wallpaper ("frost") drawn through a slight lens, a tint, light on top and a specular rim. Plain Canvas, cheap.
+- **Liquid Glass on Android 13+** (`PhotoGlass`, AGSL): over a wallpaper photo every glass surface (dock, weather, cards, drawer,
+  Control Center, Lights, Wi-Fi/markets panels, Customize's menu, the dock's focus lens) is a clear, flat glass with a thick lens
+  bezel that bends the photo, with a bright edge. `Scene` and `LiquidGlass` call it first and fall back to the Canvas glass
+  (`LiquidGlass`) when it returns false: Android 11/12 never load it, so they are unchanged. It reads `Wallpaper.photoSharp`
+  (960 × 540, built only on 13+). Customize → Home Screen → Glass switches it off; a TV that can't hold its frame rate
+  switches it off by itself (`Prefs.glass()` = "slow"). Focused list rows stay solid white (dark text on them).
 - **Photos** (`Photos`, `assets/wallpapers/photos.json`): nature photos from Wikimedia Commons (day and night sets)
   and public-domain NASA photos (`"set": "space"`, files `space-*.jpg`, cropped to 1920 × 1080), a new one every hour
   or one chosen photo, darkened as chosen (`Prefs.wallpaper`, `wallpaperPhoto`, `wallpaperDim`; Customize →
