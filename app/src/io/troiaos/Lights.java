@@ -15,14 +15,14 @@ import java.util.concurrent.TimeUnit;
 /**
  * Every smart light the TV can reach, whatever the brand, all on the home network with no cloud and no account:
  * WiZ, LIFX and Govee are found by themselves (each answers a broadcast); a Philips Hue Bridge is paired once with its
- * button, and Home Assistant (for any other brand) is connected once with its address and a token (Customize →
+ * button, Tapo bulbs are added once by address and Tapo account, and Home Assistant (for any other brand) is connected once with its address and a token (Customize →
  * Lights). The names given on the TV and the hidden lamps are in Prefs. Every call blocks: never on the UI thread.
  */
 final class Lights {
     private Lights() {}
 
-    static final String WIZ = "wiz", LIFX = "lifx", GOVEE = "govee", HUE = "hue", HA = "ha";
-    private static final String[] BRANDS = {WIZ, LIFX, GOVEE, HUE, HA};
+    static final String WIZ = "wiz", LIFX = "lifx", GOVEE = "govee", HUE = "hue", TAPO = "tapo", HA = "ha";
+    private static final String[] BRANDS = {WIZ, LIFX, GOVEE, HUE, TAPO, HA};
 
     /** A lamp: its brand's address for it, what the brand calls it, and its state (as last read or set). */
     static final class Lamp {
@@ -67,6 +67,7 @@ final class Lights {
             case LIFX: return "LIFX";
             case GOVEE: return "Govee";
             case HUE: return "Philips Hue";
+            case TAPO: return "Tapo";
             default: return "Home Assistant";
         }
     }
@@ -103,10 +104,11 @@ final class Lights {
         return out;
     }
 
-    /** WiZ, LIFX and Govee are always looked for; Hue and Home Assistant once they're connected. */
+    /** WiZ, LIFX and Govee are always looked for; Hue, Tapo and Home Assistant once they're connected. */
     private static boolean enabled(String brand) {
         // Only whether a key is saved: no decrypting just to know.
         if (brand.equals(HUE)) return !Prefs.hueBridge().isEmpty() && Prefs.has("hue_user");
+        if (brand.equals(TAPO)) return !Prefs.tapoIps().isEmpty() && Prefs.has("tapo_user") && Prefs.has("tapo_pass");
         if (brand.equals(HA)) return !Prefs.haUrl().isEmpty() && Prefs.has("ha_token");
         return true;
     }
@@ -117,6 +119,7 @@ final class Lights {
             case LIFX: return Lifx.discover(waitMs);
             case GOVEE: return Govee.discover(waitMs);
             case HUE: return Hue.lamps(Prefs.hueBridge(), Prefs.hueUser());
+            case TAPO: return Tapo.lamps(Prefs.tapoIps(), Prefs.tapoUser(), Prefs.tapoPass());
             default: return HomeAssistant.lamps(Prefs.haUrl(), Prefs.haToken());
         }
     }
@@ -124,7 +127,7 @@ final class Lights {
     /** True once any lamp was ever found, or Hue or Home Assistant is connected (the home screen only asks then). */
     static boolean known(Context c) {
         Prefs.load(c);
-        return Prefs.has("lights_seen") || Wiz.known(c) || enabled(HUE) || enabled(HA);
+        return Prefs.has("lights_seen") || Wiz.known(c) || enabled(HUE) || enabled(TAPO) || enabled(HA);
     }
 
     /** True if any lamp is on; null if there is none. */
@@ -159,6 +162,7 @@ final class Lights {
                     case LIFX: return Lifx.set(e.getValue(), p);
                     case GOVEE: return Govee.set(e.getValue(), p);
                     case HUE: return Hue.set(Prefs.hueBridge(), Prefs.hueUser(), e.getValue(), p);
+                    case TAPO: return Tapo.set(Prefs.tapoUser(), Prefs.tapoPass(), e.getValue(), p);
                     default: return HomeAssistant.set(Prefs.haUrl(), Prefs.haToken(), e.getValue(), p);
                 }
             }));

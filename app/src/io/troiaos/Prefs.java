@@ -266,6 +266,19 @@ final class Prefs {
         return secret("hue_user", "");
     }
 
+    /** Tapo bulbs: their addresses (typed once), and the Tapo account's e-mail and password (encrypted). */
+    static String tapoIps() {
+        return string("tapo_ips", "");
+    }
+
+    static String tapoUser() {
+        return secret("tapo_user", "");
+    }
+
+    static String tapoPass() {
+        return secret("tapo_pass", "");
+    }
+
     static String haUrl() {
         return string("ha_url", "");
     }

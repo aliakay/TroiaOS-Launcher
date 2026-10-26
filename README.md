@@ -48,7 +48,7 @@ One button to undo.
   8 hours, sunrise and sunset. [Open-Meteo](https://open-meteo.com), no key.
 - **Markets (optional).** A button for your watchlist: price, change since the last close and today's curve.
 - **Smart lights, many brands.** WiZ, LIFX and Govee are found by themselves; a Philips Hue Bridge pairs with its
-  button; Home Assistant brings in any other brand. All lamps or one at a time, 8 scenes, brightness and colour;
+  button; Tapo bulbs are added by address; Home Assistant brings in any other brand. All lamps or one at a time, 8 scenes, brightness and colour;
   rename lamps, hide some, blink one to tell which is which. Home network only: no account, no cloud.
 - **Guest Wi-Fi QR code.** Type your guest network on the TV (Customize → Guest Wi-Fi QR); guests scan the code
   with their phone's camera and join without typing the password.
@@ -188,7 +188,9 @@ at the bottom of Control Center).
 - **Govee:** turn on *LAN Control* for each lamp in the Govee app (only models that have it).
 - **Philips Hue:** Customize → Lights → Philips Hue. The TV finds the bridge; press its round button, then
   *Connect*.
-- **Anything else (IKEA, Nanoleaf, Tapo, Zigbee, Matter…):** through [Home Assistant](https://www.home-assistant.io).
+- **TP-Link Tapo (L530, L535…):** Customize → Lights → Tapo. Type your Tapo account's e-mail and password (the bulbs check
+  them themselves; kept encrypted on the TV) and the bulbs' addresses (Tapo app → the bulb → Device info). Local only.
+- **Anything else (IKEA, Nanoleaf, Zigbee, Matter…):** through [Home Assistant](https://www.home-assistant.io).
   Customize → Lights → Home Assistant: its address (found on the network when it can be), then a long-lived
   access token (Home Assistant → your profile → Security). Typing a long token with a remote is no fun: the Google
   TV app on your phone has a keyboard that can paste it.
