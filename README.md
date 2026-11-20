@@ -151,6 +151,11 @@ About fifteen minutes. You need a Google TV or Android TV (Android 12+) and a co
    adb connect <TV-IP>:5555         # accept "Allow USB debugging?" on the TV (tick "Always allow")
    adb install -r TroiaOS.apk
    ```
+   TroiaOS lets itself read the TV's Watch Next list (Netflix's show and poster in Continue Watching) once, through
+   the TV's own ADB. If that didn't happen (debugging was off then), run this once:
+   ```bash
+   adb shell pm grant io.troiaos android.permission.READ_TV_LISTINGS
+   ```
 4. **On the TV**, open *TroiaOS* → *Home Screen* → *TroiaOS*, and accept the debugging prompt once more (the
    app uses the TV's own ADB to switch the home screen).
 
@@ -206,6 +211,8 @@ to us. What goes out, and to whom, is all on Customize → Privacy:
 | City search | Open-Meteo | The name you type |
 | Markets (only with a watchlist) | Yahoo Finance | Your symbols |
 | NASA picture (only if chosen) | NASA (science.nasa.gov) | That the feed was read |
+| Tonight's game (only while teams are followed) | ESPN (site.api.espn.com, public scoreboard) | That a league's scoreboard was read (the whole league's, so not which teams you follow) |
+| Continue Watching posters | The app's own image server, at the HTTPS address it put in the TV's Watch Next list or home-screen row (Netflix: `*.nflxso.net`; Fibe TV: `ott-artworks.kprod.cdn.f0ns3.ca`) | That its poster was loaded, once per show or program |
 
 All of these use HTTPS. Like any website, each of them also sees your internet address.
 
@@ -215,8 +222,9 @@ What stays at home:
   ever used with home-network addresses; the app refuses it for anything on the internet.
 - **The Wi-Fi password, the Hue key and the Home Assistant token** are encrypted with a key in the TV's Android
   Keystore, which never leaves the TV. Keyboards are told not to learn them.
-- **Now Playing and Continue Watching** read what plays on the TV itself; the app reads no notifications, and
-  nothing of it leaves the TV.
+- **Now Playing and Continue Watching** read what plays on the TV itself and the TV's Watch Next list (which the
+  apps fill themselves) and their home-screen rows (Fibe TV's channels); the app reads no notifications. Only the posters are loaded, from the app's own address
+  (above); what you watch is never sent anywhere.
 - **The TV's own ADB** is only used, from inside the TV, for the app's own fixed commands (switching the home screen,
   sleep, Free RAM).
 - **Android backup is off**, so the settings never go to a cloud backup.

@@ -54,10 +54,10 @@ public class ControlCenterActivity extends Activity {
         WindowManager.LayoutParams lp = win.getAttributes();
         lp.gravity = Gravity.TOP | Gravity.END;
         lp.x = Math.round(64 * k);
-        lp.y = Math.round(48 * k);
+        lp.y = Math.round(196 * k);
         lp.width = Math.round(CenterView.W * k);
         lp.height = WindowManager.LayoutParams.WRAP_CONTENT;
-        lp.dimAmount = 0.45f;
+        lp.dimAmount = 0.2f;
         win.setAttributes(lp);
         win.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
     }
@@ -208,7 +208,7 @@ public class ControlCenterActivity extends Activity {
             y += 4;
             rows.add(EDIT);
             rowTops.add(y);
-            mainH = y + EDIT_H + 28;
+            mainH = y + EDIT_H + 60;
             row = Math.min(row, rows.size() - 1);
             col = Math.min(col, Math.max(0, buttons.size() - 1));
         }
@@ -230,7 +230,7 @@ public class ControlCenterActivity extends Activity {
             int width = MeasureSpec.getSize(widthSpec);
             float kk = width / W;
             if (rows.isEmpty()) layoutRows();
-            float h = inputsPage ? 168 + Math.max(1, inputs.size()) * ROW_H + 30 : mainH;
+            float h = inputsPage ? 168 + Math.max(1, inputs.size()) * ROW_H + 62 : mainH;
             setMeasuredDimension(width, Math.round(h * kk));
         }
 
@@ -293,12 +293,23 @@ public class ControlCenterActivity extends Activity {
                     }
                 }
             }
+            drawBackHint(c);
+        }
+
+        private Paint backHint;
+
+        private void drawBackHint(Canvas c) {
+            if (backHint == null) {
+                backHint = Ui.text(Ui.regular, 20 * k, 0x99FFFFFF);
+                backHint.setTextAlign(Paint.Align.CENTER);
+            }
+            c.drawText(Ui.tr("Kapatmak için Geri", "Press Back to close"), getWidth() / 2f, getHeight() - 14 * k, backHint);
         }
 
         private void drawHeader(Canvas c) {
             float x = PAD * k, right = getWidth() - PAD * k;
             long t = System.currentTimeMillis();
-            c.drawText(Ui.clock(t), x - Ui.leftBearing(time, Ui.clock(t)), 92 * k, time);
+            c.drawText(Ui.clock12(t), x - Ui.leftBearing(time, Ui.clock12(t)), 92 * k, time);
             c.drawText(Ui.date(t), x, 128 * k, date);
             String net = HomeApps.network(getContext());
             String name = net.equals("ethernet") ? "Ethernet" : net.equals("wifi") ? "Wi-Fi" : Ui.tr("Bağlantı yok", "Offline");

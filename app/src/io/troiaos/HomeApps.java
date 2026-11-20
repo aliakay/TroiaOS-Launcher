@@ -773,6 +773,11 @@ final class HomeApps {
 
     /** The app's official TV art (the Android TV banner), at the highest density the app has. */
     private static Bitmap bannerTile(Context c, String pkg) {
+        return banner(c, pkg, TILE_W, TILE_H);
+    }
+
+    /** The app's TV banner (16:9) drawn at w × h, on dark where it's transparent; null without one. */
+    static Bitmap banner(Context c, String pkg, int tileW, int tileH) {
         PackageManager pm = c.getPackageManager();
         Drawable d = null;
         try {
@@ -786,10 +791,10 @@ final class HomeApps {
         } catch (PackageManager.NameNotFoundException | RuntimeException ignored) {
         }
         if (d == null) return null;
-        Bitmap b = Bitmap.createBitmap(TILE_W, TILE_H, Bitmap.Config.ARGB_8888);
+        Bitmap b = Bitmap.createBitmap(tileW, tileH, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(b);
         canvas.drawColor(0xFF15161C);   // banners with transparency sit on a dark background
-        d.setBounds(0, 0, TILE_W, TILE_H);
+        d.setBounds(0, 0, tileW, tileH);
         d.draw(canvas);
         return b;
     }

@@ -224,6 +224,28 @@ final class Prefs {
         return m.isEmpty() ? MediaListener.YT_MUSIC : m;
     }
 
+    // MARK: - Sports: the "Tonight" card (Sports)
+
+    /** Fibe TV (Bell): what OK on the card opens unless another app was chosen. */
+    static final String FIBE_TV = "com.quickplay.android.bellmediaplayer";
+
+    /** The teams followed, "league:ABBR" (ESPN's abbreviations), comma-separated. */
+    static String sportsTeams() {
+        return string("sports_teams", "nba:TOR,mlb:TOR");
+    }
+
+    static boolean sportsOn() {
+        synchronized (LOCK) {
+            return data.optBoolean("sports_on", true);
+        }
+    }
+
+    /** The app OK on the card opens, by package. */
+    static String sportsApp() {
+        String a = string("sports_app", "");
+        return a.isEmpty() ? FIBE_TV : a;
+    }
+
     // MARK: - Lights: names and hidden lamps (by Lights.Lamp.key), the Hue Bridge and Home Assistant
 
     static String lampName(String key) {

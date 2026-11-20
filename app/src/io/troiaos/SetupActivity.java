@@ -506,6 +506,7 @@ public class SetupActivity extends Activity {
                     info(Ui.tr("Hava durumu, şehir arama", "Weather, city search"), Ui.tr("Open-Meteo, yalnızca HTTPS", "Open-Meteo, HTTPS only"), "sunny");
                     info(Ui.tr("Piyasalar", "Markets"), Ui.tr("Yahoo Finance: sembolleriniz", "Yahoo Finance: your symbols"), "chart");
                     info(Ui.tr("NASA fotoğrafı", "NASA picture"), Ui.tr("Yalnızca seçerseniz", "Only if you choose it"), "sparkles");
+                    info(Ui.tr("Devam et afişleri", "Continue Watching posters"), Ui.tr("Uygulamanın kendi sunucusu (Netflix, Fibe TV)", "The app's own server (Netflix, Fibe TV)"), "play_arrow");
                     info(Ui.tr("Işıklar, şifreler", "Lights, passwords"), Ui.tr("Evde ve bu TV'de kalır", "Stay at home, on this TV"), "lightbulb");
                     info(Ui.tr("Çalan müzik", "Now Playing"), Ui.tr("TV'de okunur, gönderilmez", "Read on the TV, never sent"), "music_note");
                     headerRow("");

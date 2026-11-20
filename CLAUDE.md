@@ -145,6 +145,10 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
   stopped states never overwrite the position. The home screen reads it on resume and shows a card above the dock
   for the focused app (its own hardware layer, `contLayer`; zone `Z_CONTINUE`). YouTube resumes through
   `youtube.com/watch?v=ID&t=Ns` when the session's media ID looks like a video ID; otherwise the app just opens.
+  Netflix gives its media session no title, so `WatchNext` reads the TV's Watch Next list (title, episode, position,
+  poster on its HTTPS image server, a link to the episode). That needs `READ_TV_LISTINGS`: TroiaOS grants it to
+  itself once through the TV's own ADB; else `adb shell pm grant io.troiaos android.permission.READ_TV_LISTINGS`.
+  Without it the tiles fall back to the media session.
 - **Panels** (floating windows over the home screen, theme `TroiaOS.Panel`): `InfoActivity` (weather hours,
   markets, the guest Wi-Fi QR) and `LightsActivity` (all lamps or one, on/off, scenes, brightness, colour).
 - **Lights** (`Lights`: `Lamp`, `Pilot`; every brand at the same time, all on the home network):
@@ -168,6 +172,12 @@ TVs that don't run Google TV or Android TV (Samsung, LG and others): the way is 
 - **Music app**: `Prefs.musicApp` (YouTube Music when unset): what Now Playing opens and prefers; marks and colours of
   known music apps in `NowPlaying.mark`/`markColor`. YouTube Music is no longer turned off (`HomeMode.OLD_DEBLOAT`:
   the check after boot or an update turns it back on where an older version turned it off).
+- **Tonight's game** (`Sports`, `HomeView.drawTonight`, layer `tonightLayer`, zone `Z_TONIGHT`): a live or upcoming
+  game (today or tomorrow) of the teams followed (`Prefs.sportsTeams`, "nba:TOR,mlb:TOR"), from ESPN's public, keyless
+  scoreboard JSON (whole league, so ESPN doesn't learn the teams), every 2 minutes while home shows, cached. A glass
+  tile under the corner buttons; OK opens `Prefs.sportsApp` (Fibe TV by default), holding OK hides it for the day
+  (`home-ui` `tonight_hidden`). Customize → Tonight's Game: on/off, the app, the teams. ESPN's broadcasts are US
+  networks, so none is shown.
 - **Markets** (`Stocks`): Yahoo Finance's public chart endpoint, unofficial and keyless; off when `stocks` is empty.
 - **Android 12 HOME role**: `cmd role get-role-holders` doesn't exist there; `HomeMode.homeHolder` reads `dumpsys
   role` instead.
