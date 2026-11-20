@@ -43,11 +43,11 @@ public class LightsActivity extends Activity {
         Window win = getWindow();
         WindowManager.LayoutParams lp = win.getAttributes();
         lp.gravity = Gravity.TOP | Gravity.END;
-        lp.x = Math.round(70 * k);
+        lp.x = Math.round(64 * k);
         lp.y = Math.round(196 * k);
-        lp.width = Math.round(LightsView.W * k);
+        lp.width = Math.round(LightsView.W * k * 0.8f);
         lp.height = WindowManager.LayoutParams.WRAP_CONTENT;
-        lp.dimAmount = 0.3f;
+        lp.dimAmount = 0.2f;
         win.setAttributes(lp);
         win.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
     }
@@ -140,7 +140,7 @@ public class LightsActivity extends Activity {
         static final float W = 600;
         private static final float PAD = 30, CHIPS_TOP = 30, CHIP_H = 52, POWER_TOP = 104, POWER_D = 84,
                 SCENE_LABEL = 238, SCENE_TOP = 254, SCENE_H = 92, BAR_LABEL = 500, BAR_TOP = 516, BAR_H = 48,
-                COLOR_LABEL = 608, SWATCH_CY = 648, SWATCH_D = 34, HEIGHT = 692, EMPTY_HEIGHT = 250;
+                COLOR_LABEL = 608, SWATCH_CY = 648, SWATCH_D = 34, HEIGHT = 724, EMPTY_HEIGHT = 250;
         private static final int TARGET = 0, POWER = 1, SCENES_A = 2, SCENES_B = 3, BRIGHTNESS = 4, COLOR = 5, ROWS = 6;
         private static final int INK = 0xFF1C1C1E, AMBER = 0xFFFFC266;
 
@@ -371,7 +371,18 @@ public class LightsActivity extends Activity {
             drawScenes(c);
             drawBrightness(c);
             drawColors(c);
-            if (!problem.isEmpty()) c.drawText(problem, x, (HEIGHT - 12) * k, warn);
+            if (!problem.isEmpty()) c.drawText(problem, x, (HEIGHT - 44) * k, warn);
+            drawBackHint(c);
+        }
+
+        private Paint backHint;
+
+        private void drawBackHint(Canvas c) {
+            if (backHint == null) {
+                backHint = Ui.text(Ui.regular, 20 * k, 0x99FFFFFF);
+                backHint.setTextAlign(Paint.Align.CENTER);
+            }
+            c.drawText(Ui.tr("Kapatmak için Geri", "Press Back to close"), getWidth() / 2f, getHeight() - 14 * k, backHint);
         }
 
         private void applyColors(boolean day) {

@@ -143,6 +143,11 @@ final class Ui {
         return new SimpleDateFormat("HH:mm", en ? Locale.UK : TR).format(new Date(now));
     }
 
+    /** "3:27 PM": 12-hour, for the home screen and Control Center. */
+    static String clock12(long now) {
+        return new SimpleDateFormat("h:mm a", Locale.US).format(new Date(now));
+    }
+
     /** "7:21" (sunrise and sunset). */
     static String time(long at) {
         return new SimpleDateFormat("H:mm", en ? Locale.UK : TR).format(new Date(at));

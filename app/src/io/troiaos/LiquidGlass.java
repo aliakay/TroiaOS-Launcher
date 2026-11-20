@@ -52,6 +52,11 @@ final class LiquidGlass {
     void draw(Canvas c, RectF r, float radius, int tint, float tintAlpha, int screenW, int screenH, float ox, float oy,
               float night, float body, float alpha) {
         if (alpha <= 0.004f) return;
+        if (android.os.Build.VERSION.SDK_INT < 33 && body > 0) {      // flat panel instead of glass (Android 11/12)
+            fill.setColor(Ui.alpha(tint, Math.min(1f, Math.max(0.5f, tintAlpha)) * body * alpha));
+            c.drawRoundRect(r, radius, radius, fill);
+            return;
+        }
         if (body >= 0.999f && photoGlass != null
                 && photoGlass.draw(c, r, radius, tint, tintAlpha, 0.02f, 0.5f, rimStrength, alpha, screenW, screenH, ox, oy)) return;
         radius = Math.min(radius, Math.min(r.width(), r.height()) / 2);

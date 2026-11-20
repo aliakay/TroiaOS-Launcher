@@ -52,7 +52,7 @@ import java.util.concurrent.Executors;
  * redraws what changed.
  */
 final class HomeView extends ViewGroup implements Choreographer.FrameCallback, HomeData.Listener, Recs.Listener,
-        Stocks.Listener, Photos.Listener {
+        Stocks.Listener, Photos.Listener, Sports.Listener {
     // tvOS grid (Human Interface Guidelines): content inside the safe area, 80 px from the sides and 60 from top and
     // bottom; 40 px between items; 7 columns of 217 px (the apps). The shelf glass extends 36 px past the tiles (the
     // same padding on all four sides) and the tile corners are concentric with it (glass radius = radius + padding).
@@ -102,7 +102,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private static final int SMOKE = 0xFF111113, INK = 0xFF1C1C1E, WHITE = 0xFFF5F5F7;
     private static final int UP_COLOR = 0xFF30D158, DOWN_COLOR = 0xFFFF453A;
     private static final long TOAST_MS = 6000, FADE_MS = 800;
-    private static final int SKY = 0, HERO = 1, STATUS = 2, PLATTER = 3, TILES = 4, DRAWER = 5, SHEET = 6, TOAST = 7, CONTINUE = 8, LIST = 9;
+    private static final int SKY = 0, HERO = 1, STATUS = 2, PLATTER = 3, TILES = 4, DRAWER = 5, SHEET = 6, TOAST = 7, CONTINUE = 8, LIST = 9, TONIGHT = 10;
     /**
      * The List layout (Customize → Home Screen → Apps Layout), after CleanFrame's Photo List: white names with
      * their marks on the left, over the photo; the focused one brightest. Rows in 1920 units.
@@ -121,10 +121,19 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private static final String[] TABS_EN = {"Explore", "Movies", "Shows"};
     private static final String[] TAB_KIND = {null, "movie", "tv"};
     private static final int Z_TOP = 4, Z_CARDS = 5;
-    /** The "continue watching" card above the dock (↑ from the focused app). */
+    /** The "continue watching" row above the dock (↑ from the dock). */
     private static final int Z_CONTINUE = 6;
-    /** The card: its width, and its bottom (above the dock) in 1920 units. */
-    private static final float CONT_W = 460, CONT_BOTTOM = 816, CONT_PAD = 16, CONT_ROW = 56;
+    /** At most this many tiles (the TV has little memory: each holds a picture). */
+    private static final int CONT_MAX = 5;
+    /** Dock layout: a row of 16:9 tiles above the dock, in 1920 units (the header's baseline, the pictures' top). */
+    private static final float CONT_W = 320, CONT_H = 180, CONT_GAP = 40, CONT_HEAD = 522, CONT_TOP = 544, CONT_LAYER_TOP = 470;
+    /** List layout: a column at the right of the names (picture, then title and app beside it). */
+    private static final float CONT_COL_X = 1300, CONT_COL_HEAD = 300, CONT_COL_TOP = 330, CONT_COL_PITCH = 132,
+            CONT_COL_W = 192, CONT_COL_H = 108, CONT_COL_LAYER_X = 1240, CONT_COL_LAYER_TOP = 240;
+    /** The "Tonight" card (Sports): a glass tile under the weather at the left (top right in the List layout). */
+    private static final int Z_TONIGHT = 7;
+    /** In 1920 units: its size, its top in each layout, and the layer's margin (shadow, focus growth). */
+    private static final float TN_W = 440, TN_H = 124, TN_TOP = 318, TN_LIST_TOP = 148, TN_PAD = 40;
 
     private final Activity activity;
     private final Scene scene = new Scene();
@@ -136,26 +145,38 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final SharedPreferences ui;
     private final TvInputManager tvInputs;
-    private final Layer sky, heroLayer, status, platter, tiles, drawerLayer, sheetLayer, toastLayer, contLayer, listLayer;
+    private final Layer sky, heroLayer, status, platter, tiles, drawerLayer, sheetLayer, toastLayer, contLayer, listLayer, tonightLayer;
+    // Tonight: the game shown (null: none, or hidden for the day) and its texts, cut to fit when laid out.
+    private final Sports sports;
+    private Sports.Game tonightGame;
+    private final Spring tonightFade = new Spring(0.28f, 1f, 0), tonightFocus = new Spring(0.3f, 0.82f, 0);
+    private final RectF tonightRect = new RectF();
+    private String tnHead = "", tnLine = "", tnWhen = "";
+    private boolean tonightDirty, tonightLive;
+    private Paint tnTitle;
     private final Spring listScroll = new Spring(0.38f, 1f, 0);
     private Paint lListName;
     private final Paint listScrim = new Paint(Paint.DITHER_FLAG);
     private int listScrimW;
     private boolean listMode;
-    // Continue watching: every app's latest (Continue), the card shown for the focused dock app and the latest from
-    // another app, the crossfade between apps and the focus inside the card (0: the video, 1: the other app's row).
-    private final Map<String, Continue.Entry> contByPkg = new HashMap<>();
+    // Continue watching: each app's latest (Continue), newest first, one tile each. The pictures are kept by app
+    // (with their file's time) so returning home doesn't decode them again; texts are cut to fit when laid out.
     private List<Continue.Entry> contAll = new ArrayList<>();
-    private Continue.Entry contMain, contOther;
+    private final Map<String, Bitmap> contArt = new HashMap<>();                     // UI thread only
+    private final Map<String, Long> contArtAt = new java.util.concurrent.ConcurrentHashMap<>();   // read by the loader
+    private final Map<String, Long> contGone = new HashMap<>();
+    /** Posters download here, apart from the loader; each address is tried once per start. */
+    private static final ExecutorService POSTERS = Executors.newSingleThreadExecutor();
+    private final java.util.Set<String> posterTried = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private boolean listingsAsked;     // dismissed here (a reload in flight may still have them)
     private final Spring contFade = new Spring(0.28f, 1f, 0);
-    private final Spring[] contFocus = {new Spring(0.3f, 0.82f, 0), new Spring(0.3f, 0.82f, 0)};
-    private final RectF contRect = new RectF(), contThumb = new RectF(), contRow = new RectF();
-    private StaticLayout contTitle;
-    private String contApp = "", contOtherApp = "";
-    private float contPillTop, contTitleTop, contMetaBase, contBarTop, contOtherTop;
+    private final Spring[] contFocus = new Spring[CONT_MAX];
+    private final RectF[] contThumbs = new RectF[CONT_MAX];
+    private final String[] contTitles = new String[CONT_MAX], contMetas = new String[CONT_MAX];
+    private String contHeadText = "";
     private int contIndex;
-    private boolean contDirty;
-    private Paint cWhen, cMeta, cHead, cRowTitle;
+    private boolean contDirty, contListLayout;
+    private Paint cMeta, cHead, cTileTitle;
     private int zone = Z_SHELF;
 
     // Night look (like Apple's "Automatic" appearance): darker from sunset to sunrise, with a 2 s transition.
@@ -178,7 +199,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private final RectF[] cardRects = new RectF[3];
     private final List<HomeApps.Item> lightButtons = new ArrayList<>();
     private Paint lTitle, lTab, lTabOn, lCardTitle, lCardMeta, lQuote, lTip, lClock, lDate, lPill, lAppName, lDockName,
-            lGreet, lDateCaps, lWxTemp, lWxMain, lWxDim, lCaption, lCredit;
+            lGreet, lDateCaps, lWxTemp, lWxMain, lWxDim, lCaption, lCredit, lDateLine, lWxLine;
     private final RectF mainWeather = new RectF(), stocksCard = new RectF();
     private final Path curve = new Path();
     private Paint curveLine, closeLine, stockChange;
@@ -318,6 +339,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 case SHEET: drawSheet(c); break;
                 case CONTINUE: drawContinue(c); break;
                 case LIST: drawList(c); break;
+                case TONIGHT: drawTonight(c); break;
                 default: drawToast(c); break;
             }
             scene.setOffset(0, 0);
@@ -335,6 +357,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             if (!running) return;
             data.refreshIfStale();
             stocks.refreshIfStale();
+            sports.refreshIfStale();
             recs.refreshIfStale();
             photos.refresh();       // a new photo every hour (and day ⇄ night)
             updateNetwork();
@@ -361,6 +384,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         activity = a;
         data = HomeData.get(a);
         stocks = Stocks.get(a);
+        sports = Sports.get(a);
         photos = Photos.get(a);
         recs = Recs.get(a);
         click = new Click(a);
@@ -378,10 +402,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         contLayer = new Layer(a, CONTINUE);
         contLayer.setVisibility(INVISIBLE);
         listLayer = new Layer(a, LIST);
+        tonightLayer = new Layer(a, TONIGHT);
+        tonightLayer.setVisibility(INVISIBLE);
         listMode = Prefs.layout().equals("list");
         // Hardware layers on the GPU: only the one that changed is redrawn; moving, fading and scaling stay cheap.
-        for (View v : new View[] {heroLayer, status, contLayer, listLayer, platter, tiles, drawerLayer, sheetLayer}) v.setLayerType(LAYER_TYPE_HARDWARE, null);
-        for (View v : new View[] {sky, heroLayer, status, contLayer, listLayer, platter, tiles, drawerLayer, sheetLayer, toastLayer}) addView(v);
+        for (View v : new View[] {heroLayer, status, contLayer, listLayer, tonightLayer, platter, tiles, drawerLayer, sheetLayer}) v.setLayerType(LAYER_TYPE_HARDWARE, null);
+        for (View v : new View[] {sky, heroLayer, status, contLayer, listLayer, tonightLayer, platter, tiles, drawerLayer, sheetLayer, toastLayer}) addView(v);
         drawerLayer.setVisibility(INVISIBLE);
         for (int i = 0; i < topFocus.length; i++) {
             topFocus[i] = new Spring(0.26f, 0.85f, 0);
@@ -390,6 +416,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         for (int i = 0; i < 3; i++) {
             cardFocus[i] = new Spring(0.32f, 0.78f, 0);
             cardRects[i] = new RectF();
+        }
+        for (int i = 0; i < CONT_MAX; i++) {
+            contFocus[i] = new Spring(0.3f, 0.82f, 0);
+            contThumbs[i] = new RectF();
+            contTitles[i] = contMetas[i] = "";
         }
         makeLightButtons();
         recs.setLight(true);
@@ -425,8 +456,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             tilesDirty = true;
             platter.invalidate();
             sky.invalidate();
-            contMain = null;
-            contFade.snap(0);
+            if (zone == Z_CONTINUE || zone == Z_TONIGHT) zone = Z_SHELF;
+            layoutContinue();
+            layoutTonight();
+            requestLayout();        // the row's layer: above the dock, or a column at the right
         }
         if (Ui.loadLanguage(getContext()) | custom) {   // …or the language was changed in the settings
             makeLightButtons();
@@ -440,11 +473,14 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         lastStep = 0;
         data.addListener(this);
         stocks.addListener(this);
+        sports.addListener(this);
         photos.addListener(this);
         photos.refresh();
         recs.addListener(this);
         data.refreshIfStale();
         stocks.refreshIfStale();
+        sports.refreshIfStale();
+        layoutTonight();        // the cached game at once (a day may have passed, or the teams changed)
         recs.refreshIfStale();
         if (tvInputs != null) tvInputs.registerCallback(inputCallback, handler);
         handler.postDelayed(tick, 15_000);
@@ -468,6 +504,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         handler.removeCallbacks(tick);
         data.removeListener(this);
         stocks.removeListener(this);
+        sports.removeListener(this);
         photos.removeListener(this);
         recs.removeListener(this);
         if (tvInputs != null) tvInputs.unregisterCallback(inputCallback);
@@ -508,6 +545,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         // Everything else lives in Control Center (one button, like Apple's), so the corner stays calm. It stays the
         // one ↑ from the apps lands on; TroiaOS's settings sit right of it, in the corner.
         lightButtons.add(HomeApps.action(HomeApps.CONTROL, "control", Ui.tr("Kontrol Merkezi", "Control Center"), "control"));
+        lightButtons.add(HomeApps.action(HomeApps.LIGHTS, "lights", Ui.tr("Işıklar", "Lights"), "lightbulb"));
+        lightButtons.add(HomeApps.action(HomeApps.INPUTS, "inputs", Ui.tr("HDMI Girişleri", "HDMI Inputs"), "hdmi"));
         lightButtons.add(HomeApps.action(HomeApps.SETTINGS, "settings", Ui.tr("Ayarlar", "Settings"), "settings"));
     }
 
@@ -536,6 +575,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         heroDirty = true;
     }
 
+    @Override public void onSports() {
+        layoutTonight();
+    }
+
     @Override public void onRecs() {
         updatePicks();
     }
@@ -559,8 +602,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         measure(drawerLayer, width, Math.round(600 * kk));
         measure(sheetLayer, width, height);
         measure(toastLayer, Math.round(1000 * kk), Math.round(220 * kk));
-        measure(contLayer, Math.round(740 * kk), Math.round(880 * kk));
+        if (listMode) measure(contLayer, width - Math.round(CONT_COL_LAYER_X * kk), Math.round(800 * kk));
+        else measure(contLayer, width, Math.round(400 * kk));
         measure(listLayer, Math.round(1240 * kk), Math.round(830 * kk));
+        measure(tonightLayer, Math.round((TN_W + 2 * TN_PAD) * kk), Math.round((TN_H + 2 * TN_PAD) * kk));
         setMeasuredDimension(width, height);
     }
 
@@ -581,8 +626,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         sheetLayer.setPivotX(width / 2f);
         sheetLayer.setPivotY(height / 2f);
         place(toastLayer, (width - toastLayer.getMeasuredWidth()) / 2, 0);
-        place(contLayer, width - contLayer.getMeasuredWidth(), Math.round(200 * kk));
+        if (listMode) place(contLayer, Math.round(CONT_COL_LAYER_X * kk), Math.round(CONT_COL_LAYER_TOP * kk));
+        else place(contLayer, 0, Math.round(CONT_LAYER_TOP * kk));
         place(listLayer, 0, Math.round(250 * kk));
+        place(tonightLayer, Math.round(((listMode ? CONTENT_R - TN_W : MARGIN) - TN_PAD) * kk), Math.round(((listMode ? TN_LIST_TOP : TN_TOP) - TN_PAD) * kk));
     }
 
     private static void place(View v, int x, int y) {
@@ -634,6 +681,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         lGreet.setLetterSpacing(0.2f);
         lDateCaps = Ui.text(Ui.medium, 25 * k, L_INK);
         lDateCaps.setLetterSpacing(0.14f);
+        lDateLine = Ui.text(Ui.medium, 32 * k, L_INK);
+        lWxLine = Ui.numbers(Ui.regular, 26 * k, L_DIM);
         lWxTemp = Ui.numbers(Ui.medium, 66 * k, L_INK);
         lWxMain = Ui.text(Ui.regular, 23 * k, L_INK);
         lWxDim = Ui.numbers(Ui.regular, 20 * k, L_DIM);
@@ -641,20 +690,20 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         lCaption.setTextAlign(Paint.Align.RIGHT);
         lCredit = Ui.text(Ui.regular, 16 * k, 0xFFFFFFFF);
         lCredit.setTextAlign(Paint.Align.RIGHT);
-        cWhen = Ui.text(Ui.medium, 19 * k, 0xE6FFFFFF);
-        cMeta = Ui.text(Ui.regular, 20 * k, 0xA6FFFFFF);
-        cHead = Ui.text(Ui.semibold, 16 * k, 0x8CFFFFFF);
-        cHead.setLetterSpacing(0.06f);
-        cRowTitle = Ui.text(Ui.semibold, 21 * k, 0xF2FFFFFF);
+        cMeta = Ui.text(Ui.regular, 21 * k, 0xB3FFFFFF);
+        cHead = Ui.text(Ui.semibold, 20 * k, 0xD9FFFFFF);
+        cHead.setLetterSpacing(0.14f);
+        cTileTitle = Ui.text(Ui.semibold, 24 * k, 0xFFFFFFFF);
+        // Over the photo: a soft shadow keeps them readable on bright parts.
+        for (Paint p : new Paint[] {cMeta, cHead, cTileTitle}) p.setShadowLayer(14 * k, 0, 2 * k, 0x73000000);
+        tnTitle = Ui.numbers(Ui.semibold, 32 * k, 0xFFFFFFFF);
+        layoutTonight();
         lListName = Ui.text(Ui.displaySemibold, LIST_TEXT * k, 0xFFFFFFFF);
         lListName.setLetterSpacing(-0.01f);
         lListName.setShadowLayer(26 * k, 0, 3 * k, 0x59000000);
-        if (contMain != null) {
-            layoutContinue();
-            contDirty = true;
-        }
+        layoutContinue();
         // On a photo, a soft shadow keeps white text readable over bright parts.
-        for (Paint p : new Paint[] {lClock, lGreet, lDateCaps, lWxTemp, lWxMain, lWxDim, lCaption, lCredit}) {
+        for (Paint p : new Paint[] {lClock, lGreet, lDateCaps, lWxTemp, lWxMain, lWxDim, lCaption, lCredit, lDateLine, lWxLine}) {
             p.setShadowLayer(16 * k, 0, 2 * k, 0x66000000);
         }
         lPill = Ui.numbers(Ui.semibold, 27 * k, L_INK);
@@ -740,9 +789,16 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         boolean bgFading = tickBackgroundFade(up);
         boolean nightMoving = tickNight(up);
         boolean contMoving = tickContinue(dt);
+        tonightFade.target = !sheetOpen && tonightGame != null ? 1 : 0;
+        boolean tonightMoving = tonightFade.step(dt);
+        contMoving |= tonightMoving;
 
         if (drawerMoving || sheetMoving || motionDirty || contMoving) updateMotion();
-        if (contDirty || step(contFocus, dt)) {
+        if (tonightFocus.step(dt) || tonightDirty) {
+            tonightLayer.invalidate();
+            tonightDirty = false;
+        }
+        if (step(contFocus, dt) || contDirty) {
             contLayer.invalidate();
             contDirty = false;
         }
@@ -766,6 +822,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         drawerWasMoving = drawerMoving;
         tilesDirty = statusDirty = heroDirty = drawerDirty = gridDirty = motionDirty = false;
         if (updateClock()) {
+            layoutTonight();        // "Tonight" → "Starting soon", a new day
             layoutStatus();
             status.invalidate();
             heroLayer.invalidate();     // the time and date at the top left
@@ -802,6 +859,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         float ca = home * Ui.clamp(contFade.value) * (1 - smoothstep(0, 0.32f, dc));
         show(contLayer, ca, lift);
         contLayer.setVisibility(ca > 0.002f ? VISIBLE : INVISIBLE);
+        float ta = home * Ui.clamp(tonightFade.value) * (1 - smoothstep(0, 0.32f, dc));
+        show(tonightLayer, ta, lift);
+        tonightLayer.setVisibility(ta > 0.002f ? VISIBLE : INVISIBLE);
         show(tiles, home, lift);
         float da = home * smoothstep(0.1f, 0.6f, dc);
         drawerLayer.setTranslationY((1 - d) * shift);
@@ -825,8 +885,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         long minute = now / 60_000;
         if (minute == clockMinute || clockPaint == null) return false;
         clockMinute = minute;
-        clockText = Ui.clock(now);
-        dateText = Ui.date(now);
+        clockText = Ui.clock12(now);
+        dateText = Ui.en ? new java.text.SimpleDateFormat("EEEE, MMMM d, yyyy", java.util.Locale.US).format(new java.util.Date(now))
+                : Ui.date(now) + " " + new java.text.SimpleDateFormat("yyyy", java.util.Locale.UK).format(new java.util.Date(now));
         String line = Ui.dateLine(now);
         if (!line.equals(dateLineText)) {   // the weather widget sits after the date: its place may move
             dateLineText = line;
@@ -968,7 +1029,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     /** Day or night right now (from the sun at your location); `animate`: with the transition. */
     private void checkNight(boolean animate) {
-        boolean want = Wallpaper.get().hasPhoto() || data.isNight(System.currentTimeMillis());
+        boolean want = !Prefs.wallpaper().equals("colors") || Wallpaper.get().hasPhoto() || data.isNight(System.currentTimeMillis());
         if (want == nightTarget) return;
         nightTarget = want;
         if (animate && running) {
@@ -1650,6 +1711,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         boolean topChanged = aim(topFocus, !sheetOpen && zone == Z_TOP ? topIndex : -1, snap);
         heroChanged |= aim(cardFocus, !sheetOpen && zone == Z_CARDS ? cardIndex : -1, snap) | topChanged;
         contDirty |= aim(contFocus, !sheetOpen && zone == Z_CONTINUE ? contIndex : -1, snap) | snap;
+        float tf = !sheetOpen && zone == Z_TONIGHT ? 1 : 0;
+        tonightDirty |= tonightFocus.target != tf || snap;
+        tonightFocus.target = tf;
+        if (snap) tonightFocus.snap(tf);
         statusChanged |= topChanged;
         tilesDirty |= snap || tilesChanged;
         statusDirty |= snap || statusChanged;
@@ -1857,12 +1922,20 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     private void reload() {
         final Context c = getContext().getApplicationContext();
+        if (!listingsAsked && !WatchNext.allowed(c)) {     // once per start: may grant itself Watch Next (once ever)
+            listingsAsked = true;
+            POSTERS.execute(() -> {
+                WatchNext.askOnce(c);
+                if (WatchNext.allowed(c)) handler.post(() -> { if (running) reload(); });
+            });
+        }
+        final int artWidth = Math.round(CONT_W * 1.1f * (getWidth() > 0 ? getWidth() : 1920) / 1920f);   // the focused tile's size
         LOADER.execute(() -> {
             final List<HomeApps.Item> s = HomeApps.shelf(c, true);
             final List<HomeApps.Item> st = statusList(c);
             final List<HomeApps.Item> d = drawerList(c);
             final List<HomeApps.Item> o = HomeApps.others(c);
-            final List<Continue.Entry> cont = Continue.read(c, true);
+            final List<Continue.Entry> cont = loadContinue(c, artWidth);
             handler.post(() -> {
                 setContinue(cont);
                 setShelf(s);
@@ -1906,6 +1979,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                         } else if (networkFocused() && HomeApps.guestWifi()) {
                             okHeld = true;      // held on the network button: the TV's network settings
                             openCornerButton();
+                        } else if (zone == Z_CONTINUE && !sheetOpen && contIndex < contAll.size()) {
+                            okHeld = true;      // held on a tile: removed from the row
+                            dismissContinue();
+                        } else if (zone == Z_TONIGHT && !sheetOpen && tonightGame != null) {
+                            okHeld = true;      // held on the game: hidden until tomorrow
+                            dismissTonight();
                         } else if (zone == Z_SHELF && !sheetOpen && !shelf.isEmpty()) {
                             okHeld = true;      // held on a dock app: Customize → Dock, on that app (move, remove, add)
                             click.open();
@@ -2078,10 +2157,13 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             it = lightButtons.get(topIndex - 3);
             r = topRects[topIndex];
         } else if (zone == Z_CONTINUE) {
-            Continue.Entry e = contIndex == 1 ? contOther : contMain;
-            if (e == null) return;
+            if (contIndex >= contAll.size()) return;
+            Continue.Entry e = contAll.get(contIndex);
             click.open();
             if (!Continue.open(activity, e)) showToast(Ui.tr("Açılamadı.", "Couldn't open it."));
+            return;
+        } else if (zone == Z_TONIGHT) {
+            openSportsApp();
             return;
         } else if (zone == Z_CARDS) {
             Recs.Pick p = cardIndex < cards.size() ? cards.get(cardIndex) : null;
@@ -2122,6 +2204,120 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (!opened) showToast(Ui.tr("Açılamadı: ", "Couldn't open ") + it.label + ".");
     }
 
+    // MARK: - Tonight: a live or upcoming game (Sports)
+
+    /** The game to show and its texts (here, so drawing allocates nothing). Hidden for the day by holding OK. */
+    private void layoutTonight() {
+        if (tnTitle == null) return;
+        long now = System.currentTimeMillis();
+        Sports.Game g = sports.current();
+        if (g != null && Sports.ymd(now, 0).equals(ui.getString("tonight_hidden", ""))) g = null;
+        tonightGame = g;
+        float top = (listMode ? TN_LIST_TOP : TN_TOP) * k;
+        float left = (listMode ? CONTENT_R - TN_W : MARGIN) * k;
+        tonightRect.set(left, top, left + TN_W * k, top + TN_H * k);
+        if (g != null) {
+            tonightLive = g.live();
+            tnHead = Sports.heading(g, now);
+            String line = tonightLive ? g.away + "  " + g.awayScore + "   " + g.home + "  " + g.homeScore
+                    : g.awayName + " @ " + g.homeName;
+            float room = (TN_W - 56) * k;
+            TextPaint tp = new TextPaint(tnTitle);
+            tnLine = TextUtils.ellipsize(line, tp, room, TextUtils.TruncateAt.END).toString();
+            tp.set(cMeta);
+            tnWhen = TextUtils.ellipsize(Sports.when(g), tp, room, TextUtils.TruncateAt.END).toString();
+        } else if (zone == Z_TONIGHT) {
+            zone = Z_SHELF;
+            retarget(false);
+        }
+        tonightDirty = true;
+    }
+
+    private boolean tonightShown() {
+        return tonightGame != null && tonightFade.target > 0;
+    }
+
+    /** OK: the sports app (Customize → Tonight); not installed: Customize, to choose one. */
+    private void openSportsApp() {
+        click.open();
+        android.content.Intent i = HomeApps.launchIntent(getContext().getPackageManager(), Prefs.sportsApp());
+        if (i == null) {
+            showToast(Ui.tr("Spor uygulaması yüklü değil: Özelleştir'den seçin.", "The sports app isn't installed: choose one in Customize."));
+            activity.startActivity(new android.content.Intent(activity, CustomizeActivity.class)
+                    .putExtra(CustomizeActivity.EXTRA_PAGE, CustomizeActivity.PAGE_SPORTS));
+            return;
+        }
+        // The game's own channel when the app lists it on the TV's home screen (Fibe TV does); else the app as it is.
+        final Sports.Game g = tonightGame;
+        final String pkg = Prefs.sportsApp();
+        final Context c = getContext().getApplicationContext();
+        new Thread(() -> {
+            String found = g == null ? null : Sports.channelLink(c, pkg, g);
+            if (found == null && !Prefs.sportsChannel().isEmpty()) found = Prefs.sportsChannel();   // chosen in Customize
+            final String link = found;
+            handler.post(() -> {
+                if (link != null) {
+                    try {
+                        android.content.Intent tune = android.content.Intent.parseUri(link, android.content.Intent.URI_INTENT_SCHEME);
+                        if (tune.getPackage() == null && tune.getComponent() == null) tune.setPackage(pkg);
+                        activity.startActivity(tune.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+                        return;
+                    } catch (Exception e) {
+                        AppLog.w("sports: link: " + e.getMessage());
+                    }
+                }
+                try {
+                    activity.startActivity(i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+                } catch (Exception e) {
+                    showToast(Ui.tr("Açılamadı.", "Couldn't open it."));
+                }
+            });
+        }, "sports-channel").start();
+    }
+
+    private void dismissTonight() {
+        ui.edit().putString("tonight_hidden", Sports.ymd(System.currentTimeMillis(), 0)).apply();
+        layoutTonight();
+        zone = contShown() ? Z_CONTINUE : Z_SHELF;
+        retarget(false);
+        showToast(Ui.tr("Maç yarına kadar gizlendi.", "The game is hidden until tomorrow."));
+    }
+
+    /** A smoked glass tile: what and when above, the teams (or the score) in the middle, the clock or start below. */
+    private void drawTonight(Canvas c) {
+        if (tonightGame == null || tnTitle == null) return;
+        RectF r = tonightRect;
+        float f = Ui.clamp(tonightFocus.value), s = 1 + 0.06f * f, radius = 26 * k;
+        c.save();
+        c.scale(s, s, r.centerX(), r.centerY());
+        if (f > 0.01f) {
+            tmp.set(r);
+            tmp.offset(0, 12 * k * f);
+            shadow.setColor(Ui.alpha(0xFF000000, 0.35f * f));
+            c.drawRoundRect(tmp, radius, radius, shadow);
+        }
+        scene.glass(c, r, radius, SMOKE, 0.55f, 0, 0, 0.02f, 1);
+        if (f > 0.01f) {
+            border.setColor(Ui.alpha(0xFFFFFFFF, f));
+            border.setStrokeWidth(4 * k);
+            tmp.set(r);
+            tmp.inset(-5 * k, -5 * k);
+            c.drawRoundRect(tmp, radius + 5 * k, radius + 5 * k, border);
+            border.setStrokeWidth(2 * k);
+        }
+        float x = r.left + 28 * k;
+        if (tonightLive) {      // a red dot before LIVE
+            fill.setShader(null);
+            fill.setColor(0xFFFF3B30);
+            c.drawCircle(x + 6 * k, r.top + 34 * k - 7 * k, 6 * k, fill);
+            x += 20 * k;
+        }
+        c.drawText(tnHead, x, r.top + 34 * k, cHead);
+        c.drawText(tnLine, r.left + 28 * k, r.top + 76 * k, tnTitle);
+        c.drawText(tnWhen, r.left + 28 * k, r.top + 108 * k, cMeta);
+        c.restore();
+    }
+
     // MARK: - List layout: big names over the photo
 
     /**
@@ -2141,22 +2337,37 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 } else {
                     shelfIndex = next;
                 }
-            } else if (dx > 0 && contMain != null && contFade.target > 0) {
-                zone = Z_CONTINUE;
-                contIndex = 0;
+            } else if (dx > 0 && contShown()) {
+                enterContinue();
+            } else if (dx > 0 && tonightShown()) {
+                zone = Z_TONIGHT;
             } else {
                 return true;
             }
+        } else if (zone == Z_TONIGHT) {
+            // At the top of the right column: ↓ the "continue" column, ← the names, ↑ the buttons.
+            if (dx < 0) zone = Z_SHELF;
+            else if (dx > 0) return true;
+            else if (dy > 0) {
+                if (contShown()) enterContinue();
+                else return true;
+            } else {
+                zone = Z_TOP;
+                topIndex = !lightButtons.isEmpty() && lightButtons.get(0).kind == HomeApps.WEATHER ? 4 : 3;
+            }
         } else if (zone == Z_CONTINUE) {
+            // The column: ↑ ↓ between the tiles (past the first: the buttons at the top), ← back to the names.
             if (dx < 0) {
                 zone = Z_SHELF;
             } else if (dx > 0) {
                 return true;
             } else if (dy > 0) {
-                if (contIndex == 0 && contOther != null) contIndex = 1;
-                else return true;
-            } else if (contIndex == 1) {
-                contIndex = 0;
+                if (contIndex + 1 >= contAll.size()) return true;
+                contIndex++;
+            } else if (contIndex > 0) {
+                contIndex--;
+            } else if (tonightShown()) {
+                zone = Z_TONIGHT;
             } else {
                 zone = Z_TOP;
                 topIndex = !lightButtons.isEmpty() && lightButtons.get(0).kind == HomeApps.WEATHER ? 4 : 3;
@@ -2232,165 +2443,222 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         }
     }
 
-    // MARK: - Continue watching: the card above the dock for the focused app
+    // MARK: - Continue watching: a row of tiles above the dock (a column at the right in the List layout)
 
+    /**
+     * On the loader thread: the newest entries (at most CONT_MAX) and the pictures this screen doesn't hold yet,
+     * decoded at the tile's size. A picture it already holds (same file time) is reused in setContinue.
+     */
+    private List<Continue.Entry> loadContinue(Context c, int artWidth) {
+        // Media sessions (what played here) and the TV's Watch Next list (Netflix's show and poster), one per app.
+        List<Continue.Entry> list = WatchNext.merge(Continue.read(c, false), WatchNext.read(c));
+        WatchNext.addLive(c, list);     // live TV: the program's poster and its channel
+        if (list.size() > CONT_MAX) list = new ArrayList<>(list.subList(0, CONT_MAX));
+        for (final Continue.Entry e : list) {
+            java.io.File f;
+            if (e.listed) {
+                f = WatchNext.saved(c, e);
+                // Not saved yet: fetched apart (the network mustn't hold up the home screen), then shown on a reload.
+                if (f == null && !e.poster.isEmpty() && posterTried.add(e.poster)) {
+                    POSTERS.execute(() -> {
+                        if (WatchNext.fetch(c, e)) handler.post(() -> { if (running) reload(); });
+                    });
+                }
+            } else {
+                f = Continue.artFile(c, e.pkg);
+            }
+            // No picture of its own (yet): the app's TV banner, -1 (kept like a picture).
+            e.artAt = f != null && f.exists() ? f.lastModified() : -1;
+            Long have = contArtAt.get(e.pkg);
+            if (have != null && have == e.artAt) continue;
+            e.art = e.artAt > 0 ? Continue.decode(f, artWidth) : HomeApps.banner(c, e.pkg, artWidth, artWidth * 9 / 16);
+        }
+        return list;
+    }
+
+    /** On the UI thread: the new tiles. Pictures no tile uses any more are freed at once (little memory). */
     private void setContinue(List<Continue.Entry> list) {
-        contAll = list;
-        contByPkg.clear();
-        for (Continue.Entry e : list) if (!contByPkg.containsKey(e.pkg)) contByPkg.put(e.pkg, e);
-        contMain = null;    // re-picked (and redrawn) on the next frame
-        contFade.snap(0);
+        List<Continue.Entry> shown = new ArrayList<>(list.size());
+        for (Continue.Entry e : list) {
+            Long gone = contGone.get(e.pkg);
+            if (gone != null && gone >= e.at) {         // dismissed while this was being read
+                if (e.art != null) e.art.recycle();
+                continue;
+            }
+            if (e.art != null) {
+                Bitmap old = contArt.put(e.pkg, e.art);
+                contArtAt.put(e.pkg, e.artAt);
+                if (old != null && old != e.art) old.recycle();
+            } else if (!Long.valueOf(e.artAt).equals(contArtAt.get(e.pkg))) {     // no longer the one held
+                dropArt(e.pkg);
+            } else {
+                e.art = contArt.get(e.pkg);
+            }
+            shown.add(e);
+        }
+        for (String pkg : new ArrayList<>(contArt.keySet())) {
+            boolean used = false;
+            for (Continue.Entry e : shown) used |= e.pkg.equals(pkg);
+            if (!used) dropArt(pkg);
+        }
+        contAll = shown;
+        if (contIndex >= shown.size()) contIndex = Math.max(0, shown.size() - 1);
+        if (zone == Z_CONTINUE && shown.isEmpty()) zone = Z_SHELF;
+        layoutContinue();
+        retarget(false);
         motionDirty = true;
     }
 
-    /**
-     * The card follows the focused dock app: it fades out, swaps its content once invisible, and fades back in if the
-     * new app has something to continue. True while it moves.
-     */
-    private boolean tickContinue(float dt) {
-        Continue.Entry want = null;
-        if (!sheetOpen && (zone == Z_SHELF || zone == Z_CONTINUE || zone == Z_TOP) && shelfIndex < shelf.size()) {
-            want = contByPkg.get(shelf.get(shelfIndex).pkg);
-        }
-        if (want != contMain) {
-            contFade.target = 0;
-            if (contFade.value < 0.02f) {
-                contMain = want;
-                contOther = null;
-                if (want != null) {
-                    for (Continue.Entry e : contAll) {
-                        if (!e.pkg.equals(want.pkg)) {
-                            contOther = e;
-                            break;
-                        }
-                    }
-                }
-                layoutContinue();
-                contDirty = true;
-                if (zone == Z_CONTINUE && contMain == null) {
-                    zone = Z_SHELF;
-                    retarget(false);
+    private void dropArt(String pkg) {
+        Bitmap b = contArt.remove(pkg);
+        contArtAt.remove(pkg);
+        if (b != null) b.recycle();
+    }
+
+    /** Held OK on a tile: it leaves the row (and the files); the focus stays in the row while tiles are left. */
+    private void dismissContinue() {
+        Continue.Entry e = contAll.get(contIndex);
+        final String pkg = e.pkg;
+        final Context c = getContext().getApplicationContext();
+        contGone.put(pkg, System.currentTimeMillis());
+        List<Continue.Entry> next = new ArrayList<>(contAll);
+        next.remove(contIndex);
+        contAll = next;
+        e.art = null;
+        dropArt(pkg);
+        LOADER.execute(() -> Continue.dismiss(c, pkg));
+        if (next.isEmpty()) zone = Z_SHELF;
+        else contIndex = Math.min(contIndex, next.size() - 1);
+        layoutContinue();
+        retarget(true);
+        motionDirty = true;
+        click.move();
+        showToast(Ui.tr("Devam listesinden kaldırıldı.", "Removed from Continue Watching."));
+    }
+
+    private boolean contShown() {
+        return !contAll.isEmpty() && contFade.target > 0;
+    }
+
+    /** Into the row: on the focused dock app's tile if it has one, else the newest. */
+    private void enterContinue() {
+        zone = Z_CONTINUE;
+        contIndex = 0;
+        if (shelfIndex < shelf.size()) {
+            String pkg = shelf.get(shelfIndex).pkg;
+            for (int i = 0; i < contAll.size(); i++) {
+                if (contAll.get(i).pkg.equals(pkg)) {
+                    contIndex = i;
+                    break;
                 }
             }
-        } else {
-            contFade.target = contMain != null ? 1 : 0;
         }
+    }
+
+    /** The row is there whenever something can be continued (not over All Apps). True while it fades. */
+    private boolean tickContinue(float dt) {
+        contFade.target = !sheetOpen && !contAll.isEmpty() ? 1 : 0;
         return contFade.step(dt);
     }
 
-    /** Where everything in the card goes; without room for the other app's row, the card leaves it out. */
+    /** Where each tile goes, and its texts cut to fit (here, so drawing allocates nothing). */
     private void layoutContinue() {
-        if (contMain == null || cWhen == null) return;
+        if (cMeta == null) return;
+        contListLayout = listMode;
         android.content.pm.PackageManager pm = getContext().getPackageManager();
-        contApp = HomeApps.label(pm, contMain.pkg);
-        contOtherApp = contOther == null ? "" : HomeApps.label(pm, contOther.pkg);
-        float pad = CONT_PAD * k, w = CONT_W * k, inner = w - 2 * pad;
-        float right = CONTENT_R * k, left = right - w;
-        TextPaint tp = new TextPaint(Ui.text(Ui.semibold, 24 * k, 0xFFFFFFFF));
-        contTitle = StaticLayout.Builder.obtain(contMain.title, 0, contMain.title.length(), tp, Math.round(inner))
-                .setMaxLines(2).setEllipsize(TextUtils.TruncateAt.END).setLineSpacing(0, 1.04f).build();
-        float y = pad + inner * 9 / 16;
-        contPillTop = y + 16 * k;
-        contTitleTop = contPillTop + 32 * k + 12 * k;
-        contMetaBase = contTitleTop + contTitle.getHeight() + 28 * k;
-        contBarTop = contMetaBase + 14 * k;
-        float h = contBarTop + (contMain.progress() >= 0 ? 4 * k : 0) + pad;
-        contOtherTop = h + 6 * k;
-        float withOther = contOtherTop + 40 * k + CONT_ROW * k + pad;
-        float bottom = listMode ? 1000 : CONT_BOTTOM;   // no dock under it in the List layout
-        float room = (bottom - 252) * k;      // below the photo's caption at the top right
-        if (contOther != null && withOther <= room) h = withOther;
-        else contOther = null;
-        contRect.set(left, bottom * k - h, right, bottom * k);
-        contThumb.set(left + pad, contRect.top + pad, right - pad, contRect.top + pad + inner * 9 / 16);
-        // The rows above were measured from the card's top: now on the screen.
-        contPillTop += contRect.top;
-        contTitleTop += contRect.top;
-        contMetaBase += contRect.top;
-        contBarTop += contRect.top;
-        contOtherTop += contRect.top;
+        boolean music = true;
+        TextPaint tp = new TextPaint();
+        for (int i = 0; i < contAll.size(); i++) {
+            Continue.Entry e = contAll.get(i);
+            music &= e.music;
+            float textW;
+            if (listMode) {
+                float top = (CONT_COL_TOP + i * CONT_COL_PITCH) * k, x = CONT_COL_X * k;
+                contThumbs[i].set(x, top, x + CONT_COL_W * k, top + CONT_COL_H * k);
+                textW = CONTENT_R * k - contThumbs[i].right - 24 * k;
+            } else {
+                float x = (MARGIN + i * (CONT_W + CONT_GAP)) * k, top = CONT_TOP * k;
+                contThumbs[i].set(x, top, x + CONT_W * k, top + CONT_H * k);
+                textW = CONT_W * k;
+            }
+            String left = Continue.left(e), app = HomeApps.label(pm, e.pkg);
+            // No title from the app (Netflix): where it stopped takes the title's place, the app and when below it.
+            String episode = e.listed && !e.subtitle.isEmpty() ? e.subtitle + " · " : "";   // "S7 E14 · "
+            String meta = app + " · " + episode + (e.untitled || left.isEmpty() ? Continue.ago(e.at) : left);
+            String title = e.untitled ? stoppedAt(e.position) : e.title;
+            tp.set(cTileTitle);
+            contTitles[i] = TextUtils.ellipsize(title, tp, textW, TextUtils.TruncateAt.END).toString();
+            tp.set(cMeta);
+            contMetas[i] = TextUtils.ellipsize(meta, tp, textW, TextUtils.TruncateAt.END).toString();
+        }
+        contHeadText = (music ? Ui.tr("Dinlemeye devam et", "Continue listening") : Ui.tr("İzlemeye devam et", "Continue watching"))
+                .toUpperCase(Ui.en ? java.util.Locale.UK : Ui.TR);
+        contDirty = true;
     }
 
-    /** The card, like the reference: the picture with a play button, when it was watched, the title, time left. */
+    /** "Stopped at 15:19" (where an app without a title stopped: its time into the video). */
+    private static String stoppedAt(long ms) {
+        long sec = ms / 1000, h = sec / 3600, m = sec / 60 % 60, s = sec % 60;
+        String t = h > 0 ? h + ":" + (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s : m + ":" + (s < 10 ? "0" : "") + s;
+        return Ui.tr("Kaldığın yer " + t, "Stopped at " + t);
+    }
+
+    /**
+     * The tiles: the picture (16:9, cropped) with the progress on it, the title and the app below it (beside it in
+     * the List layout). The focused one grows a little, with a white ring and a play button.
+     */
     private void drawContinue(Canvas c) {
-        Continue.Entry e = contMain;
-        if (e == null || contTitle == null) return;
-        float r = 30 * k, f0 = Ui.clamp(contFocus[0].value), f1 = Ui.clamp(contFocus[1].value);
-        tmp.set(contRect);
-        tmp.offset(0, 16 * k);
-        shadow.setColor(tone(0x1F000000, 0x52000000));
-        c.drawRoundRect(tmp, r, r, shadow);
-        boolean photo = Wallpaper.get().hasPhoto();
-        scene.rim(0.5f);
-        scene.liquid(c, contRect, r, photo ? SMOKE : tone(0xFFFFFFFF, SMOKE), photo ? 0.72f : tone(0.42f, 0.12f), tone(0.03f, 0.08f),
-                tone(30, 34) * k, tone(22, 28) * k, tone(0.35f, 0.5f), 1);
-        scene.rim(1);
-
-        // The picture (cropped to 16:9), with a white ring when focused, and the play button on it.
-        float tr = 20 * k;
-        drawCover(c, e, contThumb, tr);
-        if (f0 > 0.01f) {
-            border.setColor(Ui.alpha(0xFFFFFFFF, f0));
-            border.setStrokeWidth(4 * k);
-            tmp.set(contThumb);
-            tmp.inset(-5 * k, -5 * k);
-            c.drawRoundRect(tmp, tr + 5 * k, tr + 5 * k, border);
-            border.setStrokeWidth(2 * k);
+        List<Continue.Entry> list = contAll;
+        int n = Math.min(list.size(), CONT_MAX);
+        if (n == 0 || cMeta == null) return;
+        boolean col = contListLayout;
+        float headY = (col ? CONT_COL_HEAD : CONT_HEAD) * k, x0 = (col ? CONT_COL_X : MARGIN) * k;
+        c.drawText(contHeadText, x0, headY, cHead);
+        float tr = (col ? 12 : 18) * k;
+        for (int i = 0; i < n; i++) {
+            Continue.Entry e = list.get(i);
+            RectF box = contThumbs[i];
+            float f = Ui.clamp(contFocus[i].value), s = 1 + (col ? 0.05f : 0.08f) * f;
+            c.save();
+            c.scale(s, s, box.centerX(), box.centerY());
+            if (f > 0.01f) {
+                tmp.set(box);
+                tmp.offset(0, 12 * k * f);
+                shadow.setColor(Ui.alpha(0xFF000000, 0.35f * f));
+                c.drawRoundRect(tmp, tr, tr, shadow);
+            }
+            drawCover(c, e, box, tr);
+            float inset = (col ? 8 : 12) * k;
+            bar(c, box.left + inset, box.bottom - inset - 5 * k, box.right - inset, e.progress(), (col ? 4 : 5) * k);
+            if (f > 0.01f) {
+                border.setColor(Ui.alpha(0xFFFFFFFF, f));
+                border.setStrokeWidth(4 * k);
+                tmp.set(box);
+                tmp.inset(-5 * k, -5 * k);
+                c.drawRoundRect(tmp, tr + 5 * k, tr + 5 * k, border);
+                border.setStrokeWidth(2 * k);
+                float pr = (col ? 20 : 26) * k;
+                fill.setShader(null);
+                fill.setColor(Ui.alpha(0xFFFFFFFF, 0.92f * f));
+                c.drawCircle(box.centerX(), box.centerY(), pr, fill);
+                Symbols.draw(getContext(), c, "play_arrow", box.centerX() + 2 * k, box.centerY(), pr * 0.9f, Ui.alpha(0xFF1C1C1E, f));
+            }
+            c.restore();
+            float a = 0.82f + 0.18f * f;
+            cTileTitle.setAlpha(Math.round(255 * a));
+            cMeta.setAlpha(Math.round(0xB3 * a));
+            if (col) {
+                float tx = box.right + 24 * k + 8 * k * f;
+                c.drawText(contTitles[i], tx, box.top + 44 * k, cTileTitle);
+                c.drawText(contMetas[i], tx, box.top + 78 * k, cMeta);
+            } else {
+                float grow = box.height() * 0.04f * f;      // below the grown picture
+                c.drawText(contTitles[i], box.left, box.bottom + grow + 36 * k, cTileTitle);
+                c.drawText(contMetas[i], box.left, box.bottom + grow + 66 * k, cMeta);
+            }
         }
-        float pr = (24 + 3 * f0) * k, px = contThumb.right - 22 * k - pr, py = contThumb.top + 22 * k + pr;
-        fill.setShader(null);
-        fill.setColor(Ui.alpha(0xFFFFFFFF, 0.88f + 0.12f * f0));
-        c.drawCircle(px, py, pr, fill);
-        Symbols.draw(getContext(), c, "play_arrow", px + 2 * k, py, 22 * k, 0xFF1C1C1E);
-
-        // "Last watched · 36 min ago", in a small capsule.
-        float x = contThumb.left;
-        String when = (e.music ? Ui.tr("Son dinlenen", "Last played") : Ui.tr("Son izlenen", "Last watched")) + " · " + Continue.ago(e.at);
-        // Every line of text stays inside the card: each is cut with "…" to the room it has.
-        when = TextUtils.ellipsize(when, new TextPaint(cWhen), contThumb.width() - 24 * k, TextUtils.TruncateAt.END).toString();
-        float pw = cWhen.measureText(when) + 24 * k;
-        tmp.set(x, contPillTop, x + pw, contPillTop + 32 * k);
-        fill.setColor(0x24FFFFFF);
-        c.drawRoundRect(tmp, 16 * k, 16 * k, fill);
-        c.drawText(when, x + 12 * k, tmp.centerY() + Ui.halfCap(cWhen), cWhen);
-
-        c.save();
-        c.translate(x, contTitleTop);
-        contTitle.draw(c);
-        c.restore();
-
-        String left = TextUtils.ellipsize(Continue.left(e), new TextPaint(cMeta), contThumb.width() * 0.45f, TextUtils.TruncateAt.END).toString();
-        String meta = e.subtitle.isEmpty() ? contApp : e.subtitle + " · " + contApp;
-        float room = contThumb.width() - (left.isEmpty() ? 0 : cMeta.measureText(left) + 20 * k);
-        c.drawText(TextUtils.ellipsize(meta, new TextPaint(cMeta), room, TextUtils.TruncateAt.END).toString(), x, contMetaBase, cMeta);
-        if (!left.isEmpty()) c.drawText(left, contThumb.right - cMeta.measureText(left), contMetaBase, cMeta);
-        bar(c, x, contBarTop, contThumb.right, e.progress(), 4 * k);
-
-        // The latest from another app, one row (focusable: ↓ from the picture).
-        Continue.Entry o = contOther;
-        if (o == null) return;
-        float top = contOtherTop;
-        tmp.set(x, top, contThumb.right, top + 1.5f * k);
-        fill.setColor(0x1FFFFFFF);
-        c.drawRect(tmp, fill);
-        c.drawText(Ui.tr("DİĞER UYGULAMALARDA", "IN OTHER APPS"), x, top + 28 * k, cHead);
-        float rowTop = top + 40 * k, th = CONT_ROW * k;
-        contRow.set(x - 8 * k, rowTop - 6 * k, contThumb.right + 8 * k, rowTop + th + 6 * k);
-        if (f1 > 0.01f) {
-            fill.setColor(Ui.alpha(0xFFF5F5F7, f1));
-            c.drawRoundRect(contRow, 18 * k, 18 * k, fill);
-        }
-        tmp.set(x, rowTop, x + th * 16 / 9, rowTop + th);
-        drawCover(c, o, tmp, 10 * k);
-        float tx = tmp.right + 16 * k, tw = contThumb.right - tx;
-        cRowTitle.setColor(blend(0xF2FFFFFF, 0xFF1C1C1E, f1));
-        c.drawText(TextUtils.ellipsize(o.title, new TextPaint(cRowTitle), tw, TextUtils.TruncateAt.END).toString(), tx, rowTop + 22 * k, cRowTitle);
-        String sub = contOtherApp + (Continue.left(o).isEmpty() ? "" : " · " + Continue.left(o));
-        int metaColor = cMeta.getColor();
-        cMeta.setColor(blend(0xA6FFFFFF, 0x991C1C1E, f1));
-        c.drawText(TextUtils.ellipsize(sub, new TextPaint(cMeta), tw, TextUtils.TruncateAt.END).toString(), tx, rowTop + 44 * k, cMeta);
-        cMeta.setColor(metaColor);
-        bar(c, tx, rowTop + th - 4 * k, tx + Math.min(tw, 160 * k), o.progress(), 3 * k);
+        cTileTitle.setAlpha(255);
+        cMeta.setAlpha(0xB3);
     }
 
     /** The entry's picture cropped to fill `box`; without one, the app's mark on a dark tile. */
@@ -2452,11 +2720,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             topRects[3 + i].set(right - bw, cy - b / 2, right, cy + b / 2);
             right -= bw + L_BUTTON_GAP * k;
         }
-        if (weather >= 0 && lGreet != null) {
-            float dateRight = MARGIN * k + lClock.measureText(clockText) + 68 * k + lDateCaps.measureText(dateLineText);
-            float wl = Math.max(770 * k, dateRight + 56 * k), wr = Math.min(wl + weatherWidth(true), right - 24 * k);
-            if (wr - wl < weatherWidth(false)) wr = Math.min(wl + weatherWidth(false), right - 24 * k);
-            topRects[3 + weather].set(wl, (WEATHER_CY - 58) * k, wr, (WEATHER_CY + 58) * k);
+        if (weather >= 0 && lGreet != null && lWxLine != null) {
+            float wl = MARGIN * k - 18 * k;
+            topRects[3 + weather].set(wl, 239 * k, wl + weatherLineW() + 36 * k, 295 * k);
         }
         float top = L_CARDS_TOP * k, ch = L_CARD_H * k, g = L_CARD_GAP * k, left = MARGIN * k, tall = L_TALL_W * k;
         float wide = (CONTENT_R - MARGIN) * k - 2 * tall - 2 * g;
@@ -2544,17 +2810,17 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private void drawLightTop(Canvas c) {
         applyTone();
         int ink = tone(L_INK, WHITE);
-        lGreet.setColor(Ui.alpha(ink, 0.85f));
         lClock.setColor(ink);
-        lDateCaps.setColor(Ui.alpha(ink, 0.88f));
+        lDateLine.setColor(Ui.alpha(ink, 0.9f));
         float x = MARGIN * k;
-        c.drawText(greeting(), x, 78 * k, lGreet);
-        c.drawText(clockText, x - Ui.leftBearing(lClock, clockText), L_CLOCK_BASE * k, lClock);
-        float bar = x + lClock.measureText(clockText) + 34 * k;
-        fill.setShader(null);
-        fill.setColor(Ui.alpha(ink, 0.35f));
-        c.drawRect(bar, (WEATHER_CY - 34) * k, bar + Math.max(1, 2 * k), (WEATHER_CY + 34) * k, fill);
-        c.drawText(dateLineText, bar + 34 * k, WEATHER_CY * k + Ui.halfCap(lDateCaps), lDateCaps);
+        int sp = clockText.lastIndexOf(' ');
+        String hm = sp > 0 ? clockText.substring(0, sp) : clockText;
+        c.drawText(hm, x - Ui.leftBearing(lClock, hm), 172 * k, lClock);
+        if (sp > 0) c.drawText(clockText.substring(sp + 1), x + lClock.measureText(hm) + 14 * k, 172 * k, lDateLine);
+        c.drawText(dateText, x, 226 * k, lDateLine);
+        for (int i = 0; i < lightButtons.size(); i++) {
+            if (lightButtons.get(i).kind == HomeApps.WEATHER) drawWeatherWidget(c, topRects[3 + i], Ui.clamp(topFocus[3 + i].value));
+        }
     }
 
     /** "MERHABA ALİ" (the name from config.properties). */
@@ -2719,7 +2985,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             RectF r = topRects[3 + i];
             HomeApps.Item item = lightButtons.get(i);
             if (item.kind == HomeApps.WEATHER) {
-                drawWeatherWidget(c, r, Ui.clamp(topFocus[3 + i].value));
                 continue;
             }
             float f = Ui.clamp(topFocus[3 + i].value), s = 1 + 0.1f * f, rad = r.height() / 2 * s, half = r.width() / 2 * s;
@@ -2787,53 +3052,42 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         }
         HomeData.Weather wx = data.weather;
         int ink = tone(L_INK, WHITE), dim = tone(L_DIM, 0xD9FFFFFF);
-        float cy = r.centerY(), x = r.left + 24 * k;
+        float cy = r.centerY(), x = r.left + 18 * k;
         String symbol = weatherSymbol();
-        float sw = Symbols.width(getContext(), symbol, 56 * k);
-        Symbols.draw(getContext(), c, symbol, x + sw / 2, cy - 4 * k, 56 * k, weatherColor(symbol));
-        x += sw + 18 * k;
+        float sw = Symbols.width(getContext(), symbol, 34 * k);
+        Symbols.draw(getContext(), c, symbol, x + sw / 2, cy, 34 * k, weatherColor(symbol));
+        x += sw + 14 * k;
+        float base = cy + Ui.halfCap(lWxLine);
         String temp = tempText(wx.temp);
-        lWxTemp.setColor(ink);
-        c.drawText(temp, x - Ui.leftBearing(lWxTemp, temp), cy + 8 * k, lWxTemp);
-        lWxMain.setColor(dim);
-        c.drawText(wx.code < 0 ? "" : HomeData.condition(wx.code, wx.isDay), x, cy + 42 * k, lWxMain);
-        x += Math.max(lWxTemp.measureText(temp), lWxMain.measureText(wx.code < 0 ? "" : HomeData.condition(wx.code, wx.isDay))) + 40 * k;
-        // The column: feels-like; 📍 city; wind and 💧 humidity.
-        lWxDim.setColor(dim);
-        float icon = 17 * k;
-        int iconInk = Ui.alpha(dim, 0.9f);
+        lWxLine.setColor(ink);
+        c.drawText(temp, x - Ui.leftBearing(lWxLine, temp), base, lWxLine);
+        x += lWxLine.measureText(temp);
+        lWxLine.setColor(dim);
+        for (String part : weatherBits()) {
+            x += 14 * k;
+            c.drawText("\u00b7", x, base, lWxLine);
+            x += lWxLine.measureText("\u00b7") + 14 * k;
+            c.drawText(part, x, base, lWxLine);
+            x += lWxLine.measureText(part);
+        }
+    }
+
+    /** What follows the temperature on the weather line: the condition, feels like, and the city (when known). */
+    private java.util.List<String> weatherBits() {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        HomeData.Weather wx = data.weather;
+        if (wx.code >= 0) out.add(HomeData.condition(wx.code, wx.isDay));
         String feels = feelsText();
-        if (!feels.isEmpty()) c.drawText(feels, x, cy - 18 * k, lWxDim);
+        if (!feels.isEmpty()) out.add(feels);
         String city = Prefs.city();
-        float line = cy + 10 * k, mid = line - Ui.halfCap(lWxDim);
-        if (!city.isEmpty()) {
-            Symbols.draw(getContext(), c, "pin", x + 7 * k, mid, icon, iconInk);
-            c.drawText(city, x + 22 * k, line, lWxDim);
-        }
-        line = cy + 38 * k;
-        mid = line - Ui.halfCap(lWxDim);
-        float lx = x;
-        if (!Double.isNaN(wx.wind)) {
-            Symbols.draw(getContext(), c, "wind", lx + 9 * k, mid, icon, iconInk);
-            String w = windText();
-            c.drawText(w, lx + 26 * k, line, lWxDim);
-            lx += 26 * k + lWxDim.measureText(w) + 20 * k;
-        }
-        if (!Double.isNaN(wx.humidity)) {
-            Symbols.draw(getContext(), c, "drop", lx + 6 * k, mid, icon, 0xFF64B5F6);
-            c.drawText(humidityText(), lx + 20 * k, line, lWxDim);
-        }
-        // A second column on the same lines: sunrise (yellow, arrow up) and sunset (orange, arrow down) with the time.
-        float sunX = x + weatherColumnWidth() + 36 * k, sunIcon = 22 * k;
-        float sunW = Symbols.width(getContext(), "sunrise", sunIcon);
-        if (wx.sunrise != 0) {
-            Symbols.draw(getContext(), c, "sunrise", sunX + sunW / 2, cy - 18 * k - Ui.halfCap(lWxDim), sunIcon, SUNRISE_INK);
-            c.drawText(Ui.time(wx.sunrise), sunX + sunW + 10 * k, cy - 18 * k, lWxDim);
-        }
-        if (wx.sunset != 0) {
-            Symbols.draw(getContext(), c, "sunset", sunX + sunW / 2, cy + 10 * k - Ui.halfCap(lWxDim), sunIcon, SUNSET_INK);
-            c.drawText(Ui.time(wx.sunset), sunX + sunW + 10 * k, cy + 10 * k, lWxDim);
-        }
+        if (!city.isEmpty()) out.add(city);
+        return out;
+    }
+
+    private float weatherLineW() {
+        float w = Symbols.width(getContext(), weatherSymbol(), 34 * k) + 14 * k + lWxLine.measureText(tempText(data.weather.temp));
+        for (String part : weatherBits()) w += 28 * k + lWxLine.measureText("\u00b7") + lWxLine.measureText(part);
+        return w;
     }
 
     /** The width of the details column (feels-like, city, wind and humidity). */
@@ -2897,6 +3151,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     /** Where the photo behind is, and who took it (their license asks for the credit), under the corner buttons. */
     private void drawPhotoCaption(Canvas c) {
         Photos.Photo p = photos.current;
+        if (p != null && "space-m83.jpg".equals(p.file)) return;      // your own wallpaper: no photo credit
         if (p == null || !Wallpaper.get().hasPhoto()) return;
         float fade = 1;
         for (int i = 3; i < topFocus.length; i++) fade = Math.min(fade, 1 - Ui.clamp(topFocus[i].value));
@@ -2910,7 +3165,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     /** The focused corner button's name, below it (kept inside the right margin). */
     private void drawButtonLabel(Canvas c, RectF r, String label, float f) {
         float half = lTip.measureText(label) / 2;
-        float x = Math.min(r.centerX(), CONTENT_R * k - half);
+        float x = CONTENT_R * k - half;
         lTip.setAlpha(Math.round(255 * f));
         c.drawText(label, x, r.bottom + (40 + 4 * f) * k, lTip);
     }
@@ -2976,27 +3231,42 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private boolean moveLight(int dx, int dy) {
         switch (zone) {
             case Z_SHELF:
-                // ↑: the "continue watching" card if the app has one, else the buttons at the top right.
+                // ↑: the "continue watching" row if there is one, else the buttons at the top right.
                 if (dy >= 0 || shelf.isEmpty()) return false;
-                if (contMain != null && contFade.target > 0) {
-                    zone = Z_CONTINUE;
-                    contIndex = 0;
+                if (contShown()) {
+                    enterContinue();
+                } else if (tonightShown()) {
+                    zone = Z_TONIGHT;
                 } else {
                     zone = Z_TOP;
                     topIndex = !lightButtons.isEmpty() && lightButtons.get(0).kind == HomeApps.WEATHER ? 4 : 3;
                 }
                 break;
             case Z_CONTINUE:
-                if (dx != 0) return true;
-                if (dy < 0) {
-                    if (contIndex == 1) {
-                        contIndex = 0;
+                // The row: ← → between the tiles, ↑ to the buttons at the top, ↓ back to the dock.
+                if (dx != 0) {
+                    int next = Math.max(0, Math.min(contAll.size() - 1, contIndex + dx));
+                    if (next == contIndex) return true;
+                    contIndex = next;
+                } else if (dy < 0) {
+                    if (tonightShown()) {
+                        zone = Z_TONIGHT;
                     } else {
                         zone = Z_TOP;
                         topIndex = !lightButtons.isEmpty() && lightButtons.get(0).kind == HomeApps.WEATHER ? 4 : 3;
                     }
-                } else if (contIndex == 0 && contOther != null) {
-                    contIndex = 1;
+                } else {
+                    zone = Z_SHELF;
+                }
+                break;
+            case Z_TONIGHT:
+                // ↑ the buttons above it, ↓ the row (or the dock).
+                if (dx != 0) return true;
+                if (dy < 0) {
+                    zone = Z_TOP;
+                    topIndex = !lightButtons.isEmpty() && lightButtons.get(0).kind == HomeApps.WEATHER ? 4 : 3;
+                } else if (contShown()) {
+                    enterContinue();
                 } else {
                     zone = Z_SHELF;
                 }
@@ -3020,7 +3290,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                     if (next == topIndex) return true;
                     topIndex = next;
                 } else if (dy > 0) {
-                    zone = Z_SHELF;
+                    if (tonightShown()) zone = Z_TONIGHT;   // ↓ from the buttons: the game, the row, then the dock
+                    else if (contShown()) enterContinue();
+                    else zone = Z_SHELF;
                 } else {
                     return true;
                 }

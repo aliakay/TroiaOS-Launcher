@@ -5,6 +5,8 @@
     android:versionName="1.2">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- The Watch Next rows other apps publish (Continue watching); granted over ADB, no prompt on a TV -->
+    <uses-permission android:name="android.permission.READ_TV_LISTINGS" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- After the TV boots (and after a TV update), checks that TroiaOS mode is still as you left it. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
