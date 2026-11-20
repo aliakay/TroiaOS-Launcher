@@ -328,6 +328,30 @@ final class Sports {
         return both != null ? both : one;
     }
 
+    /** The channels in the app's row on the TV's home screen, by name ("TSN1"): {name, link}. Off the UI thread if you can. */
+    static List<String[]> channels(Context c, String pkg) {
+        List<String[]> out = new ArrayList<>();
+        if (!WatchNext.allowed(c)) return out;
+        String[] cols = {"package_name", "title", "intent_uri"};
+        try (android.database.Cursor q = c.getContentResolver().query(
+                android.net.Uri.parse("content://android.media.tv/preview_program"), cols, null, null, null)) {
+            while (q != null && q.moveToNext()) {
+                String link = q.getString(2);
+                if (!pkg.equals(q.getString(0)) || link == null) continue;
+                String name = WatchNext.channelName(link);
+                if (name.isEmpty()) name = q.getString(1) == null ? link : q.getString(1);
+                boolean seen = false;
+                for (String[] o : out) seen |= o[0].equals(name);
+                if (!seen) out.add(new String[] {name, link});
+                AppLog.w("sports: channel " + name + " (" + q.getString(1) + "): " + link);
+            }
+        } catch (RuntimeException e) {
+            AppLog.w("sports: channels: " + e.getMessage());
+        }
+        java.util.Collections.sort(out, (x, y) -> x[0].compareToIgnoreCase(y[0]));
+        return out;
+    }
+
     /** Above the matchup: "LIVE · NBA", "TONIGHT · NBA", "TOMORROW · MLB". */
     static String heading(Game g, long now) {
         String when = g.live() ? Ui.tr("CANLI", "LIVE")

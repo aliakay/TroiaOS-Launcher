@@ -39,7 +39,7 @@ public class CustomizeActivity extends Activity {
     static final String EXTRA_PAGE = "page", EXTRA_PKG = "pkg";
     static final int PAGE_MAIN = 0, PAGE_DOCK = 1, PAGE_ADD = 2, PAGE_CONTROL = 3, PAGE_HOME = 4, PAGE_CITY = 5,
             PAGE_WALL = 6, PAGE_PICK = 7, PAGE_LIGHTS = 8, PAGE_WIFI = 9, PAGE_MUSIC = 10, PAGE_PRIVACY = 11,
-            PAGE_SPORTS = 12, PAGE_SPORTS_APP = 13;
+            PAGE_SPORTS = 12, PAGE_SPORTS_APP = 13, PAGE_SPORTS_CHANNEL = 14;
 
     private CustomizeView view;
 
@@ -390,6 +390,9 @@ public class CustomizeActivity extends Activity {
                     r = item("app", Ui.tr("OK ile Açılan Uygulama", "OK Opens"), "apps");
                     r.value = HomeApps.label(c.getPackageManager(), Prefs.sportsApp());
                     r.chevron = true;
+                    r = item("channel", Ui.tr("Maç Bulunamazsa", "If the Game Isn't Listed"), "tv");
+                    r.value = Prefs.sportsChannel().isEmpty() ? Ui.tr("Uygulamayı aç", "Open the app") : Prefs.sportsChannelName();
+                    r.chevron = true;
                     List<String> chosen = Prefs.split(Prefs.sportsTeams());
                     for (String[] league : Sports.LEAGUES) {
                         rows.add(headerRow(league[2] + Ui.tr(" · OK: TAKİP ET YA DA BIRAK", " · OK: FOLLOW OR UNFOLLOW")));
@@ -399,6 +402,23 @@ public class CustomizeActivity extends Activity {
                             team.value = chosen.contains(key) ? Ui.tr("Takipte", "Following") : "";
                             team.dim = !chosen.contains(key);
                         }
+                    }
+                    break;
+                }
+                case PAGE_SPORTS_CHANNEL: {
+                    rows.add(headerRow(Ui.tr("OK, MAÇ KANALI BULUNAMAZSA BUNU AÇAR", "OK TUNES THIS WHEN THE GAME'S CHANNEL ISN'T FOUND")));
+                    Row none = item("none", Ui.tr("Yalnızca uygulamayı aç", "Just open the app"), "apps");
+                    none.value = Prefs.sportsChannel().isEmpty() ? Ui.tr("Seçili", "Selected") : "";
+                    sportsChannels = Sports.channels(c, Prefs.sportsApp());
+                    if (sportsChannels.isEmpty()) {
+                        rows.add(headerRow(Ui.tr("UYGULAMA ANA EKRANA KANAL LİSTELEMİYOR", "THE APP LISTS NO CHANNELS ON THE TV'S HOME SCREEN")));
+                    } else {
+                        rows.add(headerRow(Ui.tr("UYGULAMANIN ANA EKRANDA LİSTELEDİĞİ KANALLAR", "CHANNELS THE APP LISTS ON THE TV'S HOME SCREEN")));
+                    }
+                    for (int j = 0; j < sportsChannels.size(); j++) {
+                        Row r = item("ch" + j, sportsChannels.get(j)[0], "tv");
+                        r.value = sportsChannels.get(j)[0].equals(Prefs.sportsChannelName()) && !Prefs.sportsChannel().isEmpty()
+                                ? Ui.tr("Seçili", "Selected") : "";
                     }
                     break;
                 }
@@ -494,6 +514,8 @@ public class CustomizeActivity extends Activity {
             Row r = item("", label, symbol);
             r.value = value;
         }
+
+        private List<String[]> sportsChannels = new ArrayList<>();
 
         /** "Raptors, Blue Jays" (the teams followed). */
         private static String teamsSummary() {
@@ -623,6 +645,7 @@ public class CustomizeActivity extends Activity {
                 case PAGE_PRIVACY: return "check";
                 case PAGE_SPORTS: return "live_tv";
                 case PAGE_SPORTS_APP: return "apps";
+                case PAGE_SPORTS_CHANNEL: return "tv";
                 default: return "tune";
             }
         }
@@ -642,6 +665,7 @@ public class CustomizeActivity extends Activity {
                 case PAGE_PRIVACY: return Ui.tr("Gizlilik", "Privacy");
                 case PAGE_SPORTS: return Ui.tr("Bu Akşamki Maç", "Tonight's Game");
                 case PAGE_SPORTS_APP: return Ui.tr("Spor Uygulaması", "Sports App");
+                case PAGE_SPORTS_CHANNEL: return Ui.tr("Spor Kanalı", "Sports Channel");
                 default: return Ui.tr("Özelleştir", "Customize");
             }
         }
@@ -661,6 +685,7 @@ public class CustomizeActivity extends Activity {
                 case PAGE_PRIVACY: return Ui.tr("Verileriniz sizde kalır", "Your data stays with you");
                 case PAGE_SPORTS: return Ui.tr("Skorlar ESPN'den · basılı tutunca bugünlük gizlenir", "Scores from ESPN · hold OK on it to hide it for today");
                 case PAGE_SPORTS_APP: return Ui.tr("Fibe TV ya da başkası", "Fibe TV or any other");
+                case PAGE_SPORTS_CHANNEL: return Ui.tr("Önce maçın kendi kanalı aranır", "The game's own channel is looked for first");
                 default: return Ui.tr("Uygulamalar, ekran, ışıklar, Wi-Fi ve müzik", "Apps, screen, lights, Wi-Fi and music");
             }
         }
@@ -850,13 +875,14 @@ public class CustomizeActivity extends Activity {
                     Photos.get(getContext()).refresh();
                 }
                 page = page == PAGE_ADD ? PAGE_DOCK : page == PAGE_CITY ? PAGE_HOME : page == PAGE_PICK ? PAGE_WALL
-                        : page == PAGE_SPORTS_APP ? PAGE_SPORTS : PAGE_MAIN;
+                        : page == PAGE_SPORTS_APP || page == PAGE_SPORTS_CHANNEL ? PAGE_SPORTS : PAGE_MAIN;
                 rebuild();
                 focus = 0;
                 String id = from == PAGE_DOCK ? "dock" : from == PAGE_CONTROL ? "control" : from == PAGE_HOME ? "home"
                         : from == PAGE_ADD ? "add" : from == PAGE_WALL ? "wall" : from == PAGE_PICK ? "pick"
                         : from == PAGE_LIGHTS ? "lights" : from == PAGE_WIFI ? "wifi" : from == PAGE_MUSIC ? "music"
-                        : from == PAGE_PRIVACY ? "privacy" : from == PAGE_SPORTS ? "sports" : from == PAGE_SPORTS_APP ? "app" : "city";
+                        : from == PAGE_PRIVACY ? "privacy" : from == PAGE_SPORTS ? "sports" : from == PAGE_SPORTS_APP ? "app"
+                        : from == PAGE_SPORTS_CHANNEL ? "channel" : "city";
                 for (int i = 0; i < rows.size(); i++) if (rows.get(i).id.equals(id)) focus = i;
                 snapScroll();
             }
@@ -915,6 +941,9 @@ public class CustomizeActivity extends Activity {
                 case PAGE_SPORTS:
                     if (r.id.equals("on")) {
                         Prefs.put(c, "sports_on", !Prefs.sportsOn());
+                    } else if (r.id.equals("channel")) {
+                        open(PAGE_SPORTS_CHANNEL);
+                        break;
                     } else if (r.id.equals("app")) {
                         open(PAGE_SPORTS_APP);
                         String chosen = Prefs.sportsApp();
@@ -928,6 +957,16 @@ public class CustomizeActivity extends Activity {
                     }
                     rebuild();
                     break;
+                case PAGE_SPORTS_CHANNEL: {
+                    int j = r.id.startsWith("ch") ? Integer.parseInt(r.id.substring(2)) : -1;
+                    Prefs.put(c, "sports_channel", j >= 0 ? sportsChannels.get(j)[1] : null);
+                    Prefs.put(c, "sports_channel_name", j >= 0 ? sportsChannels.get(j)[0] : null);
+                    page = PAGE_SPORTS;
+                    rebuild();
+                    for (int k2 = 0; k2 < rows.size(); k2++) if (rows.get(k2).id.equals("channel")) focus = k2;
+                    snapScroll();
+                    break;
+                }
                 case PAGE_SPORTS_APP:
                     Prefs.put(c, "sports_app", r.id.equals(Prefs.FIBE_TV) ? null : r.id);
                     page = PAGE_SPORTS;

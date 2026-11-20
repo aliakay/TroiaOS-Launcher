@@ -246,6 +246,15 @@ final class Prefs {
         return a.isEmpty() ? FIBE_TV : a;
     }
 
+    /** The channel to tune when the game isn't found in the app's row: the app's own link to it ("" = none). */
+    static String sportsChannel() {
+        return string("sports_channel", "");
+    }
+
+    static String sportsChannelName() {
+        return string("sports_channel_name", "");
+    }
+
     // MARK: - Lights: names and hidden lamps (by Lights.Lamp.key), the Hue Bridge and Home Assistant
 
     static String lampName(String key) {

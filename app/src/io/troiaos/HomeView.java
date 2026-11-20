@@ -130,10 +130,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     /** List layout: a column at the right of the names (picture, then title and app beside it). */
     private static final float CONT_COL_X = 1300, CONT_COL_HEAD = 300, CONT_COL_TOP = 330, CONT_COL_PITCH = 132,
             CONT_COL_W = 192, CONT_COL_H = 108, CONT_COL_LAYER_X = 1240, CONT_COL_LAYER_TOP = 240;
-    /** The "Tonight" card (Sports): a glass tile at the right, under the corner buttons. ↑ from the row or the dock. */
+    /** The "Tonight" card (Sports): a glass tile under the weather at the left (top right in the List layout). */
     private static final int Z_TONIGHT = 7;
     /** In 1920 units: its size, its top in each layout, and the layer's margin (shadow, focus growth). */
-    private static final float TN_W = 440, TN_H = 124, TN_TOP = 330, TN_LIST_TOP = 148, TN_PAD = 40;
+    private static final float TN_W = 440, TN_H = 124, TN_TOP = 318, TN_LIST_TOP = 148, TN_PAD = 40;
 
     private final Activity activity;
     private final Scene scene = new Scene();
@@ -629,7 +629,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (listMode) place(contLayer, Math.round(CONT_COL_LAYER_X * kk), Math.round(CONT_COL_LAYER_TOP * kk));
         else place(contLayer, 0, Math.round(CONT_LAYER_TOP * kk));
         place(listLayer, 0, Math.round(250 * kk));
-        place(tonightLayer, Math.round((CONTENT_R - TN_W - TN_PAD) * kk), Math.round(((listMode ? TN_LIST_TOP : TN_TOP) - TN_PAD) * kk));
+        place(tonightLayer, Math.round(((listMode ? CONTENT_R - TN_W : MARGIN) - TN_PAD) * kk), Math.round(((listMode ? TN_LIST_TOP : TN_TOP) - TN_PAD) * kk));
     }
 
     private static void place(View v, int x, int y) {
@@ -2214,7 +2214,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (g != null && Sports.ymd(now, 0).equals(ui.getString("tonight_hidden", ""))) g = null;
         tonightGame = g;
         float top = (listMode ? TN_LIST_TOP : TN_TOP) * k;
-        tonightRect.set((CONTENT_R - TN_W) * k, top, CONTENT_R * k, top + TN_H * k);
+        float left = (listMode ? CONTENT_R - TN_W : MARGIN) * k;
+        tonightRect.set(left, top, left + TN_W * k, top + TN_H * k);
         if (g != null) {
             tonightLive = g.live();
             tnHead = Sports.heading(g, now);
@@ -2251,7 +2252,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         final String pkg = Prefs.sportsApp();
         final Context c = getContext().getApplicationContext();
         new Thread(() -> {
-            String link = g == null ? null : Sports.channelLink(c, pkg, g);
+            String found = g == null ? null : Sports.channelLink(c, pkg, g);
+            if (found == null && !Prefs.sportsChannel().isEmpty()) found = Prefs.sportsChannel();   // chosen in Customize
+            final String link = found;
             handler.post(() -> {
                 if (link != null) {
                     try {
